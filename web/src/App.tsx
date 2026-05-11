@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
