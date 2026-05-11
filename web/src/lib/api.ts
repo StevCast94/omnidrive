@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAccessToken } from './supabase';
 
 export const api = axios.create({
-  baseURL: "https://omnidrive-production.up.railway.app",
+  baseURL: "https://omnidrive-production.up.railway.app/api",
   timeout: 15000,
 });
 
