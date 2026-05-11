@@ -2,7 +2,7 @@
   "name": "omnidrive",
   "private": true,
   "scripts": {
-    "build": "npm ci --ignore-scripts && npx prisma generate; exit 0",
+    "build": "npm ci --ignore-scripts && npx prisma generate && npx prisma db push; exit 0",
     "start": "npx tsx src/index.ts"
   },
   "engines": { "node": ">=20" }
