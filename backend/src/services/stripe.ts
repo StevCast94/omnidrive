@@ -98,8 +98,6 @@ export async function createBookingPayment(
   return intent;
 }
 
-export { stripe, requireStripe };
-
 // Permitir acceso condicional (devuelve undefined si no está configurado)
 export function getStripe(): Stripe | null {
   return stripe;
