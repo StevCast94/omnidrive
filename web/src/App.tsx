@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -57,7 +57,7 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Toaster position="top-center" toastOptions={{ className: 'text-sm font-medium' }} />
       <Routes>
         <Route path="/login"    element={<Login />} />
@@ -75,6 +75,6 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
