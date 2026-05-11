@@ -1,3 +1,4 @@
+// ===== web/src/components/PushBanner.tsx =====
 import { useState } from 'react';
 import { Bell, X } from 'lucide-react';
 import { usePush } from '@/hooks/usePush';
@@ -46,3 +47,4 @@ export default function PushBanner() {
     </div>
   );
 }
+

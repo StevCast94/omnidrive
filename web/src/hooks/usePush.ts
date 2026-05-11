@@ -1,28 +1,22 @@
-import { useState, useEffect } from 'react';
-import { initPush, subscribeToPush } from '@/lib/push';
-import { useAuthStore } from '@/lib/store';
+import { useState } from 'react';
+
+type Permission = 'default' | 'granted' | 'denied';
 
 export function usePush() {
-  const { user } = useAuthStore();
-  const [permission, setPermission] = useState<NotificationPermission>(
-    'Notification' in window ? Notification.permission : 'denied'
+  const [permission] = useState<Permission>(
+    () => (typeof Notification !== 'undefined' ? Notification.permission as Permission : 'denied')
   );
-  const [subscribed, setSubscribed] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    initPush().then(() => {
-      setPermission('Notification' in window ? Notification.permission : 'denied');
-      setSubscribed(Notification.permission === 'granted');
-    });
-  }, [user?.id]);
+  const [subscribed] = useState(
+    () => !!localStorage.getItem('push_subscribed')
+  );
 
   const request = async () => {
-    const sub = await subscribeToPush();
-    const perm = 'Notification' in window ? Notification.permission : 'denied';
-    setPermission(perm);
-    setSubscribed(!!sub);
-    return !!sub;
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        localStorage.setItem('push_subscribed', 'true');
+      }
+    } catch { /* silent */ }
   };
 
   return { permission, subscribed, request };

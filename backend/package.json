@@ -2,18 +2,14 @@
   "name": "omnidrive-backend",
   "version": "1.0.0",
   "private": true,
-  "engines": {
-    "node": ">=20.0.0"
-  },
+  "engines": { "node": ">=20.0.0" },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "npx prisma generate; exit 0",
     "start": "npx tsx src/index.ts",
-    "postinstall": "npx prisma generate 2>/dev/null || true",
     "db:push": "npx prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "test:e2e": "tsx src/tests/e2e.test.ts",
-    "vapid:keys": "node -e \"const wp=require('web-push');console.log(wp.generateVAPIDKeys())\""
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:generate": "npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
