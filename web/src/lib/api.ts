@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAccessToken } from './supabase';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  baseURL: "https://omnidrive-production.up.railway.app",
   timeout: 15000,
 });
 
@@ -88,3 +88,5 @@ export const subscriptions = {
   subscribe: (d: any) => api.post('/subscriptions', d),
   cancel: () => api.put('/subscriptions/cancel'),
 };
+
+

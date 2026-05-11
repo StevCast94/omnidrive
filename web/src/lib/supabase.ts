@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Public (anon) key — safe to expose in frontend
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  "https://rkwbixidpaqweavghfea.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrd2JpeGlkcGFxd2VhdmdoZmVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjYxOTgsImV4cCI6MjA5MzM0MjE5OH0.JnpkukDVuPIvtlBZyHrPFzBReDIVEITrD0uAqGix77U",
 );
 
 /**
@@ -24,3 +24,4 @@ export function onAuthStateChange(cb: (token: string | null) => void) {
     cb(session?.access_token ?? null);
   });
 }
+
