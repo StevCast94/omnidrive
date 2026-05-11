@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd backend && npm ci --omit=dev && npx prisma generate && npx tsc; exit 0"
+    "buildCommand": "cd backend && npm install --ignore-scripts && npx prisma generate && npx prisma db push && npx tsc; exit 0"
   },
   "deploy": {
-    "startCommand": "bash entrypoint.sh",
+    "startCommand": "node backend/dist/index.js",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
