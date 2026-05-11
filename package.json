@@ -1,0 +1,8 @@
+{
+  "name": "omnidrive",
+  "private": true,
+  "scripts": {
+    "build": "cd backend && npm install && npx prisma generate && npx tsc",
+    "start": "bash entrypoint.sh"
+  }
+}
