@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>OmniDrive Test</title>
+</head>
+<body>
+  <h1>OmniDrive</h1>
+  <p>Si ves esto, GitHub Pages funciona.</p>
+  <script>
+    fetch('https://rkwbixidpaqweavghfea.supabase.co/rest/v1/')
+      .then(r => document.body.innerHTML += '<p>Supabase: ' + r.status + '</p>')
+      .catch(e => document.body.innerHTML += '<p>Supabase Error: ' + e.message + '</p>');
+  </script>
+</body>
+</html>
