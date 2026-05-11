@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev":             "vite",
-    "build":           "npm run generate-assets && tsc && vite build",
-    "preview":         "vite preview",
-    "generate-assets": "node scripts/generate-assets.mjs",
-    "lint":            "tsc --noEmit"
+    "dev":      "vite",
+    "build":    "vite build",
+    "preview":  "vite preview"
   },
   "dependencies": {
     "react":                   "^19.0.0",
@@ -25,6 +23,10 @@
     "lucide-react":            "^0.383.0",
     "clsx":                    "^2.1.1",
     "@supabase/supabase-js":   "^2.45.0"
+  },
+  "overrides": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react":             "^19.0.0",
