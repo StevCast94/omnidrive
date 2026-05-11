@@ -6,7 +6,7 @@ echo "=== OmniDrive Start ==="
 
 # Run migrations (non-fatal)
 echo "Running prisma db push..."
-npx prisma db push --accept-data-loss 2>&1 || echo "Migration note: $?"
+npx prisma db push --accept-data-loss 2>&1 || echo "(prisma db push skipped: DATABASE_URL may be missing or migration not applicable)"
 echo "Done."
 
 # Start server
