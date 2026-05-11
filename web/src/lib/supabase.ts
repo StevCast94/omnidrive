@@ -1,27 +1,21 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Public (anon) key — safe to expose in frontend
-export const supabase = createClient(
-  "https://rkwbixidpaqweavghfea.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrd2JpeGlkcGFxd2VhdmdoZmVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjYxOTgsImV4cCI6MjA5MzM0MjE5OH0.JnpkukDVuPIvtlBZyHrPFzBReDIVEITrD0uAqGix77U",
-);
+const SUPABASE_URL = 'https://rkwbixidpaqweavghfea.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrd2JpeGlkcGFxd2VhdmdoZmVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjYxOTgsImV4cCI6MjA5MzM0MjE5OH0.JnpkukDVuPIvtlBZyHrPFzBReDIVEITrD0uAqGix77U';
 
-/**
- * Returns the current session's access token, or null if not signed in.
- * Used by the Axios interceptor to attach Bearer tokens.
- */
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('[OmniDrive] Supabase URL and ANON KEY are required.');
+}
+
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 export async function getAccessToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
 }
 
-/**
- * Listen to auth state changes globally.
- * Call once in main.tsx or App.tsx.
- */
 export function onAuthStateChange(cb: (token: string | null) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => {
     cb(session?.access_token ?? null);
   });
 }
-
