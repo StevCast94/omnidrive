@@ -2,11 +2,19 @@
 import webpush from 'web-push';
 import { prisma } from '../lib/prisma';
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_EMAIL ?? 'admin@omnidrive.ec'}`,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function requireVapid(): void {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    console.warn('[Push] VAPID keys not configured — push notifications disabled');
+    return;
+  }
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPID_EMAIL ?? 'admin@omnidrive.ec'}`,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+let vapidInitialized = false;
 
 interface PushPayload {
   title: string;
@@ -27,6 +35,7 @@ export function removePushSub(userId: string) {
 }
 
 export async function sendPush(userId: string, payload: PushPayload): Promise<boolean> {
+  if (!vapidInitialized) { requireVapid(); vapidInitialized = true; }
   const sub = subStore.get(userId);
   if (!sub) return false;
 
