@@ -1,0 +1,259 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== USER MANAGEMENT ==========
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  phone        String   @unique
+  name         String
+  lastName     String
+  documentType String   // cedula, pasaporte
+  documentId   String   @unique
+  birthDate    DateTime?
+  gender       String?
+
+  // Verificación
+  identityVerified Boolean   @default(false)
+  selfieUrl        String?
+  documentFrontUrl String?
+  documentBackUrl  String?
+  verifiedAt       DateTime?
+
+  // Wallet
+  walletBalance Decimal @default(0) @db.Decimal(10, 2)
+
+  // Suscripción
+  subscriptionTier String    @default("free") // free, premium, elite
+  subscriptionEnds DateTime?
+
+  // Scoring
+  driverScore Int   @default(700)
+  totalTrips  Int   @default(0)
+  totalKm     Float @default(0)
+
+  // Roles
+  role String @default("user") // user, admin
+
+  // Relaciones
+  vehicles      Vehicle[]
+  rentals       Booking[]      @relation("Renter")
+  bookings      Booking[]      @relation("Tenant")
+  reviews       Review[]
+  documents     UserDocument[]
+  notifications Notification[]
+  transactions  Transaction[]
+  subscription  Subscription?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserDocument {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id])
+  type      String    // license, insurance, soat, matricula
+  url       String
+  verified  Boolean   @default(false)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ========== VEHICLE MANAGEMENT ==========
+
+model Vehicle {
+  id      String @id @default(uuid()) @db.Uuid
+  ownerId String @db.Uuid
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  // Identificación
+  brand String
+  model String
+  year  Int
+  plate String @unique
+  color String
+  vin   String @unique
+
+  // Clasificación
+  category     String // car, motorcycle, truck, van, suv, luxury
+  seats        Int
+  doors        Int?
+  transmission String // manual, automatic
+  fuelType     String // gasoline, diesel, electric, hybrid
+
+  // Fotos
+  photos String[]
+
+  // Precios
+  pricePerHour Decimal  @db.Decimal(10, 2)
+  pricePerDay  Decimal  @db.Decimal(10, 2)
+  pricePerKm   Decimal? @db.Decimal(10, 2)
+  deposit      Decimal  @default(0) @db.Decimal(10, 2)
+
+  // Disponibilidad
+  available    Boolean @default(true)
+  locationLat  Float?
+  locationLng  Float?
+  locationName String?
+
+  // Features
+  withDriver  Boolean  @default(false)
+  driverPrice Decimal? @db.Decimal(10, 2)
+
+  // Estado
+  mileage         Int       @default(0)
+  lastMaintenance DateTime?
+  insurance       Boolean   @default(false)
+  insuranceExpires DateTime?
+
+  // Stats
+  totalRentals Int   @default(0)
+  rating       Float @default(0)
+
+  // Metadata
+  restrictions Json?
+  features     String[]
+
+  // Relaciones
+  bookings Booking[]
+  reviews  Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== BOOKING / RENTAL ==========
+
+model Booking {
+  id        String  @id @default(uuid()) @db.Uuid
+  vehicleId String  @db.Uuid
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  tenantId  String  @db.Uuid
+  tenant    User    @relation("Tenant", fields: [tenantId], references: [id])
+  renterId  String? @db.Uuid
+  renter    User?   @relation("Renter", fields: [renterId], references: [id])
+
+  // Schedule
+  startAt    DateTime
+  endAt      DateTime
+  returnedAt DateTime?
+
+  // Driver
+  withDriver Boolean @default(false)
+  driverId   String? @db.Uuid
+
+  // Pricing
+  baseAmount   Decimal @db.Decimal(10, 2)
+  driverFee    Decimal @default(0) @db.Decimal(10, 2)
+  insuranceFee Decimal @default(0) @db.Decimal(10, 2)
+  serviceFee   Decimal @db.Decimal(10, 2)
+  totalAmount  Decimal @db.Decimal(10, 2)
+  deposit      Decimal @db.Decimal(10, 2)
+
+  // Insurance
+  hasInsurance     Boolean @default(false)
+  insuranceDetails Json?
+  liabilityWaiver  Boolean @default(false)
+
+  // Tracking
+  trackingEnabled Boolean @default(false)
+  trackingData    Json?
+
+  // Status
+  status String @default("pending") // pending, confirmed, active, completed, cancelled, disputed
+
+  // Fotos
+  photosBefore String[]
+  photosAfter  String[]
+
+  // Damage
+  damageReport Json?
+
+  // Payment
+  paymentStatus String  @default("pending") // pending, held, released, refunded
+  transactionId String?
+
+  review Review?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== REVIEWS ==========
+
+model Review {
+  id        String  @id @default(uuid()) @db.Uuid
+  bookingId String  @unique @db.Uuid
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  authorId  String  @db.Uuid
+  author    User    @relation(fields: [authorId], references: [id])
+  targetId  String  @db.Uuid
+  vehicleId String? @db.Uuid
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  rating     Int
+  comment    String?
+  categories Json?
+
+  createdAt DateTime @default(now())
+}
+
+// ========== WALLET / TRANSACTIONS ==========
+
+model Transaction {
+  id         String   @id @default(uuid()) @db.Uuid
+  fromUserId String?  @db.Uuid
+  toUserId   String?  @db.Uuid
+  user       User?    @relation(fields: [toUserId], references: [id])
+  bookingId  String?  @db.Uuid
+  type       String   // deposit, withdrawal, payment, refund, commission, subscription
+  amount     Decimal  @db.Decimal(10, 2)
+  fee        Decimal  @default(0) @db.Decimal(10, 2)
+  status     String   @default("pending") // pending, completed, failed, reversed
+  description String?
+  referenceId String?
+
+  createdAt DateTime @default(now())
+}
+
+// ========== SUBSCRIPTIONS ==========
+
+model Subscription {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @unique @db.Uuid
+  user      User   @relation(fields: [userId], references: [id])
+  tier      String // premium, elite
+  price     Decimal @db.Decimal(10, 2)
+  interval  String  // monthly, yearly
+  autoRenew Boolean @default(true)
+  startsAt  DateTime
+  endsAt    DateTime
+  status    String @default("active") // active, cancelled, expired
+  benefits  Json
+
+  createdAt DateTime @default(now())
+}
+
+// ========== NOTIFICATIONS ==========
+
+model Notification {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+  type   String
+  title  String
+  body   String?
+  data   Json?
+  read   Boolean @default(false)
+  pushSent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,42 @@
+{
+  "name": "omnidrive-web",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run generate-assets && tsc && vite build",
+    "preview": "vite preview",
+    "generate-assets": "node scripts/generate-assets.mjs",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stripe/react-stripe-js": "^2.7.1",
+    "@stripe/stripe-js": "^3.4.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "axios": "^1.7.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.383.0",
+    "mapbox-gl": "^3.4.0",
+    "react": "^19.0.0",
+    "react-datepicker": "^6.9.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.4.1",
+    "react-map-gl": "^7.1.7",
+    "react-router-dom": "^6.23.1",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/mapbox-gl": "^3.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "sharp": "^0.33.4",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.4.5",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.20.0"
+  }
+}

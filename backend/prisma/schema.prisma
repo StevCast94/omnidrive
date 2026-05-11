@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String            @id @default(uuid()) @db.Uuid
+  authId            String            @unique @db.Uuid
+  email             String            @unique
+  phone             String            @unique
+  name              String
+  lastName          String
+  documentType      String
+  documentId        String            @unique
+  birthDate         DateTime?
+  gender            String?
+  photo             String?
+  selfieUrl         String?
+  documentFrontUrl  String?
+  walletBalance     Decimal           @default(0) @db.Decimal(10,2)
+  driverScore       Int               @default(600)
+  totalTrips        Int               @default(0)
+  totalKm           Float             @default(0)
+  subscriptionTier  String            @default("basic")
+  subscriptionEnds  DateTime?
+  identityVerified  Boolean           @default(false)
+  verifiedAt        DateTime?
+  role              String            @default("tenant")
+  language          String            @default("es")
+  preferences       Json              @default("{}") @db.JsonB
+  createdAt         DateTime          @default(now()) @db.Timestamptz
+  updatedAt         DateTime          @updatedAt @db.Timestamptz
+
+  documents          UserDocument[]
+  ownedVehicles      Vehicle[]         @relation("VehicleOwner")
+  bookings           Booking[]         @relation("BookingTenant")
+  notifications      Notification[]
+  reviews            Review[]          @relation("ReviewAuthor")
+  reviewsReceived    Review[]          @relation("ReviewUser")
+  pushSubscriptions  PushSubscription[]
+  subscription       Subscription?
+}
+
+model UserDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  type       String
+  front      String
+  back       String?
+  status     String    @default("pending")
+  notes      String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vehicle {
+  id               String    @id @default(uuid()) @db.Uuid
+  ownerId          String    @db.Uuid
+  brand            String
+  model            String
+  year             Int
+  plate            String    @unique
+  color            String?
+  vin              String?   @unique
+  category         String    @default("car")
+  doors            Int       @default(4)
+  seats            Int       @default(5)
+  transmission     String    @default("manual")
+  fuelType         String    @default("gasoline")
+  pricePerHour     Decimal   @db.Decimal(10,2)
+  pricePerDay      Decimal   @db.Decimal(10,2)
+  deposit          Decimal   @db.Decimal(10,2)
+  locationLat      Float
+  locationLng      Float
+  locationName     String    @default("")
+  insurance        Boolean   @default(false)
+  insuranceDetails String?
+  withDriver       Boolean   @default(false)
+  driverPrice      Decimal?  @db.Decimal(10,2)
+  features         Json      @default("[]") @db.JsonB
+  photos           Json      @default("[]") @db.JsonB
+  restrictions     String?
+  rating           Float     @default(0)
+  totalRentals     Int       @default(0)
+  status           String    @default("available")
+  createdAt        DateTime  @default(now()) @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @db.Timestamptz
+
+  owner    User      @relation("VehicleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+  reviews  Review[]  @relation("ReviewVehicle")
+}
+
+model Booking {
+  id               String    @id @default(uuid()) @db.Uuid
+  vehicleId        String    @db.Uuid
+  tenantId         String    @db.Uuid
+  renterId         String?   @db.Uuid
+  withDriver       Boolean   @default(false)
+  startAt          DateTime  @db.Timestamptz
+  endAt            DateTime  @db.Timestamptz
+  status           String    @default("pending")
+  totalPrice       Decimal   @db.Decimal(10,2)
+  baseAmount       Decimal?  @db.Decimal(10,2)
+  driverFee        Decimal?  @db.Decimal(10,2)
+  serviceFee       Decimal?  @db.Decimal(10,2)
+  totalAmount      Decimal?  @db.Decimal(10,2)
+  deposit          Decimal?  @db.Decimal(10,2)
+  depositAmount    Decimal   @default(0) @db.Decimal(10,2)
+  paymentMethod    String    @default("wallet")
+  paymentStatus    String    @default("pending")
+  paidAt           DateTime? @db.Timestamptz
+  depositedAt      DateTime? @db.Timestamptz
+  refundedAt       DateTime? @db.Timestamptz
+  returnedAt       DateTime? @db.Timestamptz
+  cancelledAt      DateTime? @db.Timestamptz
+  cancelReason     String?
+  liabilityWaiver  Boolean   @default(false)
+  insuranceDetails String?
+  rating           Int?
+  review           String?
+  reviewedAt       DateTime? @db.Timestamptz
+  ownerRating      Int?
+  ownerReview      String?
+  trackingEnabled  Boolean   @default(false)
+  trackingData     Json?
+  photosBefore     String?
+  photosAfter      String?
+  damageReport     Json?
+  transactionId    String?   @db.Uuid
+  createdAt        DateTime  @default(now()) @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @db.Timestamptz
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  tenant  User    @relation("BookingTenant", fields: [tenantId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  authorId   String   @db.Uuid
+  bookingId  String   @db.Uuid
+  vehicleId  String?  @db.Uuid
+  targetId   String?  @db.Uuid
+  rating     Int
+  comment    String?
+  categories Json     @default("[]") @db.JsonB
+  tags       Json     @default("[]") @db.JsonB
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  author  User     @relation("ReviewAuthor", fields: [authorId], references: [id])
+  user    User     @relation("ReviewUser", fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation("ReviewVehicle", fields: [vehicleId], references: [id])
+}
+
+model Transaction {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  fromUserId    String?   @db.Uuid
+  toUserId      String?   @db.Uuid
+  type          String
+  amount        Decimal   @db.Decimal(10,2)
+  fee           Decimal   @default(0) @db.Decimal(10,2)
+  paymentMethod String    @default("wallet")
+  externalId    String?
+  referenceId   String?
+  bookingId     String?   @db.Uuid
+  description   String?
+  status        String    @default("pending")
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+
+  user User @relation("TransactionUser", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  tier      String   @default("basic")
+  price     Decimal  @default(0) @db.Decimal(10,2)
+  interval  String   @default("monthly")
+  startsAt  DateTime @default(now()) @db.Timestamptz
+  endsAt    DateTime @db.Timestamptz
+  status    String   @default("active")
+  autoRenew Boolean  @default(true)
+  benefits  Json     @default("[]") @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  pushSent  Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  endpoint  String
+  keys      Json     @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+}
