@@ -2,8 +2,8 @@
   "name": "omnidrive",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install && npx prisma generate && npx prisma db push && npx tsc --noEmitOnError false; exit 0",
-    "start": "node backend/dist/index.js"
+    "build": "cd backend && npm ci --ignore-scripts && npm run build",
+    "start": "cd backend && npx tsx src/index.ts"
   },
   "engines": { "node": ">=20" }
 }
