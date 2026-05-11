@@ -41,6 +41,7 @@ model User {
   notifications      Notification[]
   reviews            Review[]          @relation("ReviewAuthor")
   reviewsReceived    Review[]          @relation("ReviewUser")
+  transactions       Transaction[]      @relation("TransactionUser")
   pushSubscriptions  PushSubscription[]
   subscription       Subscription?
 }
