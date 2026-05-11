@@ -1,40 +1,44 @@
+// ===== web/src/lib/api.ts =====
 import axios from 'axios';
-import { supabase } from './supabase';
+import { getAccessToken } from './supabase';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
   timeout: 15000,
 });
 
-// Inject Supabase session token
+// Attach Supabase access token to every request
 api.interceptors.request.use(async cfg => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) cfg.headers.Authorization = `Bearer ${session.access_token}`;
+  const token = await getAccessToken();
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
 });
 
 api.interceptors.response.use(
   r => r,
   async err => {
+    // Token expired — Supabase auto-refreshes; retry once
     if (err.response?.status === 401) {
-      await supabase.auth.signOut();
-      localStorage.removeItem('od_user');
+      const { supabase } = await import('./supabase');
+      const { data: { session } } = await supabase.auth.refreshSession();
+      if (session?.access_token) {
+        err.config.headers.Authorization = `Bearer ${session.access_token}`;
+        return axios(err.config);
+      }
+      // Refresh failed — redirect to login
       window.location.href = '/login';
     }
     return Promise.reject(err);
   }
 );
 
-// Typed API helpers
+// Typed helpers
 export const auth = {
   register: (d: any) => api.post('/auth/register', d),
-  login: (token: string) => api.post('/auth/login', { token }),
+  login: (d: any) => api.post('/auth/login', d),
   me: () => api.get('/auth/me'),
   updateMe: (d: any) => api.put('/auth/me', d),
-  verifyIdentity: (fd: FormData) =>
-    api.post('/auth/verify-identity', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  verifyIdentity: (fd: FormData) => api.post('/auth/verify-identity', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 export const vehicles = {
@@ -43,12 +47,8 @@ export const vehicles = {
   create: (d: any) => api.post('/vehicles', d),
   update: (id: string, d: any) => api.put(`/vehicles/${id}`, d),
   remove: (id: string) => api.delete(`/vehicles/${id}`),
-  uploadPhotos: (id: string, fd: FormData) =>
-    api.post(`/vehicles/${id}/photos`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  setAvailability: (id: string, available: boolean) =>
-    api.put(`/vehicles/${id}/availability`, { available }),
+  uploadPhotos: (id: string, fd: FormData) => api.post(`/vehicles/${id}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  setAvailability: (id: string, available: boolean) => api.put(`/vehicles/${id}/availability`, { available }),
 };
 
 export const bookings = {
@@ -59,16 +59,9 @@ export const bookings = {
   cancel: (id: string) => api.put(`/bookings/${id}/cancel`),
   start: (id: string, pin?: string) => api.put(`/bookings/${id}/start`, { pin }),
   end: (id: string) => api.put(`/bookings/${id}/end`),
-  uploadPhotosBefore: (id: string, fd: FormData) =>
-    api.put(`/bookings/${id}/photos-before`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  uploadPhotosAfter: (id: string, fd: FormData) =>
-    api.put(`/bookings/${id}/photos-after`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  dispute: (id: string, description: string) =>
-    api.post(`/bookings/${id}/dispute`, { description }),
+  uploadPhotosBefore: (id: string, fd: FormData) => api.put(`/bookings/${id}/photos-before`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadPhotosAfter: (id: string, fd: FormData) => api.put(`/bookings/${id}/photos-after`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  dispute: (id: string, description: string) => api.post(`/bookings/${id}/dispute`, { description }),
 };
 
 export const payments = {
@@ -77,8 +70,7 @@ export const payments = {
   withdraw: (d: any) => api.post('/payments/withdraw', d),
   hold: (bookingId: string) => api.post(`/payments/hold/${bookingId}`),
   release: (bookingId: string) => api.post(`/payments/release/${bookingId}`),
-  refund: (bookingId: string, amount?: number) =>
-    api.post(`/payments/refund/${bookingId}`, { amount }),
+  refund: (bookingId: string, amount?: number) => api.post(`/payments/refund/${bookingId}`, { amount }),
 };
 
 export const tracking = {

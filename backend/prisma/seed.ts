@@ -3,37 +3,40 @@ import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 
-// Reuse the same Supabase project as Matrix
-const supabaseAdmin = createClient(
+// Admin client to create Supabase Auth users
+const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+/** Create a Supabase Auth user and return the auth UUID */
 async function createAuthUser(email: string, password: string, phone: string) {
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+  // Delete if already exists (idempotent seed)
+  const { data: existing } = await supabase.auth.admin.listUsers();
+  const found = existing?.users?.find(u => u.email === email);
+  if (found) {
+    await supabase.auth.admin.deleteUser(found.id);
+  }
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     phone,
     email_confirm: true,
-    phone_confirm: true,
   });
-  if (error || !data.user) throw new Error(`Auth creation failed for ${email}: ${error?.message}`);
-  return data.user.id;
+  if (error || !data.user)
+    throw new Error(`Auth user creation failed for ${email}: ${error?.message}`);
+  return data.user.id; // Supabase UUID
 }
 
 async function main() {
-  console.log('🌱 Seeding OmniDrive...\n');
+  console.log('🌱 Seeding OmniDrive...');
 
-  // ── Create auth users in Supabase first ─────────────────
-  const adminAuthId  = await createAuthUser('admin@omnidrive.ec', 'Admin1234!', '+593900000000');
-  const ownerAuthId  = await createAuthUser('carlos@demo.ec', 'Owner1234!', '+593991111111');
-  const tenantAuthId = await createAuthUser('sofia@demo.ec', 'Tenant1234!', '+593992222222');
-
-  // ── Admin ──────────────────────────────────────────────
+  // ── Admin ────────────────────────────────────────────────
+  const adminAuthId = await createAuthUser('admin@omnidrive.ec', 'Admin1234!', '+593900000000');
   const admin = await prisma.user.upsert({
     where: { email: 'admin@omnidrive.ec' },
-    update: {},
+    update: { authId: adminAuthId },
     create: {
       authId: adminAuthId,
       email: 'admin@omnidrive.ec',
@@ -51,10 +54,11 @@ async function main() {
   });
   console.log('  ✓ Admin:', admin.email);
 
-  // ── Owner demo ─────────────────────────────────────────
+  // ── Owner demo ───────────────────────────────────────────
+  const ownerAuthId = await createAuthUser('carlos@demo.ec', 'Owner1234!', '+593991111111');
   const owner = await prisma.user.upsert({
     where: { email: 'carlos@demo.ec' },
-    update: {},
+    update: { authId: ownerAuthId },
     create: {
       authId: ownerAuthId,
       email: 'carlos@demo.ec',
@@ -70,12 +74,13 @@ async function main() {
       totalTrips: 14,
     },
   });
-  console.log('  ✓ Owner:', owner.email);
+  console.log('  ✓ Owner demo:', owner.email);
 
-  // ── Tenant demo ────────────────────────────────────────
+  // ── Tenant demo ──────────────────────────────────────────
+  const tenantAuthId = await createAuthUser('sofia@demo.ec', 'Tenant1234!', '+593992222222');
   const tenant = await prisma.user.upsert({
     where: { email: 'sofia@demo.ec' },
-    update: {},
+    update: { authId: tenantAuthId },
     create: {
       authId: tenantAuthId,
       email: 'sofia@demo.ec',
@@ -92,10 +97,10 @@ async function main() {
       totalTrips: 6,
     },
   });
-  console.log('  ✓ Tenant:', tenant.email);
+  console.log('  ✓ Tenant demo:', tenant.email);
 
-  // ── Vehicles ───────────────────────────────────────────
-  const vehicles = [
+  // ── Vehicles ─────────────────────────────────────────────
+  const vehicleData = [
     {
       brand: 'Toyota', model: 'Corolla', year: 2023, plate: 'PBG-1234',
       color: 'Blanco perla', vin: 'JTDBU4EE1A9012345',
@@ -135,6 +140,7 @@ async function main() {
       category: 'luxury', seats: 5, transmission: 'automatic', fuelType: 'gasoline',
       pricePerHour: 25.00, pricePerDay: 180.00, deposit: 500.00,
       locationLat: -0.1900, locationLng: -78.4850, locationName: 'González Suárez, Quito',
+      withDriver: true, driverPrice: 40.00,
       insurance: true, features: ['ac', 'gps', 'bluetooth', 'usb', 'leather', 'sunroof'],
       photos: ['https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800'],
       rating: 5.0, totalRentals: 8,
@@ -162,18 +168,27 @@ async function main() {
     },
   ];
 
-  for (const v of vehicles) {
-    const { features, photos, rating, totalRentals, ...rest } = v;
-    const existing = await prisma.vehicle.findUnique({ where: { plate: v.plate } });
-    if (!existing) {
-      await prisma.vehicle.create({
-        data: { ...rest, ownerId: owner.id, features: features ?? [], photos: photos ?? [] },
-      });
-    }
+  for (const v of vehicleData) {
+    const { features, photos, rating, totalRentals, withDriver, driverPrice, insurance, ...base } = v;
+    await prisma.vehicle.upsert({
+      where: { plate: v.plate },
+      update: {},
+      create: {
+        ...base,
+        ownerId: owner.id,
+        features: features ?? [],
+        photos: photos ?? [],
+        rating: rating ?? 0,
+        totalRentals: totalRentals ?? 0,
+        withDriver: withDriver ?? false,
+        driverPrice: driverPrice ?? undefined,
+        insurance: insurance ?? false,
+      } as any,
+    });
     console.log(`  ✓ Vehicle: ${v.brand} ${v.model} (${v.plate})`);
   }
 
-  // ── Demo subscription ──────────────────────────────────
+  // ── Demo subscription for tenant ─────────────────────────
   const now = new Date();
   const endsAt = new Date(now);
   endsAt.setMonth(endsAt.getMonth() + 1);
@@ -189,26 +204,42 @@ async function main() {
       startsAt: now,
       endsAt,
       status: 'active',
-      benefits: ['Pagos P2P con wallet interna', 'Sin comisión en primeras 3 reservas/mes', 'Soporte prioritario', 'Tracking GPS incluido', 'Insignia Premium en perfil'],
+      benefits: [
+        'Pagos P2P con wallet interna',
+        'Sin comisión en primeras 3 reservas/mes',
+        'Soporte prioritario',
+        'Tracking GPS incluido',
+        'Insignia Premium en perfil',
+      ],
     },
   });
   console.log('  ✓ Subscription: Premium para Sofía');
 
-  // ── Welcome notifications ──────────────────────────────
+  // ── Welcome notifications ─────────────────────────────────
   await prisma.notification.createMany({
     data: [
-      { userId: owner.id, type: 'welcome', title: '🎉 Bienvenido a OmniDrive', body: 'Tus vehículos ya están publicados. ¡Empieza a recibir reservas!' },
-      { userId: tenant.id, type: 'welcome', title: '🎉 Bienvenida a OmniDrive', body: 'Tu cuenta Premium está activa. Explora los vehículos disponibles.' },
+      {
+        userId: owner.id,
+        type: 'welcome',
+        title: '🎉 Bienvenido a OmniDrive',
+        body: 'Tus vehículos ya están publicados. ¡Empieza a recibir reservas!',
+      },
+      {
+        userId: tenant.id,
+        type: 'welcome',
+        title: '🎉 Bienvenida a OmniDrive',
+        body: 'Tu cuenta Premium está activa. Explora los vehículos disponibles.',
+      },
     ],
     skipDuplicates: true,
   });
 
   console.log('\n🎉 Seed completo!');
-  console.log('─────────────────────────────────────────');
+  console.log('─────────────────────────────────');
   console.log('  Admin:   admin@omnidrive.ec  / Admin1234!');
   console.log('  Owner:   carlos@demo.ec      / Owner1234!');
   console.log('  Tenant:  sofia@demo.ec       / Tenant1234!');
-  console.log('─────────────────────────────────────────');
+  console.log('─────────────────────────────────');
 }
 
 main()

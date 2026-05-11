@@ -1,3 +1,4 @@
+// ===== web/src/pages/Register.tsx =====
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car } from 'lucide-react';
@@ -21,27 +22,22 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Registrar via backend (crea user en Supabase Auth + perfil OmniDrive)
-      const { data: res } = await auth.register(form);
+      // 1. Backend creates Supabase Auth user + our DB row
+      const { data: regRes } = await auth.register(form);
+      if (!regRes.data?.user) throw new Error('Registration failed');
 
-      toast.success(res.data.message ?? '¡Cuenta creada!');
-
-      // 2. Iniciar sesión automáticamente en Supabase Auth
-      const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
+      // 2. Sign in immediately to get the session token
+      const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
       });
+      if (sbErr || !sbData.session) throw new Error(sbErr?.message ?? 'Auto-login failed');
 
-      if (loginError) throw new Error(loginError.message);
+      // 3. Fetch full profile
+      const { data: meRes } = await auth.me();
+      setUser(meRes.data);
 
-      // 3. Obtener perfil local con el token de Supabase
-      const token = authData.session?.access_token;
-      if (token) {
-        const { data: profile } = await auth.login(token);
-        setUser(profile.data.user);
-      }
-
-      toast.success('Verifica tu identidad para publicar vehículos.');
+      toast.success('¡Cuenta creada! Verifica tu identidad para publicar vehículos.');
       navigate('/profile');
     } catch (err: any) {
       toast.error(err.response?.data?.error ?? err.message ?? 'Error al registrarse');
@@ -51,12 +47,12 @@ export default function Register() {
   };
 
   const field = (label: string, key: string, type = 'text', placeholder = '') => (
-    <div>
+    <div key={key}>
       <label className="block text-sm font-medium text-slate-300 mb-1.5">{label}</label>
       <input
         type={type} required value={(form as any)[key]} placeholder={placeholder}
         onChange={e => set(key, e.target.value)}
-        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
       />
     </div>
   );
@@ -66,8 +62,8 @@ export default function Register() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 text-2xl font-bold text-white mb-2">
-            <Car className="text-indigo-400" size={28} />
-            Omni<span className="text-indigo-400">Drive</span>
+            <Car className="text-cyan-400" size={28} />
+            Omni<span className="text-cyan-400">Drive</span>
           </div>
           <p className="text-slate-400 text-sm">Crea tu cuenta gratis</p>
         </div>
@@ -86,7 +82,7 @@ export default function Register() {
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Tipo de documento</label>
             <select
               value={form.documentType} onChange={e => set('documentType', e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
             >
               <option value="cedula">Cédula de identidad</option>
               <option value="pasaporte">Pasaporte</option>
@@ -96,7 +92,7 @@ export default function Register() {
 
           <button
             type="submit" disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors"
+            className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors"
           >
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
@@ -104,9 +100,10 @@ export default function Register() {
 
         <p className="text-center text-sm text-slate-500 mt-6">
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-indigo-400 hover:text-indigo-300">Inicia sesión</Link>
+          <Link to="/login" className="text-cyan-400 hover:text-cyan-300">Inicia sesión</Link>
         </p>
       </div>
     </div>
   );
 }
+

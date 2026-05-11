@@ -1,3 +1,4 @@
+// ===== web/src/pages/Login.tsx =====
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car } from 'lucide-react';
@@ -16,25 +17,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Autenticar con Supabase Auth
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
+      // 1. Sign in with Supabase — session stored automatically by the SDK
+      const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
       });
+      if (sbErr || !sbData.session) throw new Error(sbErr?.message ?? 'Login failed');
 
-      if (error) throw new Error(error.message);
+      // 2. Fetch our app profile (token is now attached by api interceptor)
+      const { data: res } = await auth.me();
+      setUser(res.data);
 
-      const token = authData.session?.access_token;
-      if (!token) throw new Error('No se recibió token de autenticación');
-
-      // 2. Obtener perfil local de OmniDrive
-      const { data: res } = await auth.login(token);
-      setUser(res.data.user);
-
-      toast.success(`Bienvenido, ${res.data.user.name}!`);
+      toast.success(`Bienvenido, ${res.data.name}!`);
       navigate('/dashboard');
     } catch (err: any) {
-      toast.error(err.response?.data?.error ?? err.message ?? 'Error al iniciar sesión');
+      toast.error(err.message ?? 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -45,8 +42,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 text-2xl font-bold text-white mb-2">
-            <Car className="text-indigo-400" size={28} />
-            Omni<span className="text-indigo-400">Drive</span>
+            <Car className="text-cyan-400" size={28} />
+            Omni<span className="text-cyan-400">Drive</span>
           </div>
           <p className="text-slate-400 text-sm">Inicia sesión en tu cuenta</p>
         </div>
@@ -57,7 +54,7 @@ export default function Login() {
             <input
               type="email" required value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
               placeholder="tu@email.com"
             />
           </div>
@@ -66,13 +63,13 @@ export default function Login() {
             <input
               type="password" required value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit" disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors"
+            className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors"
           >
             {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </button>
@@ -80,7 +77,7 @@ export default function Login() {
 
         <p className="text-center text-sm text-slate-500 mt-6">
           ¿No tienes cuenta?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300">Regístrate</Link>
+          <Link to="/register" className="text-cyan-400 hover:text-cyan-300">Regístrate</Link>
         </p>
       </div>
     </div>

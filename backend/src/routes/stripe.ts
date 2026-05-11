@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { stripe } from '../services/stripe';
+import { requireStripe } from '../services/stripe';
 import { prisma } from '../lib/prisma';
 
 export const stripeRouter = Router();
@@ -15,7 +15,8 @@ stripeRouter.post(
 
     let event: any;
     try {
-      event = stripe.webhooks.constructEvent(req.body, sig as string, secret);
+      const s = requireStripe();
+      event = s.webhooks.constructEvent(req.body, sig as string, secret);
     } catch (e: any) {
       console.error('[Stripe] Webhook signature failed:', e.message);
       return res.status(400).send(`Webhook error: ${e.message}`);

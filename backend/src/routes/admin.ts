@@ -45,14 +45,14 @@ adminRouter.get('/users', async (req: AuthRequest, res: Response) => {
 adminRouter.put('/users/:id/verify', async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { identityVerified: true, verifiedAt: new Date() },
       select: { id: true, name: true, email: true, identityVerified: true, verifiedAt: true },
     });
 
     await prisma.notification.create({
       data: {
-        userId: (req.params.id as string),
+        userId: req.params.id,
         type: 'identity_verified',
         title: '✅ Identidad verificada',
         body: 'Tu identidad fue verificada. ¡Ya puedes publicar vehículos!',
@@ -149,7 +149,7 @@ adminRouter.put('/disputes/:id/resolve', async (req: AuthRequest, res: Response)
 
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -162,7 +162,7 @@ adminRouter.put('/disputes/:id/resolve', async (req: AuthRequest, res: Response)
     }
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: {
         status: 'completed',
         damageReport: {

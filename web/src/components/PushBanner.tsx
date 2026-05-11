@@ -4,13 +4,16 @@ import { usePush } from '@/hooks/usePush';
 
 export default function PushBanner() {
   const { permission, subscribed, request } = usePush();
-  const [dismissed, setDismissed] = useState(() => !!localStorage.getItem('push_dismissed'));
+  const [dismissed, setDismissed] = useState(
+    () => !!localStorage.getItem('push_dismissed')
+  );
 
   const dismiss = () => {
     localStorage.setItem('push_dismissed', '1');
     setDismissed(true);
   };
 
+  // Don't show if: already subscribed, permission denied, or dismissed
   if (subscribed || permission === 'denied' || dismissed) return null;
 
   return (

@@ -1,18 +1,19 @@
+// ===== web/src/components/NotificationBell.tsx =====
 import { useState, useRef, useEffect } from 'react';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, Check, CheckCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const TYPE_EMOJI: Record<string, string> = {
-  booking_request: '🚗',
+  booking_request:   '🚗',
   booking_confirmed: '✅',
-  booking_active: '🚀',
+  booking_active:    '🚀',
   booking_completed: '🏁',
-  review_received: '⭐',
-  dispute_opened: '⚠️',
-  dispute_resolved: '⚖️',
+  review_received:   '⭐',
+  dispute_opened:    '⚠️',
+  dispute_resolved:  '⚖️',
   identity_verified: '🪪',
-  payment_received: '💰',
+  payment_received:  '💰',
 };
 
 export default function NotificationBell() {
@@ -21,10 +22,9 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Close on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
+    const handler = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -51,6 +51,7 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-11 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <p className="text-sm font-semibold text-white">Notificaciones</p>
             {unread > 0 && (
@@ -59,6 +60,8 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
+
+          {/* List */}
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-sm">Sin notificaciones</div>

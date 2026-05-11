@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import NotificationBell from './NotificationBell';
 import clsx from 'clsx';
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore();
+  const { user, clearUser } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();  // clears Supabase session
+    clearUser();                    // clears Zustand store
     navigate('/login');
   };
 
@@ -28,14 +31,20 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 inset-x-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo */}
         <Link to="/" className="flex items-center h-8">
           <img
-            src="/icons/logo.svg" alt="OmniDrive" width={160} height={32} className="h-8 w-auto"
+            src="/logo.svg"
+            alt="OmniDrive"
+            width={160}
+            height={32}
+            className="h-8 w-auto"
             onError={e => {
+              // Fallback to text if SVG not yet generated
               const el = e.currentTarget;
               el.style.display = 'none';
               el.insertAdjacentHTML('afterend',
-                '<span class="font-bold text-xl text-white">Omni<span class="text-indigo-400">Drive</span></span>'
+                '<span class="font-bold text-xl text-white">Omni<span class="text-cyan-400">Drive</span></span>'
               );
             }}
           />
@@ -44,10 +53,14 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-6">
           {links.map(l => (
-            <Link key={l.to} to={l.to}
-              className={clsx('text-sm font-medium transition-colors',
+            <Link
+              key={l.to}
+              to={l.to}
+              className={clsx(
+                'text-sm font-medium transition-colors',
                 location.pathname.startsWith(l.to) ? 'text-indigo-400' : 'text-slate-300 hover:text-white'
-              )}>
+              )}
+            >
               {l.label}
             </Link>
           ))}
@@ -60,7 +73,8 @@ export default function Navbar() {
               <span className="text-sm text-slate-400">
                 ${Number(user.walletBalance).toFixed(2)}
               </span>
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-bold">
+              <NotificationBell />
+              <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-sm font-bold">
                 {user.name[0]}{user.lastName[0]}
               </div>
               <button onClick={handleLogout} className="text-slate-400 hover:text-white transition-colors">
@@ -70,7 +84,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/login" className="text-sm text-slate-300 hover:text-white transition-colors">Iniciar sesión</Link>
-              <Link to="/register" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors">
+              <Link to="/register" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-medium transition-colors">
                 Registrarse
               </Link>
             </>

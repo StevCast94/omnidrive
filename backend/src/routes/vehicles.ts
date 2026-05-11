@@ -93,7 +93,7 @@ vehiclesRouter.get('/', async (req: AuthRequest, res: Response) => {
 vehiclesRouter.get('/:id', async (req, res: Response) => {
   try {
     const vehicle = await prisma.vehicle.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: {
         owner: { select: { id: true, name: true, lastName: true, driverScore: true, totalTrips: true, identityVerified: true, createdAt: true } },
         reviews: { include: { author: { select: { id: true, name: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, take: 10 },
@@ -106,7 +106,7 @@ vehiclesRouter.get('/:id', async (req, res: Response) => {
     const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const bookings = await prisma.booking.findMany({
       where: {
-        vehicleId: (req.params.id as string),
+        vehicleId: req.params.id,
         status: { in: ['confirmed', 'active'] },
         startAt: { lte: in30 },
         endAt: { gte: now },
@@ -164,13 +164,13 @@ vehiclesRouter.post('/', authenticate, requireVerified, async (req: AuthRequest,
 // PUT /api/vehicles/:id
 vehiclesRouter.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: (req.params.id as string) } });
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
     if (!vehicle) return res.status(404).json({ data: null, error: 'Vehicle not found' });
     if (vehicle.ownerId !== req.user!.id && req.user!.role !== 'admin')
       return res.status(403).json({ data: null, error: 'Not authorized' });
 
     const updated = await prisma.vehicle.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: req.body,
     });
     return res.json({ data: updated, error: null });
@@ -182,12 +182,12 @@ vehiclesRouter.put('/:id', authenticate, async (req: AuthRequest, res: Response)
 // DELETE /api/vehicles/:id
 vehiclesRouter.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: (req.params.id as string) } });
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
     if (!vehicle) return res.status(404).json({ data: null, error: 'Vehicle not found' });
     if (vehicle.ownerId !== req.user!.id && req.user!.role !== 'admin')
       return res.status(403).json({ data: null, error: 'Not authorized' });
 
-    await prisma.vehicle.delete({ where: { id: (req.params.id as string) } });
+    await prisma.vehicle.delete({ where: { id: req.params.id } });
     return res.json({ data: { deleted: true }, error: null });
   } catch (e: any) {
     return res.status(500).json({ data: null, error: e.message });
@@ -200,7 +200,7 @@ vehiclesRouter.post(
   authenticate,
   upload.array('photos', 10),
   async (req: AuthRequest, res: Response) => {
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: (req.params.id as string) } });
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
     if (!vehicle) return res.status(404).json({ data: null, error: 'Vehicle not found' });
     if (vehicle.ownerId !== req.user!.id)
       return res.status(403).json({ data: null, error: 'Not authorized' });
@@ -210,10 +210,10 @@ vehiclesRouter.post(
 
     try {
       const urls = await Promise.all(
-        files.map((f, i) => uploadToStorage(`vehicles/${(req.params.id as string)}/photo-${Date.now()}-${i}`, f))
+        files.map((f, i) => uploadToStorage(`vehicles/${req.params.id}/photo-${Date.now()}-${i}`, f))
       );
       const updated = await prisma.vehicle.update({
-        where: { id: (req.params.id as string) },
+        where: { id: req.params.id },
         data: { photos: { push: urls } },
       });
       return res.json({ data: { photos: updated.photos }, error: null });
@@ -225,14 +225,14 @@ vehiclesRouter.post(
 
 // PUT /api/vehicles/:id/availability
 vehiclesRouter.put('/:id/availability', authenticate, async (req: AuthRequest, res: Response) => {
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: (req.params.id as string) } });
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
   if (!vehicle) return res.status(404).json({ data: null, error: 'Vehicle not found' });
   if (vehicle.ownerId !== req.user!.id)
     return res.status(403).json({ data: null, error: 'Not authorized' });
 
   try {
     const updated = await prisma.vehicle.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { available: req.body.available },
     });
     return res.json({ data: { available: updated.available }, error: null });

@@ -84,7 +84,7 @@ reviewsRouter.post('/', authenticate, async (req: AuthRequest, res: Response) =>
 reviewsRouter.get('/:userId', async (req: Request, res: Response) => {
   try {
     const reviews = await prisma.review.findMany({
-      where: { targetId: (req.params.userId as string) },
+      where: { targetId: req.params.userId },
       include: {
         author: { select: { id: true, name: true, lastName: true } },
         vehicle: { select: { id: true, brand: true, model: true, year: true } },

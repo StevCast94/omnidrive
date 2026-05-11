@@ -1,33 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../lib/supabase';
 import { prisma } from '../lib/prisma';
+import { supabase } from '../lib/supabase';
 
 export interface AuthRequest extends Request {
   user?: { id: string; role: string; email: string };
 }
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ data: null, error: 'No token provided' });
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ data: null, error: 'No token provided' });
 
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  // Validate token with Supabase Auth
+  const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
+  if (error || !authUser)
+    return res.status(401).json({ data: null, error: 'Invalid or expired token' });
 
-  try {
-    const { data: { user: supabaseUser }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !supabaseUser) return res.status(401).json({ data: null, error: 'Invalid token' });
+  // Look up our app user by Supabase auth UUID
+  const user = await prisma.user.findUnique({
+    where: { authId: authUser.id },
+    select: { id: true, role: true, email: true },
+  });
+  if (!user) return res.status(401).json({ data: null, error: 'User profile not found' });
 
-    const localUser = await prisma.user.findUnique({
-      where: { authId: supabaseUser.id },
-      select: { id: true, role: true, email: true },
-    });
-
-    if (!localUser) return res.status(401).json({ data: null, error: 'User not registered in OmniDrive' });
-
-    req.user = localUser;
-    next();
-  } catch {
-    return res.status(401).json({ data: null, error: 'Auth verification failed' });
-  }
+  req.user = user;
+  next();
 };
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {

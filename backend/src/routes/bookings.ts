@@ -53,7 +53,7 @@ bookingsRouter.get('/', authenticate, async (req: AuthRequest, res: Response) =>
 bookingsRouter.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: {
         vehicle: { include: { owner: { select: { id: true, name: true, lastName: true, phone: true } } } },
         tenant: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true } },
@@ -156,7 +156,7 @@ bookingsRouter.post('/', authenticate, async (req: AuthRequest, res: Response) =
 bookingsRouter.put('/:id/confirm', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -174,7 +174,7 @@ bookingsRouter.put('/:id/confirm', authenticate, async (req: AuthRequest, res: R
     }
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { status: 'confirmed', insuranceDetails },
     });
 
@@ -198,7 +198,7 @@ bookingsRouter.put('/:id/confirm', authenticate, async (req: AuthRequest, res: R
 bookingsRouter.put('/:id/cancel', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -210,7 +210,7 @@ bookingsRouter.put('/:id/cancel', authenticate, async (req: AuthRequest, res: Re
       return res.status(400).json({ data: null, error: 'Cannot cancel an active or completed booking' });
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { status: 'cancelled', paymentStatus: booking.paymentStatus === 'held' ? 'refunded' : booking.paymentStatus },
     });
 
@@ -230,7 +230,7 @@ bookingsRouter.put('/:id/start', authenticate, async (req: AuthRequest, res: Res
   const { pin } = req.body;
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -243,7 +243,7 @@ bookingsRouter.put('/:id/start', authenticate, async (req: AuthRequest, res: Res
       return res.status(400).json({ data: null, error: 'Invalid PIN' });
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { status: 'active', trackingEnabled: true },
     });
 
@@ -270,10 +270,10 @@ bookingsRouter.put('/:id/photos-before', authenticate, upload.array('photos', 10
 
   try {
     const urls = await Promise.all(files.map((f, i) =>
-      uploadToStorage(`bookings/${(req.params.id as string)}/before-${Date.now()}-${i}`, f)
+      uploadToStorage(`bookings/${req.params.id}/before-${Date.now()}-${i}`, f)
     ));
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { photosBefore: { push: urls } },
     });
     return res.json({ data: { photosBefore: updated.photosBefore }, error: null });
@@ -289,10 +289,10 @@ bookingsRouter.put('/:id/photos-after', authenticate, upload.array('photos', 10)
 
   try {
     const urls = await Promise.all(files.map((f, i) =>
-      uploadToStorage(`bookings/${(req.params.id as string)}/after-${Date.now()}-${i}`, f)
+      uploadToStorage(`bookings/${req.params.id}/after-${Date.now()}-${i}`, f)
     ));
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: { photosAfter: { push: urls } },
     });
     return res.json({ data: { photosAfter: updated.photosAfter }, error: null });
@@ -305,7 +305,7 @@ bookingsRouter.put('/:id/photos-after', authenticate, upload.array('photos', 10)
 bookingsRouter.put('/:id/end', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -318,7 +318,7 @@ bookingsRouter.put('/:id/end', authenticate, async (req: AuthRequest, res: Respo
     await releasePayment(booking.id, booking.tenantId, booking.vehicle.ownerId, Number(booking.totalAmount), Number(booking.serviceFee));
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: {
         status: 'completed',
         returnedAt: new Date(),
@@ -372,7 +372,7 @@ bookingsRouter.post('/:id/dispute', authenticate, async (req: AuthRequest, res: 
 
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -381,7 +381,7 @@ bookingsRouter.post('/:id/dispute', authenticate, async (req: AuthRequest, res: 
     if (!isParty) return res.status(403).json({ data: null, error: 'Not authorized' });
 
     const updated = await prisma.booking.update({
-      where: { id: (req.params.id as string) },
+      where: { id: req.params.id },
       data: {
         status: 'disputed',
         damageReport: { description, reportedBy: req.user!.id, reportedAt: new Date().toISOString() },
