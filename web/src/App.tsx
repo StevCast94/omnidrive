@@ -36,7 +36,8 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
 
 function parseHash(): string {
   const hash = window.location.hash.replace(/^#/, '') || '/';
-  return hash;
+  // Strip query params for route matching (keep for URLSearchParams use)
+  return hash.split('?')[0];
 }
 
 function RouterProvider({ routes }: { routes: Route[] }) {
