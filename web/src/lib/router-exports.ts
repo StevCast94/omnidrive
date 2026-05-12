@@ -18,9 +18,14 @@ export function useLocation() {
   return { pathname: path, search: '', hash: '', state: null, key: 'default' };
 }
 
-// useSearchParams (simplified)
+// useSearchParams: extrae query params del hash (ya que usamos HashRouter)
 export function useSearchParams() {
-  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const getHashQuery = () => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const qIndex = hash.indexOf('?');
+    return qIndex >= 0 ? hash.slice(qIndex + 1) : window.location.search.replace(/^\?/, '');
+  };
+  const params = new URLSearchParams(getHashQuery());
   const setParams = (_newParams: any) => {};
   return [params, setParams] as const;
 }
