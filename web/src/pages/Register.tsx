@@ -70,19 +70,37 @@ export default function Register() {
     };
   })();
 
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+
+  // Días por mes según año y mes
+  const selectedYear = parseInt(displayBirth.year) || 0;
+  const selectedMonth = parseInt(displayBirth.month) || 0;
+  const daysInMonth = selectedYear && selectedMonth
+    ? new Date(selectedYear, selectedMonth, 0).getDate()
+    : 31;
+
+  // Si el día actual excede los días del mes, lo reseteamos
+  const currentDay = parseInt(displayBirth.day) || 0;
+  const validDay = currentDay > daysInMonth ? '' : displayBirth.day;
+
   const setBirthDate = (year: string, month: string, day: string) => {
-    if (year && month && day) {
-      const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      if (!isNaN(d.getTime())) {
-        set('birthDate', d.toISOString().split('T')[0]);
+    // Auto-reset day if it exceeds the new month's days
+    const y = parseInt(year) || 0;
+    const m = parseInt(month) || 0;
+    const maxDays = y && m ? new Date(y, m, 0).getDate() : 31;
+    const d = parseInt(day) || 0;
+    const finalDay = d > maxDays ? '' : day;
+
+    if (year && month && finalDay) {
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(finalDay));
+      if (!isNaN(date.getTime())) {
+        set('birthDate', date.toISOString().split('T')[0]);
       }
     } else {
       set('birthDate', '');
     }
   };
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
@@ -117,19 +135,20 @@ export default function Register() {
               Fecha de nacimiento <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
+              {/* ║ AÑO ║ MES ║ DÍA — orden importa para validación */}
               <select
-                value={displayBirth.day}
-                onChange={e => setBirthDate(displayBirth.year, displayBirth.month, e.target.value)}
+                value={displayBirth.year}
+                onChange={e => setBirthDate(e.target.value, displayBirth.month, displayBirth.day)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
-                <option value="">Día</option>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
-                  <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                <option value="">Año</option>
+                {years.map(y => (
+                  <option key={y} value={y}>{y}</option>
                 ))}
               </select>
               <select
                 value={displayBirth.month}
-                onChange={e => setBirthDate(displayBirth.year, e.target.value, displayBirth.day)}
+                onChange={e => setBirthDate(displayBirth.year, e.target.value, validDay)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
                 <option value="">Mes</option>
@@ -143,13 +162,13 @@ export default function Register() {
                 ))}
               </select>
               <select
-                value={displayBirth.year}
-                onChange={e => setBirthDate(e.target.value, displayBirth.month, displayBirth.day)}
+                value={validDay}
+                onChange={e => setBirthDate(displayBirth.year, displayBirth.month, e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
-                <option value="">Año</option>
-                {years.map(y => (
-                  <option key={y} value={y}>{y}</option>
+                <option value="">Día</option>
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
                 ))}
               </select>
             </div>
