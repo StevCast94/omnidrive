@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi, subscriptions as subsApi } from '@/lib/api';
@@ -9,8 +8,13 @@ const TABS = ['Perfil', 'Vehículos', 'Verificación', 'Suscripción'] as const;
 type Tab = typeof TABS[number];
 
 export default function Profile() {
-  const [sp] = useSearchParams();
   const { user, updateUser } = useAuthStore();
+
+  // Parse query params manually (no react-router-dom dependency)
+  useEffect(() => {
+    const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    if (qp.get('tab') === 'vehicle') setTab('Vehículos');
+  }, []);
   const [tab, setTab] = useState<Tab>('Perfil');
   const [myVehicles, setMyVehicles] = useState<any[]>([]);
   const [plans, setPlans] = useState<any>(null);
@@ -25,8 +29,9 @@ export default function Profile() {
   const [showVehicleForm, setShowVehicleForm] = useState(false);
 
   useEffect(() => {
-    if (sp.get('tab') === 'vehicle') setTab('Vehículos');
-  }, [sp]);
+    const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    if (qp.get('tab') === 'vehicle') setTab('Vehículos');
+  }, []);
 
   useEffect(() => {
     if (tab === 'Vehículos') {
