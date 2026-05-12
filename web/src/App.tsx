@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/api';
@@ -17,28 +17,7 @@ import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 
 // ===== Tiny HashRouter (zero dependencies) =====
-interface RouterCtx {
-  path: string;
-  params: Record<string, string>;
-  navigate: (to: string) => void;
-}
-
-const RouterContext = createContext<RouterCtx>({ path: '/', params: {}, navigate: () => {} });
-export const useRouter = () => useContext(RouterContext);
-export const useNavigate = () => useContext(RouterContext).navigate;
-export const useParams = () => useContext(RouterContext).params;
-
-function parseHash(): string {
-  const hash = window.location.hash.replace(/^#/, '') || '/';
-  return hash;
-}
-
-interface Route {
-  path: string;
-  element: React.ReactNode;
-  children?: Route[];
-  index?: boolean;
-}
+import { RouterContext, useNavigate, useRouter } from '@/lib/router';
 
 function matchPath(pattern: string, actual: string): Record<string, string> | null {
   const patternParts = pattern.split('/').filter(Boolean);

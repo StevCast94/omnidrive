@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import NotificationBell from './NotificationBell';
 import clsx from 'clsx';
-import { useNavigate, useRouter } from '@/App';
+import { useNavigate, useRouter } from '@/lib/router';
 
 export default function Navbar() {
   const { user, clearUser } = useAuthStore();

@@ -1,15 +1,14 @@
-// Re-export desde nuestro HashRouter custom, no desde react-router-dom
-// Permite que todos los componentes sigan usando 'import { X } from 'react-router-dom''
-export { useRouter, useNavigate, useParams } from '@/App';
+// Router exports — reemplazo de react-router-dom
+// Importa desde @/lib/router (context standalone, sin dependencias circulares)
+export { useRouter, useNavigate, useParams } from '@/lib/router';
 
-// Implementaciones reemplazo para los otros exports de react-router-dom
-import { createContext, useContext, createElement } from 'react';
+import { createElement } from 'react';
+import { useRouter } from '@/lib/router';
 
 // Link component
 export function Link({ to, children, className, ...props }: any) {
   const { navigate } = useRouter();
-  // @ts-ignore
-  const onClick = (e) => { e.preventDefault(); navigate(to); };
+  const onClick = (e: any) => { e.preventDefault(); navigate(to); };
   return createElement('a', { href: '#' + to, onClick, className, ...props }, children);
 }
 
@@ -21,13 +20,7 @@ export function useLocation() {
 
 // useSearchParams (simplified)
 export function useSearchParams() {
-  const search = typeof window !== 'undefined' ? window.location.search : '';
-  const params = new URLSearchParams(search);
-  const setParams = (newParams: any) => {
-    // No-op por ahora (navegación hash no usa query strings)
-  };
+  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const setParams = (_newParams: any) => {};
   return [params, setParams] as const;
 }
-
-// Outlet no necesario (usamos children en Layout)
-// useRouteError, etc - no exports aquí
