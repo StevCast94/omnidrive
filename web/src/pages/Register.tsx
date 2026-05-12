@@ -1,4 +1,3 @@
-// ===== web/src/pages/Register.tsx =====
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car } from 'lucide-react';
@@ -6,6 +5,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { PhoneInput } from '@/components/PhoneInput';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -57,6 +57,33 @@ export default function Register() {
     </div>
   );
 
+  // Helper to detect if birthDate is a full ISO date vs just a partial
+  const birthValue = form.birthDate || '';
+  const displayBirth = (() => {
+    if (!birthValue) return { year: '', month: '', day: '' };
+    const d = new Date(birthValue);
+    if (isNaN(d.getTime())) return { year: '', month: '', day: '' };
+    return {
+      year: d.getFullYear().toString(),
+      month: (d.getMonth() + 1).toString().padStart(2, '0'),
+      day: d.getDate().toString().padStart(2, '0'),
+    };
+  })();
+
+  const setBirthDate = (year: string, month: string, day: string) => {
+    if (year && month && day) {
+      const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(d.getTime())) {
+        set('birthDate', d.toISOString().split('T')[0]);
+      }
+    } else {
+      set('birthDate', '');
+    }
+  };
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
@@ -74,9 +101,59 @@ export default function Register() {
             {field('Apellido', 'lastName', 'text', 'Pérez')}
           </div>
           {field('Email', 'email', 'email', 'tu@email.com')}
-          {field('Teléfono', 'phone', 'tel', '+593 99 000 0000')}
+
+          <PhoneInput
+            value={form.phone}
+            onChange={v => set('phone', v)}
+            placeholder="99 000 0000"
+            required
+          />
+
           {field('Contraseña', 'password', 'password', '••••••••')}
-          {field('Fecha de nacimiento', 'birthDate', 'date')}
+
+          {/* Fecha de nacimiento - 3 selects estilo Red Dental */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Fecha de nacimiento <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={displayBirth.day}
+                onChange={e => setBirthDate(displayBirth.year, displayBirth.month, e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
+              >
+                <option value="">Día</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                ))}
+              </select>
+              <select
+                value={displayBirth.month}
+                onChange={e => setBirthDate(displayBirth.year, e.target.value, displayBirth.day)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
+              >
+                <option value="">Mes</option>
+                {[
+                  { v: '01', l: 'Enero' }, { v: '02', l: 'Febrero' }, { v: '03', l: 'Marzo' },
+                  { v: '04', l: 'Abril' }, { v: '05', l: 'Mayo' }, { v: '06', l: 'Junio' },
+                  { v: '07', l: 'Julio' }, { v: '08', l: 'Agosto' }, { v: '09', l: 'Septiembre' },
+                  { v: '10', l: 'Octubre' }, { v: '11', l: 'Noviembre' }, { v: '12', l: 'Diciembre' },
+                ].map(m => (
+                  <option key={m.v} value={m.v}>{m.l}</option>
+                ))}
+              </select>
+              <select
+                value={displayBirth.year}
+                onChange={e => setBirthDate(e.target.value, displayBirth.month, displayBirth.day)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
+              >
+                <option value="">Año</option>
+                {years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Tipo de documento</label>
@@ -106,4 +183,3 @@ export default function Register() {
     </div>
   );
 }
-

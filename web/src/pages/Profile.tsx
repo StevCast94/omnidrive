@@ -144,9 +144,11 @@ export default function Profile() {
             ))}
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Teléfono</label>
-            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <PhoneInput
+              value={form.phone}
+              onChange={v => setForm(f => ({ ...f, phone: v }))}
+              placeholder="99 000 0000"
+            />
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Género</label>
