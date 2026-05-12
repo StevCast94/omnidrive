@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, Car, Shield, Star, Zap } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, User, Car, Shield, Star, Zap, ChevronDown } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
 
@@ -18,7 +18,31 @@ export default function Home() {
   const navigate = useNavigate();
   const [featured, setFeatured] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState({ location: '', startAt: '', endAt: '', category: '' });
+  const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+
+  // Fecha/hoy mínimo para el date input
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const DURATIONS = [
+    { label: '6 horas', hours: 6 },
+    { label: '12 horas', hours: 12 },
+    { label: '1 día (24h)', hours: 24 },
+    { label: 'Personalizado', hours: 0 },
+  ];
+
+  const [search, setSearch] = useState({
+    location: '',
+    dateFrom: todayStr,
+    dateTo: tomorrowStr,
+    duration: DURATIONS[2], // default 1 día
+    customHours: '24',
+    withDriver: false,
+    category: '',
+  });
 
   useEffect(() => {
     vehiclesApi.list({ sort: 'rating_desc' })
@@ -30,8 +54,11 @@ export default function Home() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (search.location) params.set('location', search.location);
-    if (search.startAt) params.set('startAt', search.startAt);
-    if (search.endAt) params.set('endAt', search.endAt);
+    if (search.dateFrom) params.set('dateFrom', search.dateFrom);
+    if (search.dateTo) params.set('dateTo', search.dateTo);
+    const hours = search.duration.hours === 0 ? parseInt(search.customHours) || 24 : search.duration.hours;
+    params.set('hours', hours.toString());
+    if (search.withDriver) params.set('withDriver', 'true');
     if (search.category) params.set('category', search.category);
     navigate(`/vehicles?${params.toString()}`);
   };
@@ -60,9 +87,10 @@ export default function Home() {
           </p>
 
           {/* Search box */}
-          <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl max-w-3xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="md:col-span-1 relative">
+          <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Ubicación */}
+              <div className="relative">
                 <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text" placeholder="Ciudad o sector"
@@ -71,30 +99,108 @@ export default function Home() {
                   className="w-full pl-9 pr-3 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+
+              {/* Fecha inicio */}
               <div className="relative">
-                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                 <input
-                  type="datetime-local"
-                  value={search.startAt}
-                  onChange={e => setSearch(s => ({ ...s, startAt: e.target.value }))}
+                  type="date"
+                  min={todayStr}
+                  value={search.dateFrom}
+                  onChange={e => {
+                    const d = e.target.value;
+                    setSearch(s => ({
+                      ...s,
+                      dateFrom: d,
+                      dateTo: d > s.dateTo ? d : s.dateTo,
+                    }));
+                  }}
                   className="w-full pl-9 pr-3 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+
+              {/* Fecha fin */}
               <div className="relative">
-                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                 <input
-                  type="datetime-local"
-                  value={search.endAt}
-                  onChange={e => setSearch(s => ({ ...s, endAt: e.target.value }))}
+                  type="date"
+                  min={search.dateFrom || todayStr}
+                  value={search.dateTo}
+                  onChange={e => setSearch(s => ({ ...s, dateTo: e.target.value }))}
                   className="w-full pl-9 pr-3 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-              <button
-                onClick={handleSearch}
-                className="flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors"
-              >
-                <Search size={16} /> Buscar
-              </button>
+
+              {/* Duración + Buscar en columna */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
+                  <button
+                    type="button"
+                    onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                    className="w-full pl-9 pr-8 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white text-left focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {search.duration.hours === 0
+                      ? `${search.customHours}h`
+                      : search.duration.label}
+                  </button>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+
+                  {showDurationDropdown && (
+                    <div className="absolute z-50 mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden">
+                      {DURATIONS.map(d => (
+                        <button
+                          key={d.label}
+                          type="button"
+                          onClick={() => {
+                            setSearch(s => ({ ...s, duration: d }));
+                            setShowDurationDropdown(false);
+                          }}
+                          className={`w-full px-4 py-2.5 text-sm text-left hover:bg-slate-700 transition-colors ${search.duration.label === d.label ? 'text-indigo-400 bg-slate-700/50' : 'text-white'}`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                      {search.duration.hours === 0 && (
+                        <div className="px-3 pb-3">
+                          <input
+                            type="number"
+                            min={1}
+                            max={720}
+                            value={search.customHours}
+                            onChange={e => setSearch(s => ({ ...s, customHours: e.target.value }))}
+                            placeholder="Horas"
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleSearch}
+                  className="flex items-center justify-center gap-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors flex-shrink-0"
+                >
+                  <Search size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Extras row: con/sin chofer */}
+            <div className="flex items-center gap-4 mt-3 px-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <div
+                  onClick={() => setSearch(s => ({ ...s, withDriver: !s.withDriver }))}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${search.withDriver ? 'bg-indigo-600' : 'bg-slate-700'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${search.withDriver ? 'left-5.5' : 'left-0.5'}`} />
+                </div>
+                <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <User size={12} /> Con chofer
+                </span>
+              </label>
             </div>
           </div>
         </div>
