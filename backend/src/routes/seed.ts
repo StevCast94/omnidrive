@@ -120,6 +120,8 @@ router.get('/', async (_req: Request, res: Response) => {
             subscriptionTier: 'free',
             authId: uuid,
             supabaseId: uuid,
+            documentType: 'cedula',
+            documentId: '1' + Math.floor(1000000000 + Math.random() * 9000000000),
             birthDate: new Date('1985-06-15'),
             nationality: 'Ecuatoriana', birthCountry: 'Ecuador',
           },
