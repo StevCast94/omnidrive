@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+﻿import { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   Star, MapPin, Users, Fuel, Settings, Shield, CheckCircle,
   Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck

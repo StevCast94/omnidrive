@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+﻿import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { SlidersHorizontal, X, Search, Car } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+﻿import { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Shield, AlertTriangle, Car, ChevronRight, Check, CreditCard, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi, payments } from '@/lib/api';

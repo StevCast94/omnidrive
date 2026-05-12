@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Plus, Car, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight } from 'lucide-react';
 import { bookings as bookingsApi, vehicles as vehiclesApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';

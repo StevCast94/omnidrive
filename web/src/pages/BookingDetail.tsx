@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+﻿import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   ChevronLeft, Car, Check, Clock, Play, Camera,
   Flag, AlertTriangle, Star, MapPin, Navigation

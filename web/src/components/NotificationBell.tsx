@@ -1,7 +1,7 @@
-// ===== web/src/components/NotificationBell.tsx =====
+﻿// ===== web/src/components/NotificationBell.tsx =====
 import { useState, useRef, useEffect } from 'react';
 import { Bell, Check, CheckCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const TYPE_EMOJI: Record<string, string> = {

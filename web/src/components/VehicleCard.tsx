@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Star, MapPin, Users, Car } from 'lucide-react';
 import clsx from 'clsx';
 
