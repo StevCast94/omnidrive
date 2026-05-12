@@ -3,6 +3,7 @@ import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight } 
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi, subscriptions as subsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { PhoneInput } from '@/components/PhoneInput';
 
 const TABS = ['Perfil', 'Vehículos', 'Verificación', 'Suscripción'] as const;
 type Tab = typeof TABS[number];
