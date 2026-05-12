@@ -15,6 +15,7 @@ import { adminRouter }         from './routes/admin';
 import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
 import { stripeRouter }        from './routes/stripe';
+import { seedRouter }          from './routes/seed';
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -53,6 +54,9 @@ app.use('/api/reviews',       reviewsRouter);
 app.use('/api/admin',         adminRouter);
 app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
+
+// ── Seed data ─────────────────────────────────────────────────
+app.use('/api/seed', seedRouter);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ data: null, error: 'Not found' }));
