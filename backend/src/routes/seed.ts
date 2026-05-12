@@ -112,11 +112,14 @@ router.get('/', async (_req: Request, res: Response) => {
     for (const od of ownerData) {
       let u = await prisma.user.findUnique({ where: { email: od.email } });
       if (!u) {
+        const uuid = crypto.randomUUID();
         u = await prisma.user.create({
           data: {
             ...od, role: 'owner', identityVerified: true,
             walletBalance: 250, driverScore: 920,
-            subscriptionTier: 'free', supabaseId: crypto.randomUUID(),
+            subscriptionTier: 'free',
+            authId: uuid,
+            supabaseId: uuid,
             birthDate: new Date('1985-06-15'),
             nationality: 'Ecuatoriana', birthCountry: 'Ecuador',
           },
