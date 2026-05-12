@@ -66,7 +66,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-slate-900 pt-20 pb-32">
+      <section className="relative overflow-hidden bg-slate-900 pt-20 pb-40">
         <img
           src="/hero-bg.svg"
           aria-hidden="true"
@@ -207,7 +207,7 @@ export default function Home() {
       </section>
 
       {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 -mt-8">
+      <section className="max-w-7xl mx-auto px-4 -mt-20 relative z-10">
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {CATEGORIES.map(c => (
             <button
