@@ -275,7 +275,7 @@ export default function Home() {
         <h2 className="text-3xl font-bold text-white mb-4">¿Tienes un vehículo sin usar?</h2>
         <p className="text-slate-400 mb-8">Publícalo en OmniDrive y genera ingresos. Es gratis, seguro y sencillo.</p>
         <button
-          onClick={() => navigate('/register')}
+          onClick={() => navigate('/login')}
           className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold transition-colors"
         >
           Publicar mi vehículo
