@@ -34,6 +34,11 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
   return params;
 }
 
+function parseHash(): string {
+  const hash = window.location.hash.replace(/^#/, '') || '/';
+  return hash;
+}
+
 function RouterProvider({ routes }: { routes: Route[] }) {
   const [path, setPath] = useState(() => parseHash());
 
