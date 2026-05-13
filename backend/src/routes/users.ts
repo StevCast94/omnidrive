@@ -7,7 +7,7 @@ export const usersRouter = Router();
 usersRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       select: {
         id: true, name: true, lastName: true,
         identityVerified: true, driverScore: true,
@@ -26,7 +26,7 @@ usersRouter.get('/:id', async (req: Request, res: Response) => {
 usersRouter.get('/:id/vehicles', async (req: Request, res: Response) => {
   try {
     const vehicles = await prisma.vehicle.findMany({
-      where: { ownerId: req.params.id, available: true },
+      where: { ownerId: req.params.id as string, available: true },
       orderBy: { createdAt: 'desc' },
     });
     return res.json({ data: vehicles, error: null });
@@ -39,7 +39,7 @@ usersRouter.get('/:id/vehicles', async (req: Request, res: Response) => {
 usersRouter.get('/:id/reviews', async (req: Request, res: Response) => {
   try {
     const reviews = await prisma.review.findMany({
-      where: { targetId: req.params.id },
+      where: { targetId: req.params.id as string },
       include: {
         author: { select: { id: true, name: true, lastName: true } },
         booking: { select: { startAt: true, endAt: true } },

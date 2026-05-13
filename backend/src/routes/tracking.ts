@@ -14,7 +14,7 @@ trackingRouter.post('/:bookingId', authenticate, async (req: AuthRequest, res: R
   if (!lat || !lng) return res.status(400).json({ data: null, error: 'lat and lng required' });
 
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId as string } });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
     if (booking.tenantId !== req.user!.id)
       return res.status(403).json({ data: null, error: 'Only the tenant can report location' });
@@ -24,14 +24,14 @@ trackingRouter.post('/:bookingId', authenticate, async (req: AuthRequest, res: R
       return res.status(400).json({ data: null, error: 'Tracking not enabled for this booking' });
 
     const point = { lat: parseFloat(lat), lng: parseFloat(lng), ts: timestamp ?? new Date().toISOString() };
-    const points = liveTracking.get(req.params.bookingId) ?? [];
+    const points = liveTracking.get(req.params.bookingId as string) ?? [];
     points.push(point);
-    liveTracking.set(req.params.bookingId, points);
+    liveTracking.set(req.params.bookingId as string, points);
 
     // Persist every 10 points to avoid data loss
     if (points.length % 10 === 0) {
       await prisma.booking.update({
-        where: { id: req.params.bookingId },
+        where: { id: req.params.bookingId as string },
         data: { trackingData: points },
       });
     }
@@ -42,7 +42,7 @@ trackingRouter.post('/:bookingId', authenticate, async (req: AuthRequest, res: R
       select: { restrictions: true, ownerId: true },
     });
     const restrictions = vehicle?.restrictions as any;
-    if (restrictions?.maxRadiusKm && booking.vehicle) {
+    if (restrictions?.maxRadiusKm && vehicle) {
       // Basic geofence: notify owner if too far from start
       // Full implementation would compare vs vehicle.locationLat/Lng
     }
@@ -57,7 +57,7 @@ trackingRouter.post('/:bookingId', authenticate, async (req: AuthRequest, res: R
 trackingRouter.get('/:bookingId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.bookingId },
+      where: { id: req.params.bookingId as string as string },
       include: { vehicle: { select: { ownerId: true } } },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -68,7 +68,7 @@ trackingRouter.get('/:bookingId', authenticate, async (req: AuthRequest, res: Re
       return res.status(403).json({ data: null, error: 'Not authorized' });
 
     // Live points for active bookings, historic for completed
-    const live = liveTracking.get(req.params.bookingId) ?? [];
+    const live = liveTracking.get(req.params.bookingId as string) ?? [];
     const historic = (booking.trackingData as any[]) ?? [];
 
     // Merge: live takes priority

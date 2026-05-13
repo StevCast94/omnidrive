@@ -15,6 +15,7 @@ import BookingDetail from '@/pages/BookingDetail';
 import Wallet from '@/pages/Wallet';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
+import AuthCallback from '@/pages/AuthCallback';
 
 // ===== Tiny HashRouter (zero dependencies) =====
 import { RouterContext, useNavigate, useRouter } from '@/lib/router';
@@ -107,6 +108,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 const routes: Route[] = [
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  { path: '/auth/callback', element: <AuthCallback /> },
   { path: '/', element: <Layout><Home /></Layout> },
   { path: '/vehicles', element: <Layout><VehicleList /></Layout> },
   { path: '/vehicles/:id', element: <Layout><VehicleDetail /></Layout> },

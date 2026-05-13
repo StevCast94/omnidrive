@@ -126,10 +126,10 @@ async function upsertOwner(data: OwnerInput) {
       walletBalance: Math.floor(Math.random() * 500) + 100,
       driverScore: 900 + Math.floor(Math.random() * 100),
       subscriptionTier: Math.random() > 0.8 ? 'premium' : 'free',
+      authId: randomUUID(),
+      documentType: 'cedula',
+      documentId: `1${String(Math.floor(Math.random() * 9000000000) + 1000000000)}`,
       birthDate: new Date('1985-' + (Math.floor(Math.random() * 12) + 1) + '-' + (Math.floor(Math.random() * 28) + 1)),
-      nationality: 'Ecuatoriana',
-      birthCountry: 'Ecuador',
-      supabaseId: randomUUID(),
       name: data.name,
       lastName: data.lastName,
     },
@@ -148,30 +148,30 @@ async function main() {
   const createdOwners: any[] = [];
   for (const o of owners) createdOwners.push(await upsertOwner(o));
 
-  // === 2. Crear un renter de prueba (si no existe) ===
-  const renterEmail = 'test@omnidrive.ec';
-  const renterExists = await prisma.user.findUnique({ where: { email: renterEmail } });
-  if (!renterExists) {
+  // === 2. Crear un user de prueba (si no existe) ===
+  const testEmail = 'test@omnidrive.ec';
+  const testExists = await prisma.user.findUnique({ where: { email: testEmail } });
+  if (!testExists) {
     await prisma.user.create({
       data: {
-        email: renterEmail,
+        email: testEmail,
         name: 'Test',
         lastName: 'User',
         phone: '+593999999999',
-        role: 'renter',
+        role: 'user',
         identityVerified: false,
         walletBalance: 200,
         driverScore: 700,
         subscriptionTier: 'free',
+        authId: randomUUID(),
+        documentType: 'cedula',
+        documentId: `2${String(Math.floor(Math.random() * 9000000000) + 1000000000)}`,
         birthDate: new Date('1995-06-15'),
-        nationality: 'Ecuatoriana',
-        birthCountry: 'Ecuador',
-        supabaseId: randomUUID(),
       },
     });
-    console.log('  ✅ Renter: Test User (test@omnidrive.ec)');
+    console.log('  ✅ Test User (test@omnidrive.ec)');
   } else {
-    console.log('  ℹ️  Renter test@omnidrive.ec ya existe');
+    console.log('  ℹ️  Test user test@omnidrive.ec ya existe');
   }
 
   // === 3. Crear Vehículos ===

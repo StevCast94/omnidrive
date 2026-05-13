@@ -66,7 +66,7 @@ paymentsRouter.post('/withdraw', authenticate, async (req: AuthRequest, res: Res
 // POST /api/payments/hold/:bookingId
 paymentsRouter.post('/hold/:bookingId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId as string } });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
     if (booking.tenantId !== req.user!.id)
       return res.status(403).json({ data: null, error: 'Not authorized' });
@@ -84,7 +84,7 @@ paymentsRouter.post('/hold/:bookingId', authenticate, async (req: AuthRequest, r
 paymentsRouter.post('/release/:bookingId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.bookingId },
+      where: { id: req.params.bookingId as string },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
@@ -108,7 +108,7 @@ paymentsRouter.post('/release/:bookingId', authenticate, async (req: AuthRequest
 paymentsRouter.post('/refund/:bookingId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.bookingId },
+      where: { id: req.params.bookingId as string },
       include: { vehicle: true },
     });
     if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
