@@ -1,25 +1,22 @@
-// OmniDrive Service Worker v2
-// No cachea el HTML — solo assets con hash + static files
-// SOLUCIÓN: cada deploy de Vercel actualiza los hashes y el SW no interfiere
+// OmniDrive Service Worker v3
+// No cachea el HTML — siempre fetch de red
+// Assets con hash van a cache para offline
 
-const CACHE = 'omnidrive-v2';
+const CACHE = 'omnidrive-v3';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/assets/'
 ];
 
-// Install: solo precachear archivos estáticos (sin HTML)
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
   );
 });
 
-// Activate: claims clients + limpia caches viejos
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
@@ -27,27 +24,26 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: cache solo assets con hash (JS/CSS) e imágenes, NUNCA el HTML
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-
-  // Solo same-origin
   if (url.origin !== self.location.origin) return;
 
-  // HTML requests — siempre a la red, nunca cache
+  // HTML — siempre red, no cache
   if (url.pathname === '/' || url.pathname.endsWith('.html')) {
-    e.respondWith(fetch(e.request));
     return;
   }
 
-  // Assets con hash (JS/CSS) e imágenes — cache first
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/favicon.svg' || url.pathname === '/manifest.json') {
+  // Assets con hash (JS/CSS) e icons — cache first con fallback a red
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/favicon.svg' || url.pathname === '/manifest.json' || url.pathname === '/sw.js') {
     e.respondWith(
-      caches.open(CACHE).then((cache) => {
-        return fetch(e.request).then((response) => {
-          cache.put(e.request, response.clone());
-          return response;
-        }).catch(() => caches.match(e.request));
+      caches.match(e.request).then((cached) => {
+        const fetchPromise = fetch(e.request).then((res) => {
+          if (res.ok) {
+            caches.open(CACHE).then((cache) => cache.put(e.request, res.clone()));
+          }
+          return res;
+        }).catch(() => cached);
+        return cached || fetchPromise;
       })
     );
     return;
@@ -67,7 +63,6 @@ self.addEventListener('push', (e) => {
   } catch {
     payload = { title: 'OmniDrive', body: e.data?.text() ?? 'Nueva notificación' };
   }
-
   const options = {
     body: payload.body || '',
     icon: '/icons/icon-192.png',
@@ -75,11 +70,9 @@ self.addEventListener('push', (e) => {
     data: payload.data || {},
     vibrate: [200, 100, 200],
   };
-
   e.waitUntil(self.registration.showNotification(payload.title || 'OmniDrive', options));
 });
 
-// Click en notificación
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const url = e.notification.data?.url || '/';
