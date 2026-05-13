@@ -37,13 +37,12 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/favicon.svg' || url.pathname === '/manifest.json' || url.pathname === '/sw.js') {
     e.respondWith(
       caches.match(e.request).then((cached) => {
-        const fetchPromise = fetch(e.request).then((res) => {
-          if (res.ok) {
-            caches.open(CACHE).then((cache) => cache.put(e.request, res.clone()));
-          }
+        if (cached) return cached;
+        return fetch(e.request).then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(e.request, clone));
           return res;
-        }).catch(() => cached);
-        return cached || fetchPromise;
+        });
       })
     );
     return;
