@@ -1,25 +1,8 @@
 // ===== web/src/pages/AuthCallback.tsx =====
-// Callback OAuth de Google. 
-//
-// El code de Google puede llegar de varias formas:
-//   1. Como ?code=xxx en la URL original (PKCE flow)
-//   2. En el hash después de que Supabase lo procese automáticamente
-//   3. Como #access_token=xxx (implicit flow)
-//
-// Log de lo que recibió la última vez:
-//   URL: https://omnidrive.vercel.app/auth/callback#auth/callback
-//   search: vacío
-//   hash: #auth/callback
-//   code: ausente  
-//
-// Problema: Google NO está pasando ningún parámetro.
-// Causa probable: la URL de redirect no coincide exactamente con 
-// la registrada en Supabase, o Google rechazó la autenticación.
-
 import { useEffect, useRef } from 'react';
 import { useNavigate } from '@/lib/router-exports';
 import { supabase } from '@/lib/supabase';
-import { auth } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
@@ -34,13 +17,12 @@ export default function AuthCallback() {
 
     (async () => {
       try {
-        // ── 1. LOG COMPLETO de la URL de llegada ──
+        // ── 1. LOG de la URL ──
         const fullUrl = window.location.href;
         const searchStr = window.location.search;
         const hashStr = window.location.hash;
         const urlParams = new URLSearchParams(searchStr);
-        const hashParams = new URLSearchParams(hashStr.includes('?') ? hashStr.split('?')[1] : '');
-        const hashFragmentParams = hashStr.startsWith('#/') ? {} : Object.fromEntries(new URLSearchParams(hashStr.replace(/^#/, '')));
+        const hashFragmentParams = Object.fromEntries(new URLSearchParams(hashStr.replace(/^#\/?/, '')));
 
         console.log('══════ AuthCallback Debug ══════');
         console.log('full URL:', fullUrl);
@@ -48,100 +30,71 @@ export default function AuthCallback() {
         console.log('hash:', hashStr);
         console.log('search params (code):', urlParams.get('code'));
         console.log('search params (error):', urlParams.get('error'));
-        console.log('search params (error_description):', urlParams.get('error_description'));
-        console.log('hash params (code):', hashParams.get('code'));
-        console.log('hash params (access_token):', hashParams.get('access_token'));
-        console.log('hash params (error):', hashParams.get('error'));
-        console.log('hash fragment params:', hashFragmentParams);
+        console.log('hash fragment (access_token):', hashFragmentParams.access_token?.substring(0, 20) + '...');
         console.log('═══════════════════════════════');
 
-        const errorFromGoogle = urlParams.get('error') || hashParams.get('error') || hashFragmentParams.error;
-        const errorDesc = urlParams.get('error_description') || hashParams.get('error_description') || hashFragmentParams.error_description;
+        const error = urlParams.get('error') || hashFragmentParams.error;
+        if (error) throw new Error(`Google OAuth error: ${error}`);
 
-        if (errorFromGoogle) {
-          throw new Error(`Google OAuth error: ${errorFromGoogle} — ${errorDesc || ''}`);
-        }
-
-        // ── 2. Leer code de donde sea ──
-        const code = urlParams.get('code') || hashParams.get('code');
-        const accessToken = urlParams.get('access_token') || hashParams.get('access_token') || hashFragmentParams.access_token;
-        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token') || hashFragmentParams.refresh_token;
+        // ── 2. Restaurar sesión desde access_token del hash ──
+        const code = urlParams.get('code');
+        const accessToken = hashFragmentParams.access_token;
+        const refreshToken = hashFragmentParams.refresh_token || '';
 
         if (code) {
           console.log('[AuthCallback] Intercambiando code por sesión...');
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw new Error('exchangeCodeForSession: ' + error.message);
-          console.log('[AuthCallback] Code intercambiado OK');
+          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchErr) throw new Error(exchErr.message);
         } else if (accessToken) {
           console.log('[AuthCallback] Restaurando sesión desde access_token...');
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' });
+          const { error: setSessErr } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setSessErr) throw new Error(setSessErr.message);
         } else {
-          // Sin parámetros — probar si Supabase ya procesó la sesión
-          console.log('[AuthCallback] Sin parámetros OAuth. Probando getSession...');
-
-          // Verificar si el SDK de Supabase ya detectó tokens en el hash
-          // El SDK escucha hashchange y procesa automáticamente
-          await new Promise(r => setTimeout(r, 1500));
+          // Esperar a que el SDK procese automáticamente
+          console.log('[AuthCallback] Sin parámetros directos. Esperando...');
+          await new Promise(r => setTimeout(r, 2000));
         }
 
         // ── 3. Obtener sesión ──
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-          console.error('[AuthCallback] getSession falló:', sessionError?.message);
-          throw new Error('No se pudo obtener la sesión');
-        }
-
+        const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+        if (sessErr || !session) throw new Error('No session: ' + (sessErr?.message || 'unknown'));
         console.log('[AuthCallback] Sesión OK:', session.user.email);
-        const accessToken2 = session.access_token;
 
-        // ── 4. Buscar o crear perfil ──
+        // ── 4. Crear/obtener perfil en nuestra DB ──
+        const token = session.access_token;
+
         let profile;
+        // Primero intentamos me() — si falla (404), llamamos a oauth-profile
         try {
-          const { data: res } = await auth.me();
-          profile = res.data;
+          const { data: meRes } = await api.get('/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          profile = meRes.data;
+          console.log('[AuthCallback] Perfil existente encontrado');
         } catch {
-          console.log('[AuthCallback] Sin perfil. Creando...');
-          const names = (session.user.user_metadata?.full_name || session.user.email || '').split(' ');
-          const email = session.user.email!;
-
-          try {
-            const { data: regRes } = await auth.register({
-              name: names[0] || email.split('@')[0],
-              lastName: names.slice(1).join(' ') || '',
-              email,
-              phone: session.user.phone || session.user.user_metadata?.phone || '0000000000',
-              password: crypto.randomUUID(),
-              documentType: 'cedula',
-              documentId: '0000000000',
-              birthDate: '',
-            });
-            profile = regRes.data.user;
-          } catch (regErr: any) {
-            const msg = regErr?.response?.data?.error || '';
-            if (msg.includes('already been registered')) {
-              console.log('[AuthCallback] Usuario ya existe en Auth. Re-intentando me()...');
-              // Esperar y reintentar — quizás la sesión se propagó
-              await new Promise(r => setTimeout(r, 1000));
-              const { data: retryRes } = await auth.me();
-              profile = retryRes.data;
-            } else {
-              throw new Error(msg || 'Error al crear perfil');
-            }
-          }
+          console.log('[AuthCallback] Perfil no existe. Creando...');
+          const { data: oauthRes } = await api.post('/auth/oauth-profile', {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          profile = oauthRes.data;
+          console.log('[AuthCallback] Perfil creado:', profile.email);
         }
 
-        if (!profile) throw new Error('No se pudo obtener o crear el perfil');
+        if (!profile) throw new Error('No se pudo obtener/crear perfil');
 
+        // ── 5. Actualizar store y redirigir ──
         setUser(profile);
         toast.success(`¡Bienvenido, ${profile.name}!`);
-
-        // ── 5. Redirigir limpiamente ──
         history.replaceState(null, '', '#/dashboard');
         navigate('/dashboard');
 
       } catch (err: any) {
-        console.error('[AuthCallback] Error completo:', err);
-        toast.error(err?.response?.data?.error || err?.message || 'Error al iniciar sesión con Google');
+        console.error('[AuthCallback] Error:', err);
+        const msg = err?.response?.data?.error || err?.message || 'Error de autenticación';
+        toast.error(msg);
         navigate('/login');
       }
     })();

@@ -113,6 +113,57 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/auth/oauth-profile — Crea perfil en DB para usuarios que ya existen en Auth (OAuth)
+// DIFERENTE a /register: este no intenta crear en Supabase Auth, solo en Prisma.
+// El middleware authenticate no puede usarse porque busca perfil en DB.
+// En su lugar verificamos el token manualmente.
+authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ data: null, error: 'No token provided' });
+    
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ data: null, error: 'Invalid or expired token' });
+
+    // Verificar si ya existe perfil en nuestra DB
+    const existing = await prisma.user.findUnique({ where: { authId: authUser.id } });
+    if (existing) return res.json({ data: existing, error: null });
+
+    const email = authUser.email || '';
+    const userMeta = authUser.user_metadata || {};
+    const fullName = userMeta.full_name || userMeta.name || '';
+    const nameParts = fullName.split(' ');
+    const name = nameParts[0] || email.split('@')[0] || 'Usuario';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const phone = authUser.phone || userMeta.phone || '0000000000';
+    const picture = userMeta.picture || userMeta.avatar_url || '';
+
+    const user = await prisma.user.create({
+      data: {
+        authId: authUser.id,
+        email,
+        phone,
+        name,
+        lastName,
+        documentType: 'cedula',
+        documentId: '',
+        birthDate: undefined,
+        avatarUrl: picture,
+      },
+      select: {
+        id: true, authId: true, email: true, phone: true,
+        name: true, lastName: true, role: true,
+        identityVerified: true, walletBalance: true,
+        subscriptionTier: true, driverScore: true, createdAt: true,
+      },
+    });
+
+    return res.status(201).json({ data: user, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
 // PUT /api/auth/me
 authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const { name, lastName, phone, gender, birthDate } = req.body;
