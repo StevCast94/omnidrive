@@ -322,11 +322,17 @@ adminRouter.delete('/users/:id', async (req: AuthRequest, res: Response) => {
     await prisma.$transaction([
       prisma.notification.deleteMany({ where: { userId: userId } }),
       prisma.userDocument.deleteMany({ where: { userId: userId } }),
-      prisma.review.deleteMany({ where: { OR: [{ authorId: userId }, { authorId: userId }] } }),
-      prisma.transaction.deleteMany({ where: { OR: [{ fromUserId: userId }, { toUserId: userId }] } }),
-      prisma.booking.deleteMany({ where: { tenantId: userId } }),
+      // Reviews del usuario como autor
+      prisma.review.deleteMany({ where: { authorId: userId } }),
       prisma.subscription.deleteMany({ where: { userId: userId } }),
+      // Vehículos del usuario (esto también elimina bookings vinculados si hay cascade,
+      // pero como es RESTRICT, primero borramos bookings que referencian esos vehículos)
+      ...(await prisma.vehicle.findMany({ where: { ownerId: userId }, select: { id: true } })).map(v =>
+        prisma.booking.deleteMany({ where: { vehicleId: v.id } })
+      ),
       prisma.vehicle.deleteMany({ where: { ownerId: userId } }),
+      prisma.booking.deleteMany({ where: { tenantId: userId } }),
+      prisma.transaction.deleteMany({ where: { OR: [{ fromUserId: userId }, { toUserId: userId }] } }),
       prisma.user.delete({ where: { id: userId } }),
     ]);
 
