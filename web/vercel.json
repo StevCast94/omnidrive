@@ -13,7 +13,6 @@
   "rewrites": [
     { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/icons/(.*)", "destination": "/icons/$1" },
-    { "source": "/auth/(.*)", "destination": "/auth/$1" },
     { "source": "/favicon.svg", "destination": "/favicon.svg" },
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
