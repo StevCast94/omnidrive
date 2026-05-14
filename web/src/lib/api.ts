@@ -53,6 +53,7 @@ export const auth = {
   updateMe: (d: any) => api.put('/auth/me', d),
   verifyIdentity: (fd: FormData) => api.post('/auth/verify-identity', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
   verificarCedula: (documentId: string) => api.post('/auth/verificar-cedula', { documentId }),
+  verificarWhatsApp: (phone: string) => api.post('/auth/verificar-whatsapp', { phone }),
 };
 
 export const vehicles = {

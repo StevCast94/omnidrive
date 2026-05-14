@@ -280,8 +280,46 @@ authRouter.post('/verificar-cedula', authenticate, async (req: AuthRequest, res:
   }
 });
 
+// POST /api/auth/verificar-whatsapp — Verifica si el número tiene WhatsApp activo
+authRouter.post('/verificar-whatsapp', authenticate, async (req: AuthRequest, res: Response) => {
+  const { phone } = req.body;
+  if (!phone) {
+    return res.status(400).json({ data: null, error: 'Número de teléfono requerido' });
+  }
+
+  // Limpiar número: quitar +, espacios, dejar solo dígitos
+  const clean = phone.replace(/[^\d]/g, '');
+  // Asegurar código de país Ecuador (593)
+  const fullNumber = clean.startsWith('593') ? clean : '593' + clean.replace(/^0+/, '');
+
+  if (fullNumber.length < 11 || fullNumber.length > 13) {
+    return res.status(400).json({ data: null, error: 'Número de teléfono inválido. Debe ser un número ecuatoriano.' });
+  }
+
+  try {
+    const provider = getProvider();
+    if (!provider?.verificarWhatsApp) {
+      return res.status(500).json({ data: null, error: 'El servicio de verificación WhatsApp no está disponible.' });
+    }
+
+    const result = await verifyWhatsApp(fullNumber);
+
+    return res.json({
+      data: {
+        phone: fullNumber,
+        exists: result.exists,
+        whatsapp: result.whatsapp,
+      },
+      error: result.error || null,
+    });
+  } catch (e: any) {
+    console.error('[verificar-whatsapp] Error:', e.message);
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
 // PUT /api/auth/me
-authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
+authRouter.put('/me', authenticate, async (req: AuthRequest, req: Response) => {
   const { name, lastName, phone, gender, birthDate, documentType, documentId } = req.body;
   try {
     console.log('[PUT /me] body:', JSON.stringify(req.body));

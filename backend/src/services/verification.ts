@@ -13,11 +13,19 @@ export interface IdentityResult {
   error?: string;
 }
 
+export interface WhatsAppResult {
+  exists: boolean;
+  whatsapp: boolean;
+  error?: string;
+}
+
 export interface VerificationProvider {
   /** Nombre del proveedor (ej: "webservices.ec") */
   name: string;
   /** Consultar una cédula ecuatoriana */
   consultar(cedula: string): Promise<IdentityResult>;
+  /** Verificar si número tiene WhatsApp activo */
+  verificarWhatsApp?(telefono: string): Promise<WhatsAppResult>;
   /** Health check del proveedor */
   health(): Promise<boolean>;
 }
@@ -32,6 +40,13 @@ export function setProvider(provider: VerificationProvider): void {
 
 export function getProvider(): VerificationProvider | null {
   return currentProvider;
+}
+
+export async function verifyWhatsApp(telefono: string): Promise<WhatsAppResult> {
+  if (!currentProvider?.verificarWhatsApp) {
+    return { exists: false, whatsapp: false, error: 'WhatsApp verification not supported by current provider' };
+  }
+  return currentProvider.verificarWhatsApp(telefono);
 }
 
 export async function verifyIdentity(cedula: string): Promise<IdentityResult> {

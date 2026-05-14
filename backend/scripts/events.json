@@ -1,0 +1,22 @@
+[
+  {
+    "type": "feature_request",
+    "severity": "low",
+    "title": "[OmniDrive] Métodos de pago alternativos",
+    "body": "Propuesta de Stevens: 1) Transferencia directa solo subscriptores 2) Pago Wallet con descuento 3) Pago efectivo P2P con doble validacion.",
+    "domain_id": "00000000-0000-0000-0000-0000000000d1",
+    "agent_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "00000000-0000-0000-0000-00000000f001",
+    "task_id": "00000000-0000-0000-0000-000000000000"
+  },
+  {
+    "type": "feature_request",
+    "severity": "low",
+    "title": "[OmniDrive] Contrato digital con firma",
+    "body": "Propuesta de Stevens: Modelo de contrato digital con terminos de alquiler, limites de uso, condiciones del vehiculo, sanciones y firma digital. Base normativa del negocio.",
+    "domain_id": "00000000-0000-0000-0000-0000000000d1",
+    "agent_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "00000000-0000-0000-0000-00000000f001",
+    "task_id": "00000000-0000-0000-0000-000000000000"
+  }
+]
