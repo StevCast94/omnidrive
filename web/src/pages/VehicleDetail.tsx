@@ -15,14 +15,21 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 export default function VehicleDetail() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params.id;
   const navigate = useNavigate();
+  const goBack = () => window.history.back();
   const { user } = useAuthStore();
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [startAt, setStartAt] = useState('');
-  const [endAt, setEndAt] = useState('');
+
+  // Check-in / Check-out como hoteles
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const CHECKIN_HOUR = '14:00';
+  const CHECKOUT_HOUR = '12:00';
+  const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     vehiclesApi.get(id!)
@@ -30,6 +37,48 @@ export default function VehicleDetail() {
       .catch(() => toast.error('Vehículo no encontrado'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const getStartAtISO = () => startDate ? `${startDate}T${CHECKIN_HOUR}:00.000Z` : '';
+  const getEndAtISO = () => endDate ? `${endDate}T${CHECKOUT_HOUR}:00.000Z` : '';
+
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    if (!val) { setEndDate(''); return; }
+    const minEnd = new Date(val);
+    minEnd.setDate(minEnd.getDate() + 1);
+    const minEndStr = minEnd.toISOString().split('T')[0];
+    if (!endDate || endDate <= val) {
+      setEndDate(minEndStr);
+    }
+  };
+
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+  };
+
+  const minEndDate = startDate
+    ? new Date(new Date(startDate).getTime() + 86400000).toISOString().split('T')[0]
+    : todayStr;
+
+  const calcNights = () => {
+    if (!startDate || !endDate) return 0;
+    const ms = new Date(endDate).getTime() - new Date(startDate).getTime();
+    return Math.max(1, Math.round(ms / 86400000));
+  };
+
+  const formatDateLong = (d: string) => {
+    if (!d) return '';
+    return new Date(d + 'T12:00:00').toLocaleDateString('es-EC', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  };
+
+  const handleBook = () => {
+    if (!user) { navigate('/login'); return; }
+    if (!startDate || !endDate) { toast.error('Selecciona las fechas'); return; }
+    if (new Date(endDate) <= new Date(startDate)) { toast.error('La fecha de fin debe ser posterior al inicio'); return; }
+    navigate(`/book/${vehicle.id}?startAt=${encodeURIComponent(getStartAtISO())}&endAt=${encodeURIComponent(getEndAtISO())}`);
+  };
 
   if (loading) return (
     <div className="max-w-5xl mx-auto px-4 py-12">
@@ -42,31 +91,12 @@ export default function VehicleDetail() {
 
   const photos = vehicle.photos?.length ? vehicle.photos : [];
   const isOwner = user?.id === vehicle.ownerId;
-
-  const calcPrice = () => {
-    if (!startAt || !endAt) return null;
-    const ms = new Date(endAt).getTime() - new Date(startAt).getTime();
-    const hours = ms / (1000 * 60 * 60);
-    const days = hours / 24;
-    const base = days >= 1
-      ? Math.ceil(days) * Number(vehicle.pricePerDay)
-      : Math.ceil(hours) * Number(vehicle.pricePerHour);
-    return { base, service: base * 0.15, total: base * 1.15, days: Math.ceil(days || 1) };
-  };
-
-  const price = calcPrice();
-
-  const handleBook = () => {
-    if (!user) { navigate('/login'); return; }
-    if (!startAt || !endAt) { toast.error('Selecciona las fechas'); return; }
-    if (new Date(endAt) <= new Date(startAt)) { toast.error('La fecha de fin debe ser posterior al inicio'); return; }
-    navigate(`/book/${vehicle.id}?startAt=${startAt}&endAt=${endAt}`);
-  };
+  const nights = calcNights();
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Back */}
-      <button onClick={() => navigate(-1)}
+      <button onClick={goBack}
         className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors">
         <ChevronLeft size={16} /> Volver
       </button>
@@ -243,34 +273,75 @@ export default function VehicleDetail() {
 
             {!isOwner && (
               <>
-                {/* Date pickers */}
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Inicio</label>
-                  <input type="datetime-local" value={startAt}
-                    min={new Date().toISOString().slice(0, 16)}
-                    onChange={e => setStartAt(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wide block pt-1">Fin</label>
-                  <input type="datetime-local" value={endAt}
-                    min={startAt || new Date().toISOString().slice(0, 16)}
-                    onChange={e => setEndAt(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                {/* Date pickers — Check-in / Check-out como hoteles */}
+                <div className="space-y-3">
+                  {/* Check-in */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      🏁 Check-in
+                      <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
+                    </label>
+                    <input type="date"
+                      value={startDate}
+                      min={todayStr}
+                      onChange={e => handleStartDateChange(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <p className="text-xs text-slate-500 mt-1 ml-1">
+                      Disponible desde las <span className="text-indigo-400 font-medium">14:00</span>
+                    </p>
+                  </div>
+
+                  {/* Check-out */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      🏁 Check-out
+                      <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
+                    </label>
+                    <input type="date"
+                      value={endDate}
+                      min={minEndDate}
+                      onChange={e => handleEndDateChange(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <p className="text-xs text-slate-500 mt-1 ml-1">
+                      Debes devolverlo antes de las <span className="text-indigo-400 font-medium">12:00</span>
+                    </p>
+                  </div>
+
+                  {/* Resumen de fechas */}
+                  {startDate && endDate && (
+                    <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-700/50">
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span>Inicio</span>
+                        <span className="text-white font-medium">{formatDateLong(startDate)} · 14:00</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-400 mt-1.5">
+                        <span>Fin</span>
+                        <span className="text-white font-medium">{formatDateLong(endDate)} · 12:00</span>
+                      </div>
+                      <div className="border-t border-slate-700/50 mt-2 pt-2 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Duración</span>
+                        <span className="text-white font-medium">
+                          {nights} día{nights !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Price breakdown */}
-                {price && (
+                {startDate && endDate && nights > 0 && (
                   <div className="bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
                     <div className="flex justify-between text-slate-300">
-                      <span>${Number(vehicle.pricePerDay).toFixed(0)} × {price.days} día{price.days !== 1 ? 's' : ''}</span>
-                      <span>${price.base.toFixed(2)}</span>
+                      <span>${Number(vehicle.pricePerDay).toFixed(0)} × {nights} día{nights !== 1 ? 's' : ''}</span>
+                      <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
                       <span>Comisión plataforma (15%)</span>
-                      <span>${price.service.toFixed(2)}</span>
+                      <span>${(nights * Number(vehicle.pricePerDay) * 0.15).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-white border-t border-slate-700 pt-2">
                       <span>Total</span>
-                      <span>${price.total.toFixed(2)}</span>
+                      <span>${(nights * Number(vehicle.pricePerDay) * 1.15).toFixed(2)}</span>
                     </div>
                     {Number(vehicle.deposit) > 0 && (
                       <p className="text-xs text-slate-500">

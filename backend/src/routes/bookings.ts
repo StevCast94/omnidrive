@@ -20,9 +20,14 @@ function calcDuration(startAt: Date, endAt: Date): { hours: number; days: number
 }
 
 function calcBase(pricePerHour: number, pricePerDay: number, hours: number, days: number): number {
-  if (days >= 1) return Math.floor(days) * pricePerHour * 24 <= Math.floor(days) * pricePerDay
-    ? Math.ceil(days) * pricePerDay
-    : Math.ceil(hours) * pricePerHour;
+  // Gap administrativo: si ocupó casi un día completo (>= 20h), cuenta como 1 día
+  const effectiveDays = days >= 0.84 ? Math.ceil(days || 1) : Math.ceil(hours) / 24;
+  if (effectiveDays >= 1) {
+    const flooredDays = Math.floor(effectiveDays);
+    return flooredDays * pricePerHour * 24 <= flooredDays * pricePerDay
+      ? Math.ceil(effectiveDays) * pricePerDay
+      : Math.ceil(hours) * pricePerHour;
+  }
   return Math.ceil(hours) * pricePerHour;
 }
 
