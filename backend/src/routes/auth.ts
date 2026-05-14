@@ -176,7 +176,7 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
 
 // PUT /api/auth/me
 authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
-  const { name, lastName, phone, gender, birthDate } = req.body;
+  const { name, lastName, phone, gender, birthDate, documentType, documentId } = req.body;
   try {
     console.log('[PUT /me] body:', JSON.stringify(req.body));
     const user = await prisma.user.update({
