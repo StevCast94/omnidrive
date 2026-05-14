@@ -319,20 +319,37 @@ adminRouter.delete('/users/:id', async (req: AuthRequest, res: Response) => {
 
     // 3. Eliminar registros relacionados en orden (evitar FK constraints)
     // Nota: los where se pasan explícitamente para evitar ambigüedad de tipos en $transaction
+    // Primero obtener IDs de bookings a eliminar para limpiar reviews antes
+    const vehicleIds = (await prisma.vehicle.findMany({ where: { ownerId: userId }, select: { id: true } })).map(v => v.id);
+    const bookingIds = (await prisma.booking.findMany({
+      where: { OR: [{ vehicleId: { in: vehicleIds } }, { tenantId: userId }] },
+      select: { id: true },
+    })).map(b => b.id);
+
     await prisma.$transaction([
+      // Reviews vinculadas a esos bookings
+      ...(bookingIds.length > 0
+        ? [prisma.review.deleteMany({ where: { bookingId: { in: bookingIds } } })]
+        : []
+      ),
+      // Reviews del usuario como autor (si no se cubrieron arriba)
+      prisma.review.deleteMany({ where: { authorId: userId } }),
+      // Notificaciones
       prisma.notification.deleteMany({ where: { userId: userId } }),
       prisma.userDocument.deleteMany({ where: { userId: userId } }),
-      // Reviews del usuario como autor
-      prisma.review.deleteMany({ where: { authorId: userId } }),
       prisma.subscription.deleteMany({ where: { userId: userId } }),
-      // Vehículos del usuario (esto también elimina bookings vinculados si hay cascade,
-      // pero como es RESTRICT, primero borramos bookings que referencian esos vehículos)
-      ...(await prisma.vehicle.findMany({ where: { ownerId: userId }, select: { id: true } })).map(v =>
-        prisma.booking.deleteMany({ where: { vehicleId: v.id } })
+      // Bookings de vehículos del usuario
+      ...(vehicleIds.length > 0
+        ? [prisma.booking.deleteMany({ where: { vehicleId: { in: vehicleIds } } })]
+        : []
       ),
+      // Vehículos del usuario
       prisma.vehicle.deleteMany({ where: { ownerId: userId } }),
+      // Bookings donde es tenant
       prisma.booking.deleteMany({ where: { tenantId: userId } }),
+      // Transacciones
       prisma.transaction.deleteMany({ where: { OR: [{ fromUserId: userId }, { toUserId: userId }] } }),
+      // Finalmente el usuario
       prisma.user.delete({ where: { id: userId } }),
     ]);
 
