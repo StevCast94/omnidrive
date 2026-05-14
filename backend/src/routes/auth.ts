@@ -151,7 +151,7 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
         lastName,
         documentType: 'cedula',
         documentId: 'oauth-' + userId,
-        avatarUrl: picture,
+        // avatarUrl no existe en el schema Prisma aún
       },
       select: {
         id: true, authId: true, email: true, phone: true,
