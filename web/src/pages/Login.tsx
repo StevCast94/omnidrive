@@ -1,5 +1,5 @@
-// ===== web/src/ pages/Login.tsx =====
-import { useState } from 'react';
+// ===== web/src/pages/Login.tsx =====
+import { useState, useRef } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Car } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ export default function Login() {
   const { setUser } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const oauthInProgress = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,114 +37,47 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
+    if (oauthInProgress.current) return;
+    oauthInProgress.current = true;
     setLoading(true);
 
-    // ── ESTRATEGIA: OAuth con popup ──
-    // En lugar de redirect (que causa problemas con hash routing),
-    // usamos una ventana emergente para el OAuth.
-    //
-    // Cuando la ventana se cierra, onAuthStateChange detecta la sesión
-    // y llamamos a /me para obtener el perfil.
-    //
-    // Esto evita COMPLETAMENTE el problema de Google redirigiendo
-    // a nuestra app con hash routing.
+    // La URL de callback debe ser EXACTAMENTE la registrada en Supabase.
+    // Google redirige a: https://omnidrive.vercel.app/auth/callback?code=xxx
+    // Vercel sirve index.html (por el rewrite en vercel.json).
+    // La app React carga y parseHash() convierte a: /#/auth/callback?code=xxx
+    // AuthCallback lee el code del search o del hash.
 
-    // Obtener la URL de autorización
+    const redirectTo = window.location.origin + '/auth/callback';
+
+    console.log('[Google Login] redirectTo:', redirectTo);
+
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // La ventana popup se abre en Supabase, que redirige a Google
-        // Cuando Google completa, Supabase redirige la popup a su propia
-        // URL de callback interna, y el SDK de Supabase en la ventana
-        // padre detecta el cambio via postMessage.
-        //
-        // No necesitamos redirectTo porque la popup se comunica por postMessage.
-        redirectTo: window.location.origin + '/auth/callback',
+        redirectTo,
+        // skipBrowserRedirect: false (default) — Supabase hace el redirect automático
       },
     }).then(({ data, error }) => {
       if (error) {
         toast.error(error.message);
         setLoading(false);
+        oauthInProgress.current = false;
         return;
       }
-      
+
       if (data?.url) {
-        // Abrir popup con la URL de autorización
-        const width = 600;
-        const height = 700;
-        const left = Math.max(0, Math.round((screen.width - width) / 2));
-        const top = Math.max(0, Math.round((screen.height - height) / 2));
-        
-        const popup = window.open(
-          data.url,
-          'google-oauth',
-          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-        );
-
-        if (!popup) {
-          // Popup bloqueada — fallback a redirect normal
-          toast.error('Popup bloqueada. Redirigiendo...');
-          window.location.href = data.url;
-          return;
-        }
-
-        // Timer para verificar si el popup se cerró
-        const checkPopup = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(checkPopup);
-            console.log('[Google Login] Popup cerrada. Verificando sesión...');
-
-            // Verificar si la sesión se estableció
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              console.log('[Google Login] Sesión encontrada:', session.user.email);
-              try {
-                const { data: res } = await auth.me();
-                setUser(res.data);
-                toast.success(`Bienvenido, ${res.data.name}!`);
-                navigate('/dashboard');
-              } catch {
-                // Nuevo usuario — crear perfil
-                const names = (session.user.user_metadata?.full_name || session.user.email || '').split(' ');
-                try {
-                  await auth.register({
-                    name: names[0] || session.user.email!.split('@')[0],
-                    lastName: names.slice(1).join(' ') || '',
-                    email: session.user.email!,
-                    phone: session.user.phone || '0000000000',
-                    password: crypto.randomUUID(),
-                    documentType: 'cedula',
-                    documentId: '0000000000',
-                    birthDate: '',
-                  });
-                  const { data: meRes } = await auth.me();
-                  setUser(meRes.data);
-                  toast.success(`¡Bienvenido, ${meRes.data.name}!`);
-                  navigate('/dashboard');
-                } catch (regErr: any) {
-                  toast.error(regErr?.response?.data?.error || 'Error al crear perfil');
-                }
-              }
-            } else {
-              toast.error('No se pudo iniciar sesión con Google');
-            }
-            setLoading(false);
-          }
-        }, 500);
-
-        // Timeout de 2 minutos
-        setTimeout(() => {
-          clearInterval(checkPopup);
-          if (!popup.closed) popup.close();
-          setLoading(false);
-        }, 120000);
+        console.log('[Google Login] URL:', data.url.substring(0, 100) + '...');
+        // Redirect simple — la página recarga y AuthCallback maneja el code
+        window.location.href = data.url;
       } else {
         toast.error('No se pudo generar la URL de autenticación');
         setLoading(false);
+        oauthInProgress.current = false;
       }
     }).catch((err) => {
       toast.error(err.message || 'Error al iniciar con Google');
       setLoading(false);
+      oauthInProgress.current = false;
     });
   };
 
