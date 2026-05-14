@@ -147,7 +147,6 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
         lastName,
         documentType: 'cedula',
         documentId: '',
-        birthDate: undefined,
         avatarUrl: picture,
       },
       select: {
