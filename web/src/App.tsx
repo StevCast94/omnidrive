@@ -17,7 +17,7 @@ import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 import AuthCallback from '@/pages/AuthCallback';
 
-// ===== Tiny HashRouter (zero dependencies) =====
+// ===== Tiny HashRouter =====
 import { RouterContext, useNavigate, useRouter } from '@/lib/router';
 
 function matchPath(pattern: string, actual: string): Record<string, string> | null {
@@ -35,45 +35,63 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
   return params;
 }
 
-function parseHash(): string {
-  const hash = window.location.hash.replace(/^#/, '') || '/';
-  // Strip query params for route matching (keep for URLSearchParams use)
-  return hash.split('?')[0];
+/**
+ * Lee la ruta actual del hash. Si la URL llegó sin hash (ej: /vehicles),
+ * la convierte a #/vehicles usando replaceState.
+ */
+function getRouteFromHash(): string {
+  const hash = window.location.hash;
+  if (hash.startsWith('#/') || hash === '#/' || hash === '#') {
+    return hash.replace(/^#/, '') || '/';
+  }
+  // Sin hash — convertir path a hash
+  if (!hash || hash === '') {
+    const path = window.location.pathname;
+    const search = window.location.search;
+    const route = path.replace(/^\//, '') || '/';
+    history.replaceState(null, '', '#' + route + search);
+    return route + search;
+  }
+  // Hash con parámetros OAuth (no una ruta) — ignorar, el route lo coge como /
+  return '/';
 }
 
 function RouterProvider({ routes }: { routes: Route[] }) {
-  const [path, setPath] = useState(() => parseHash());
+  const [path, setPath] = useState(() => getRouteFromHash());
 
   useEffect(() => {
-    const onHash = () => setPath(parseHash());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const onHashChange = () => setPath(getRouteFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   const navigate = useCallback((to: string) => {
     window.location.hash = '#' + to;
   }, []);
 
-  // Find matching route
+  // Match route
+  const routePath = path.split('?')[0];
   let matched: { element: React.ReactNode; params: Record<string, string> } | null = null;
   for (const route of routes) {
-    const p = matchPath(route.path, path);
+    const p = matchPath(route.path, routePath);
     if (p !== null) {
       matched = { element: route.element, params: p };
       break;
     }
   }
   if (!matched) {
-    // find catch-all
     const fallback = routes.find(r => r.path === '*');
     if (fallback) matched = { element: fallback.element, params: {} };
   }
   if (!matched) {
-    matched = { element: <div className="p-8 text-center text-red-400">404 — Página no encontrada</div>, params: {} };
+    matched = {
+      element: <div className="p-8 text-center text-red-400">404 — Página no encontrada</div>,
+      params: {},
+    };
   }
 
   return (
-    <RouterContext.Provider value={{ path, params: matched.params, navigate }}>
+    <RouterContext.Provider value={{ path: routePath, params: matched.params, navigate }}>
       {matched.element}
     </RouterContext.Provider>
   );

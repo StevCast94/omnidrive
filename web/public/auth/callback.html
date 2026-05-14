@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniDrive — Autenticando...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f172a;
+      color: #94a3b8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container { text-align: center; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid #1e293b;
+      border-top-color: #22d3ee;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { font-size: 14px; }
+    .error { color: #f87171; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <p id="status">Completando autenticación...</p>
+    <p class="error" id="error"></p>
+  </div>
+
+  <script>
+    (async function() {
+      // Configuración de Supabase (exactamente la misma que en vite)
+      const SUPABASE_URL = 'https://rkwbixidpaqweavghfea.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrd2JpeGlkcGFxd2VhdmdoZmVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjYxOTgsImV4cCI6MjA5MzM0MjE5OH0.JnpkukDVuPIvtlBZyHrPFzBReDIVEITrD0uAqGix77U';
+
+      function status(msg) {
+        document.getElementById('status').textContent = msg;
+      }
+
+      function showError(msg) {
+        const el = document.getElementById('error');
+        el.textContent = msg;
+        el.style.display = 'block';
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('status').textContent = 'Error de autenticación';
+      }
+
+      try {
+        // ── 1. Extraer parámetros OAuth de la URL ──
+        // La URL es: /auth/callback.html?code=xxx
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const errorDesc = params.get('error_description');
+
+        if (errorDesc) {
+          throw new Error(errorDesc);
+        }
+
+        if (!code) {
+          throw new Error('No se recibió el código de autorización');
+        }
+
+        status('Intercambiando código por sesión...');
+
+        // ── 2. Intercambiar code por sesión ──
+        // Usamos fetch directo al endpoint de Supabase Auth
+        const tokenResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=authorization_code', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            code: code,
+          }),
+        });
+
+        if (!tokenResponse.ok) {
+          const errData = await tokenResponse.json().catch(() => ({}));
+          throw new Error(errData.error_description || errData.error || 'Error al intercambiar código');
+        }
+
+        const tokenData = await tokenResponse.json();
+
+        // ── 3. Almacenar sesión en localStorage (formato Supabase) ──
+        const session = {
+          access_token: tokenData.access_token,
+          token_type: tokenData.token_type || 'bearer',
+          expires_in: tokenData.expires_in || 3600,
+          expires_at: tokenData.expires_at || Math.floor(Date.now() / 1000) + 3600,
+          refresh_token: tokenData.refresh_token,
+          user: tokenData.user,
+        };
+
+        // Guardar en el formato que Supabase JS SDK espera
+        const sbSession = {
+          access_token: session.access_token,
+          token_type: session.token_type,
+          expires_in: session.expires_in,
+          expires_at: session.expires_at,
+          refresh_token: session.refresh_token,
+          user: session.user,
+        };
+
+        localStorage.setItem('supabase.auth.token', JSON.stringify({
+          currentSession: sbSession,
+          expiresAt: sbSession.expires_at,
+        }));
+
+        status('Sesión establecida. Redirigiendo...');
+
+        // ── 4. Redirigir a la app con hash routing ──
+        // Pasamos el access_token como hash para que la app lo lea
+        // y pueda crear el perfil de usuario
+        const baseUrl = window.location.origin + '/';
+        window.location.replace(baseUrl + '#/auth/callback?access_token=' + encodeURIComponent(session.access_token) + '&refresh_token=' + encodeURIComponent(session.refresh_token || ''));
+
+      } catch (err) {
+        console.error('[OAuth Callback]', err);
+        showError(err.message || 'Error al iniciar sesión con Google');
+
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          window.location.replace(window.location.origin + '/#/login');
+        }, 3000);
+      }
+    })();
+  </script>
+</body>
+</html>

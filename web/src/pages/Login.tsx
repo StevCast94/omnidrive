@@ -40,10 +40,16 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      // Google redirige a /auth/callback.html?code=xxx
+      // Es un HTML estático (fuera de React, fuera del SW) que:
+      //   1. Intercambia el code por una sesión de Supabase
+      //   2. Guarda la sesión en localStorage
+      //   3. Redirige a /#/auth/callback para que React cree el perfil
+      const redirectUrl = window.location.origin + '/auth/callback.html';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/auth/callback',
+          redirectTo: redirectUrl,
         },
       });
       if (error) throw error;

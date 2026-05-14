@@ -1,8 +1,9 @@
-// OmniDrive Service Worker v3
-// No cachea el HTML — siempre fetch de red
-// Assets con hash van a cache para offline
+// OmniDrive Service Worker v4
+// Solo cachea assets estáticos con hash.
+// NO intercepta navegaciones (HTML) ni requests del OAuth callback.
+// Evita el error "Failed to convert value to 'Response'" que rompe el login con Google.
 
-const CACHE = 'omnidrive-v3';
+const CACHE = 'omnidrive-v4';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.svg',
@@ -13,13 +14,16 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -28,13 +32,18 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
-  // HTML — siempre red, no cache
-  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
-    return;
-  }
+  // ── NO interceptar navegaciones ni /auth/ ──
+  // Las navegaciones y el callback OAuth deben ir directo a la red.
+  if (e.request.mode === 'navigate') return;
+  if (url.pathname.startsWith('/auth/')) return;
 
-  // Assets con hash (JS/CSS) e icons — cache first con fallback a red
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/favicon.svg' || url.pathname === '/manifest.json' || url.pathname === '/sw.js') {
+  // ── Solo cachear assets estáticos ──
+  if (
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname === '/favicon.svg' ||
+    url.pathname === '/manifest.json'
+  ) {
     e.respondWith(
       caches.match(e.request).then((cached) => {
         if (cached) return cached;
@@ -48,10 +57,26 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Otros — red con fallback a cache
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  // ── Otros assets (no navegaciones) ──
+  if (e.request.destination === 'style' ||
+      e.request.destination === 'script' ||
+      e.request.destination === 'font' ||
+      e.request.destination === 'image') {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // ── Todo lo demás (API calls, etc) ──
+  // No cachear, solo red
+  return;
 });
 
 // Push notifications
