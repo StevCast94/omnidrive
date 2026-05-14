@@ -27,6 +27,26 @@ export class WebServicesEcProvider implements VerificationProvider {
     return !!this.config.apiKey;
   }
 
+  async verificarWhatsApp(telefono: string): Promise<{ exists: boolean; whatsapp: boolean; error?: string }> {
+    if (!this.isConfigured) {
+      return { exists: false, whatsapp: false, error: 'API key no configurada' };
+    }
+    try {
+      const res = await this.request('GET', '/api/whatsapp_check_phone/' + telefono);
+      const data = JSON.parse(res.body);
+      if (res.statusCode !== 200) {
+        return { exists: false, whatsapp: false, error: data?.message || 'Error en verificación WhatsApp' };
+      }
+      // Asumiendo estructura de respuesta similar
+      return {
+        exists: data?.data?.exists ?? data?.exists ?? false,
+        whatsapp: data?.data?.whatsapp ?? data?.whatsapp ?? false,
+      };
+    } catch (e: any) {
+      return { exists: false, whatsapp: false, error: e.message };
+    }
+  }
+
   async health(): Promise<boolean> {
     if (!this.isConfigured) return false;
     try {
