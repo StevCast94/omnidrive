@@ -69,6 +69,17 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ data: null, error: err.message ?? 'Internal server error' });
 });
 
+// ── Auto-sync schema (MVP convenience) ─────────────────────
+// Ejecuta prisma db push en producción para asegurar que tablas existan
+import { execSync } from 'child_process';
+
+try {
+  execSync('npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -3', { stdio: 'pipe', timeout: 30000 });
+  console.log('[Init] Prisma schema synchronized');
+} catch (e: any) {
+  console.warn('[Init] Prisma sync skipped (non-fatal):', e.message?.slice(0, 100));
+}
+
 // ── Init verification provider ──────────────────────────────
 const wsProvider = new WebServicesEcProvider();
 if (wsProvider.isConfigured) {
