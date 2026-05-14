@@ -35,18 +35,40 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
   return params;
 }
 
+/**
+ * Obtiene la ruta actual desde el hash. Si no hay hash (URL directa,
+ * ej: /auth/callback?code=xxx), la convierte a hash routing.
+ * Esto es crítico para que el callback OAuth funcione con hash router.
+ */
 function parseHash(): string {
-  const hash = window.location.hash.replace(/^#/, '') || '/';
-  // Strip query params for route matching (keep for URLSearchParams use)
-  return hash.split('?')[0];
+  const hash = window.location.hash;
+  // Ya tiene hash — parsear
+  if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
+    return hash.replace(/^#/, '') || '/';
+  }
+  // No tiene hash o tiene un hash que no es de ruta (ej: #access_token)
+  // Convertir el path+search a hash
+  const path = window.location.pathname;
+  const search = window.location.search;
+  const route = path.replace(/^\//, '') || '/';
+  const fullHash = '#' + route + search;
+  if (window.location.hash !== fullHash) {
+    window.location.hash = fullHash;
+  }
+  // No cambiar el estado inmediatamente — el hashchange event lo hará
+  return route + search;
 }
 
 function RouterProvider({ routes }: { routes: Route[] }) {
-  const [path, setPath] = useState(() => parseHash());
+  const [path, setPath] = useState(() => {
+    const initial = parseHash();
+    return initial.split('?')[0];
+  });
 
   useEffect(() => {
-    const onHash = () => setPath(parseHash());
+    const onHash = () => setPath(parseHash().split('?')[0]);
     window.addEventListener('hashchange', onHash);
+    // Si parseHash() ya cambió el hash, onHash se dispara automáticamente
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
