@@ -318,18 +318,15 @@ adminRouter.delete('/users/:id', async (req: AuthRequest, res: Response) => {
     }
 
     // 3. Eliminar registros relacionados en orden (evitar FK constraints)
+    // Nota: los where se pasan explícitamente para evitar ambigüedad de tipos en $transaction
     await prisma.$transaction([
-      prisma.notification.deleteMany({ where: { userId } }),
-      prisma.userDocument.deleteMany({ where: { userId } }),
-      prisma.review.deleteMany({ where: { OR: [{ authorId: userId }, { userId }] } }),
+      prisma.notification.deleteMany({ where: { userId: userId } }),
+      prisma.userDocument.deleteMany({ where: { userId: userId } }),
+      prisma.review.deleteMany({ where: { OR: [{ authorId: userId }, { authorId: userId }] } }),
       prisma.transaction.deleteMany({ where: { OR: [{ fromUserId: userId }, { toUserId: userId }] } }),
-      // Bookings donde es tenant (sin dueño directo)
       prisma.booking.deleteMany({ where: { tenantId: userId } }),
-      // Suscripción
-      prisma.subscription.deleteMany({ where: { userId } }),
-      // Vehículos del usuario
+      prisma.subscription.deleteMany({ where: { userId: userId } }),
       prisma.vehicle.deleteMany({ where: { ownerId: userId } }),
-      // Finalmente el usuario
       prisma.user.delete({ where: { id: userId } }),
     ]);
 
