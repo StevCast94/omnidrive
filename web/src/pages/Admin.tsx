@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Car, CreditCard, AlertTriangle, BarChart2,
-  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search
+  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api } from '@/lib/api';
+import { api, adminApi } from '@/lib/api';
 
-const TABS = ['Métricas', 'Usuarios', 'Vehículos', 'Reservas', 'Transacciones', 'Disputas'] as const;
+const TABS = ['Métricas', 'Usuarios', 'Vehículos', 'Reservas', 'Transacciones', 'Disputas', 'Vetos'] as const;
 type Tab = typeof TABS[number];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,9 +26,12 @@ export default function Admin() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
+  const [banned, setBanned] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [disputeResolution, setDisputeResolution] = useState<Record<string, { text: string; amount: string }>>({});
+  const [banForm, setBanForm] = useState({ documentId: '', reason: '' });
+  const [showBanForm, setShowBanForm] = useState(false);
 
   const fetchTab = async (t: Tab) => {
     setLoading(true);
@@ -40,6 +43,7 @@ export default function Admin() {
         case 'Reservas': { const r = await api.get('/admin/bookings'); setBookings(r.data.data.bookings); break; }
         case 'Transacciones': { const r = await api.get('/admin/transactions'); setTransactions(r.data.data.transactions); break; }
         case 'Disputas': { const r = await api.get('/admin/disputes'); setDisputes(r.data.data); break; }
+        case 'Vetos': { const r = await adminApi.bannedIdentities(); setBanned(r.data.data ?? r.data.banned ?? []); break; }
       }
     } catch { toast.error('Error al cargar'); }
     finally { setLoading(false); }
@@ -378,6 +382,180 @@ export default function Admin() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── VETOS ── */}
+      {!loading && tab === 'Vetos' && (
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Ban size={18} className="text-red-400" />
+              <h2 className="text-lg font-bold text-white">Cédulas vetadas</h2>
+            </div>
+            <button onClick={() => setShowBanForm(!showBanForm)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-semibold transition-colors">
+              {showBanForm ? 'Cancelar' : 'Vetar cédula'}
+            </button>
+          </div>
+
+          {/* Ban form */}
+          {showBanForm && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-white">Vetar nueva cédula</h3>
+              <p className="text-xs text-slate-500">Las cédulas vetadas no podrán verificar su identidad ni operar en la plataforma.</p>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">Número de cédula</label>
+                  <input value={banForm.documentId} onChange={e => setBanForm(f => ({ ...f, documentId: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    placeholder="10 dígitos"
+                    maxLength={10}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">Motivo del veto</label>
+                  <textarea value={banForm.reason} onChange={e => setBanForm(f => ({ ...f, reason: e.target.value }))}
+                    placeholder="Ej: Fraude documentado, historial de estafas..."
+                    rows={2}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                </div>
+              </div>
+              <button onClick={async () => {
+                if (banForm.documentId.length < 10 || !banForm.reason.trim()) {
+                  toast.error('Completa todos los campos');
+                  return;
+                }
+                try {
+                  await adminApi.banIdentity(banForm);
+                  toast.success('✅ Cédula vetada');
+                  setShowBanForm(false);
+                  setBanForm({ documentId: '', reason: '' });
+                  fetchTab('Vetos');
+                } catch (e: any) {
+                  toast.error(e.response?.data?.error || 'Error al vetar');
+                }
+              }}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold transition-colors">
+                Vetar cédula
+              </button>
+            </div>
+          )}
+
+          {/* Banned list */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            {banned.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                <Shield size={40} className="mx-auto mb-3 opacity-20" />
+                <p className="text-sm">No hay cédulas vetadas</p>
+                <p className="text-xs text-slate-600 mt-1">Usa el botón superior para vetar una cédula</p>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    {['Cédula', 'Motivo', 'Creado por', 'Estado', 'Fecha', 'Acción'].map(h => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {banned.map((b: any) => (
+                    <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-white font-medium">{b.documentId}</td>
+                      <td className="px-4 py-3 text-xs text-slate-400 max-w-[200px] truncate">{b.reason}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{b.createdBy?.email || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-1 rounded-full ${b.active ? 'text-red-400 bg-red-400/10' : 'text-slate-500 bg-slate-800'}`}>
+                          {b.active ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(b.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        {b.active && (
+                          <button onClick={async () => {
+                            if (!confirm(`¿Desbloquear cédula ${b.documentId}?`)) return;
+                            try {
+                              await adminApi.unbanIdentity(b.id);
+                              toast.success('Cédula desbloqueada');
+                              fetchTab('Vetos');
+                            } catch { toast.error('Error al desbloquear'); }
+                          }}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                            Desbloquear
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Quick verify tool */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-white mb-1">Verificar cédula manualmente</h3>
+            <p className="text-xs text-slate-500 mb-3">Consulta una cédula contra el Registro Civil directamente desde el panel.</p>
+            <VerifyCedulaWidget />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Widget interno para verificar cédula desde admin */
+function VerifyCedulaWidget() {
+  const [cedula, setCedula] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleVerify = async () => {
+    const clean = cedula.replace(/\D/g, '');
+    if (clean.length !== 10) return toast.error('Ingresa 10 dígitos');
+    setLoading(true);
+    setResult(null);
+    try {
+      const { data: res } = await adminApi.verifyCedula(clean);
+      setResult(res.data);
+      if (res.data?.verification?.nombres) {
+        toast.success('✅ Cédula activa en el Registro Civil');
+      } else {
+        toast.error(res.data?.error || 'Cédula no encontrada');
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Error en la consulta');
+      setResult({ error: e.response?.data?.error });
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input value={cedula} onChange={e => setCedula(e.target.value.replace(/\D/g, '').slice(0, 10))}
+          onKeyDown={e => e.key === 'Enter' && handleVerify()}
+          placeholder="Número de cédula" maxLength={10}
+          className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600" />
+        <button onClick={handleVerify} disabled={cedula.length !== 10 || loading}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap">
+          {loading ? '...' : 'Consultar'}
+        </button>
+      </div>
+      {result && (
+        <div className={`rounded-xl p-3 text-xs ${result.verification?.nombres ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+          {result.verification?.nombres ? (
+            <div className="space-y-1">
+              <p className="text-green-400 font-medium">✅ Cédula activa</p>
+              <p className="text-slate-300">{result.verification.nombres} {result.verification.apellidos}</p>
+              <p className="text-slate-500">Estado: {result.verification.estado} · Proveedor: {result.verification.provedor}</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-red-400 font-medium">✗ {result.error || 'Cédula no encontrada'}</p>
+              {result.raw && <pre className="text-slate-600 mt-1 overflow-auto">{JSON.stringify(result.raw, null, 2)}</pre>}
+            </div>
+          )}
         </div>
       )}
     </div>

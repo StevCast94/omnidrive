@@ -52,6 +52,7 @@ export const auth = {
   me: () => api.get('/auth/me'),
   updateMe: (d: any) => api.put('/auth/me', d),
   verifyIdentity: (fd: FormData) => api.post('/auth/verify-identity', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  verificarCedula: (documentId: string) => api.post('/auth/verificar-cedula', { documentId }),
 };
 
 export const vehicles = {
@@ -100,6 +101,13 @@ export const subscriptions = {
   plans: () => api.get('/subscriptions'),
   subscribe: (d: any) => api.post('/subscriptions', d),
   cancel: () => api.put('/subscriptions/cancel'),
+};
+
+export const adminApi = {
+  bannedIdentities: (p?: any) => api.get('/admin/banned-identities', { params: p }),
+  banIdentity: (d: { documentId: string; reason: string }) => api.post('/admin/banned-identities', d),
+  unbanIdentity: (id: string) => api.delete(`/admin/banned-identities/${id}`),
+  verifyCedula: (documentId: string) => api.post('/admin/verify-cedula', { documentId }),
 };
 
 

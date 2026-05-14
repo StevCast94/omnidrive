@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight } from 'lucide-react';
+import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight, IdCard, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi, subscriptions as subsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { PhoneInput } from '@/components/PhoneInput';
+import VerificationModal from '@/components/VerificationModal';
 
 const TABS = ['Perfil', 'Vehículos', 'Verificación', 'Suscripción'] as const;
 type Tab = typeof TABS[number];
@@ -28,6 +29,7 @@ export default function Profile() {
   });
   const [saving, setSaving] = useState(false);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
     const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
@@ -335,34 +337,56 @@ export default function Profile() {
               <p className="font-semibold text-white">{user?.identityVerified ? '✅ Identidad verificada' : '⏳ Pendiente de verificación'}</p>
               <p className="text-sm text-slate-400 mt-1">
                 {user?.identityVerified
-                  ? 'Tu identidad fue verificada. Puedes publicar vehículos y hacer reservas.'
-                  : 'Sube tus documentos para verificar tu identidad y acceder a todas las funciones.'}
+                  ? 'Tu identidad fue verificada contra el Registro Civil. Ya puedes operar en la plataforma.'
+                  : 'Verifica tu identidad en segundos consultando tu cédula contra el Registro Civil.'}
               </p>
             </div>
           </div>
 
           {!user?.identityVerified && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-              <h3 className="font-semibold text-white">Subir documentos</h3>
-              <p className="text-sm text-slate-400">Para verificar tu identidad necesitas subir los siguientes documentos. Un administrador los revisará en 24-48 horas.</p>
-
-              {[
-                { label: 'Selfie (foto tuya sosteniendo tu documento)', key: 'selfie' },
-                { label: 'Cédula/Pasaporte — Frente', key: 'documentFront' },
-                { label: 'Cédula/Pasaporte — Reverso', key: 'documentBack' },
-              ].map(item => (
-                <div key={item.key} className="flex items-center gap-3 bg-slate-800 rounded-xl p-4">
-                  <Upload size={16} className="text-slate-500 flex-shrink-0" />
-                  <p className="text-sm text-slate-300 flex-1">{item.label}</p>
-                  <label className="cursor-pointer text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                    Subir
-                    <input type="file" accept="image/*" className="hidden" onChange={e => verifyIdentity(e, item.key)} />
-                  </label>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-indigo-600/20 flex items-center justify-center">
+                  <IdCard size={22} className="text-indigo-400" />
                 </div>
-              ))}
-              <p className="text-xs text-slate-500">En el MVP, la verificación se hace manualmente desde el panel de administración.</p>
+                <div>
+                  <h3 className="font-semibold text-white">Verificación automática</h3>
+                  <p className="text-xs text-slate-400">Tu cédula será consultada en tiempo real contra el Registro Civil.</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <CheckCircle size={12} className="text-green-400" />
+                  <span>Validación contra DIGERCIC</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <CheckCircle size={12} className="text-green-400" />
+                  <span>Resultado en tiempo real</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <CheckCircle size={12} className="text-green-400" />
+                  <span>Sin necesidad de subir fotos</span>
+                </div>
+              </div>
+
+              <button onClick={() => setShowVerification(true)}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors">
+                Verificar mi identidad
+              </button>
+
+              <p className="text-xs text-slate-600 text-center">$0.05 por consulta · Proveedor: WebServices.ec</p>
             </div>
           )}
+
+          {/* Modal de verificación */}
+          <VerificationModal
+            isOpen={showVerification}
+            onClose={() => setShowVerification(false)}
+            onVerified={(data) => {
+              updateUser({ identityVerified: true, documentId: data?.user?.documentId });
+            }}
+          />
         </div>
       )}
 
