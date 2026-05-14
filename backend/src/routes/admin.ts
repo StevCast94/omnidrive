@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { refundPayment } from '../services/wallet';
+import { verifyIdentity } from '../services/verification';
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireAdmin);
@@ -197,6 +198,99 @@ adminRouter.put('/disputes/:id/resolve', async (req: AuthRequest, res: Response)
     });
 
     return res.json({ data: updated, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// BANNED IDENTITIES
+// ═══════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/banned-identities
+adminRouter.get('/banned-identities', async (req: AuthRequest, res: Response) => {
+  const { page = '1', limit = '20', active } = req.query as Record<string, string>;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const where: any = {};
+  if (active !== undefined) where.active = active === 'true';
+
+  try {
+    const [items, total] = await prisma.$transaction([
+      prisma.bannedIdentity.findMany({
+        where, skip, take: parseInt(limit),
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.bannedIdentity.count({ where }),
+    ]);
+    return res.json({
+      data: { items, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) },
+      error: null,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// POST /api/admin/banned-identities
+adminRouter.post('/banned-identities', async (req: AuthRequest, res: Response) => {
+  const { documentId, reason } = req.body;
+  if (!documentId || !reason) {
+    return res.status(400).json({ data: null, error: 'documentId y reason son requeridos' });
+  }
+
+  try {
+    // Si ya existe, reactivar
+    const existing = await prisma.bannedIdentity.findUnique({ where: { documentId } });
+    if (existing) {
+      const updated = await prisma.bannedIdentity.update({
+        where: { documentId },
+        data: { active: true, reason, bannedBy: req.user!.id },
+      });
+      return res.json({ data: updated, error: null });
+    }
+
+    const banned = await prisma.bannedIdentity.create({
+      data: { documentId, reason, bannedBy: req.user!.id },
+    });
+
+    // Desverificar al usuario si tenía esa cédula
+    await prisma.user.updateMany({
+      where: { documentId, identityVerified: true },
+      data: { identityVerified: false, verifiedAt: null },
+    });
+
+    return res.status(201).json({ data: banned, error: null });
+  } catch (e: any) {
+    if (e.code === 'P2002') {
+      return res.status(409).json({ data: null, error: 'Esta cédula ya está vetada' });
+    }
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// DELETE /api/admin/banned-identities/:id — desactivar veto
+adminRouter.delete('/banned-identities/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const banned = await prisma.bannedIdentity.update({
+      where: { id: req.params.id as string },
+      data: { active: false },
+    });
+    return res.json({ data: banned, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// GET /api/admin/verify-cedula — endpoint admin para verificar una cédula manualmente
+adminRouter.post('/verify-cedula', async (req: AuthRequest, res: Response) => {
+  const { documentId } = req.body;
+  if (!documentId) {
+    return res.status(400).json({ data: null, error: 'documentId es requerido' });
+  }
+
+  try {
+    const result = await verifyIdentity(documentId);
+    return res.json({ data: result, error: null });
   } catch (e: any) {
     return res.status(500).json({ data: null, error: e.message });
   }

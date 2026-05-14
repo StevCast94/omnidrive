@@ -16,6 +16,8 @@ import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
 import { stripeRouter }        from './routes/stripe';
 import { seedRouter }          from './routes/seed';
+import { setProvider }         from './services/verification';
+import { WebServicesEcProvider } from './services/providers/webservices-ec';
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -66,6 +68,15 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   console.error('[Error]', err);
   res.status(500).json({ data: null, error: err.message ?? 'Internal server error' });
 });
+
+// ── Init verification provider ──────────────────────────────
+const wsProvider = new WebServicesEcProvider();
+if (wsProvider.isConfigured) {
+  setProvider(wsProvider);
+  console.log('[Init] Verification provider: webservices.ec (API key configured)');
+} else {
+  console.log('[Init] Verification provider: NONE (set WEBSERVICES_EC_API_KEY env var)');
+}
 
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () =>

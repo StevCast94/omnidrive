@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { supabase } from '../lib/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
+import { verifyIdentity, getProvider } from '../services/verification';
 
 export const authRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -171,6 +172,111 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[oauth-profile] Error:', e.message);
     return res.status(500).json({ data: null, error: e.message, detail: e.stack?.split('\n').slice(0,3).join(' | ') });
+  }
+});
+
+// POST /api/auth/verificar-cedula — Verifica cédula contra proveedor real (WebServices.ec)
+authRouter.post('/verificar-cedula', authenticate, async (req: AuthRequest, res: Response) => {
+  const { documentId } = req.body;
+  if (!documentId) {
+    return res.status(400).json({ data: null, error: 'documentId es requerido' });
+  }
+
+  try {
+    // 1. Verificar si la cédula está vetada
+    const banned = await prisma.bannedIdentity.findUnique({
+      where: { documentId, active: true },
+    });
+    if (banned) {
+      return res.status(403).json({
+        data: null,
+        error: 'Esta cédula ha sido vetada en la plataforma.',
+        code: 'BANNED_IDENTITY',
+      });
+    }
+
+    // 2. Verificar si el usuario ya tiene una cédula diferente
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (user && user.documentId !== documentId && user.identityVerified) {
+      return res.status(400).json({
+        data: null,
+        error: 'Ya tienes una identidad verificada con otro documento.',
+        code: 'ALREADY_VERIFIED',
+      });
+    }
+
+    // 3. Verificar que la cédula no esté en uso por otro usuario
+    const existingUser = await prisma.user.findUnique({ where: { documentId } });
+    if (existingUser && existingUser.id !== req.user!.id) {
+      return res.status(409).json({
+        data: null,
+        error: 'Esta cédula ya está registrada por otro usuario.',
+        code: 'DOCUMENT_IN_USE',
+      });
+    }
+
+    // 4. Consultar al proveedor de verificación
+    const provider = getProvider();
+    if (!provider) {
+      return res.status(500).json({
+        data: null,
+        error: 'El servicio de verificación no está configurado. Contacta al administrador.',
+        code: 'PROVIDER_NOT_CONFIGURED',
+      });
+    }
+
+    const result = await verifyIdentity(documentId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        data: { result },
+        error: `La cédula no pudo ser verificada: ${result.error || 'Cédula inválida o no encontrada'}`,
+        code: 'VERIFICATION_FAILED',
+      });
+    }
+
+    // 5. Actualizar usuario con los datos verificados
+    const updated = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        documentId,
+        name: result.nombres.split(' ')[0] || user?.name || result.nombres,
+        lastName: result.apellidos || user?.lastName || '',
+        identityVerified: true,
+        verifiedAt: new Date(),
+      },
+      select: {
+        id: true, name: true, lastName: true, documentId: true,
+        identityVerified: true, verifiedAt: true,
+      },
+    });
+
+    // 6. Notificar al usuario
+    await prisma.notification.create({
+      data: {
+        userId: req.user!.id,
+        type: 'identity_verified',
+        title: '✅ Identidad verificada',
+        body: `Tu cédula ${documentId} ha sido verificada exitosamente. ¡Ya puedes operar en la plataforma!`,
+        data: { documentId, provedor: result.provedor },
+      },
+    });
+
+    return res.json({
+      data: {
+        user: updated,
+        verification: {
+          nombres: result.nombres,
+          apellidos: result.apellidos,
+          estado: result.estado,
+          provedor: result.provedor,
+        },
+      },
+      error: null,
+    });
+  } catch (e: any) {
+    console.error('[verificar-cedula] Error:', e.message);
+    return res.status(500).json({ data: null, error: e.message });
   }
 });
 

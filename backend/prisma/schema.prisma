@@ -58,6 +58,18 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+// ========== BANNED IDENTITIES ==========
+
+model BannedIdentity {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @unique  // cédula vetada
+  reason     String
+  bannedBy   String?  @db.Uuid // userId que vetó (admin)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model UserDocument {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
