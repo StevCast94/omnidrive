@@ -109,6 +109,7 @@ export const adminApi = {
   banIdentity: (d: { documentId: string; reason: string }) => api.post('/admin/banned-identities', d),
   unbanIdentity: (id: string) => api.delete(`/admin/banned-identities/${id}`),
   verifyCedula: (documentId: string) => api.post('/admin/verify-cedula', { documentId }),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
 };
 
 

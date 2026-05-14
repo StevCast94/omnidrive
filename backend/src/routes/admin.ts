@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { supabase } from '../lib/supabase';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { refundPayment } from '../services/wallet';
 import { verifyIdentity } from '../services/verification';
@@ -292,6 +293,56 @@ adminRouter.post('/verify-cedula', async (req: AuthRequest, res: Response) => {
     const result = await verifyIdentity(documentId);
     return res.json({ data: result, error: null });
   } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// DELETE /api/admin/users/:id — Eliminar usuario completo (DB + Supabase Auth)
+adminRouter.delete('/users/:id', async (req: AuthRequest, res: Response) => {
+  const userId = req.params.id as string;
+
+  try {
+    // 1. Obtener usuario para saber su authId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, authId: true, email: true, name: true },
+    });
+    if (!user) return res.status(404).json({ data: null, error: 'Usuario no encontrado' });
+
+    // 2. Verificar que no tenga bookings activos
+    const activeBooking = await prisma.booking.findFirst({
+      where: { OR: [{ tenantId: userId }, { vehicle: { ownerId: userId } }], status: { in: ['active', 'confirmed'] } },
+    });
+    if (activeBooking) {
+      return res.status(409).json({ data: null, error: 'El usuario tiene reservas activas. Cancélalas antes de eliminar.' });
+    }
+
+    // 3. Eliminar registros relacionados en orden (evitar FK constraints)
+    await prisma.$transaction([
+      prisma.notification.deleteMany({ where: { userId } }),
+      prisma.userDocument.deleteMany({ where: { userId } }),
+      prisma.review.deleteMany({ where: { OR: [{ authorId: userId }, { userId }] } }),
+      prisma.transaction.deleteMany({ where: { OR: [{ fromUserId: userId }, { toUserId: userId }] } }),
+      // Bookings donde es tenant (sin dueño directo)
+      prisma.booking.deleteMany({ where: { tenantId: userId } }),
+      // Suscripción
+      prisma.subscription.deleteMany({ where: { userId } }),
+      // Vehículos del usuario
+      prisma.vehicle.deleteMany({ where: { ownerId: userId } }),
+      // Finalmente el usuario
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
+
+    // 4. Eliminar de Supabase Auth
+    const { error: supabaseErr } = await supabase.auth.admin.deleteUser(user.authId);
+    if (supabaseErr) {
+      console.warn('[admin delete-user] Supabase deletion warning:', supabaseErr.message);
+      // No fallamos — el usuario ya fue eliminado de nuestra DB
+    }
+
+    return res.json({ data: { deleted: true, email: user.email }, error: null });
+  } catch (e: any) {
+    console.error('[admin delete-user] Error:', e.message);
     return res.status(500).json({ data: null, error: e.message });
   }
 });

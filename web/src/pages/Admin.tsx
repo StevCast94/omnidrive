@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Car, CreditCard, AlertTriangle, BarChart2,
-  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield
+  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, adminApi } from '@/lib/api';
@@ -57,6 +57,19 @@ export default function Admin() {
       toast.success('Usuario verificado');
       fetchTab('Usuarios');
     } catch { toast.error('Error al verificar'); }
+  };
+
+  const deleteUser = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar permanentemente a ${name}?\n\nSe borrarán todos sus datos: perfil, vehículos, reservas, notificaciones y cuenta de Supabase.\n\nEsta acción NO se puede deshacer.`)) return;
+    if (!confirm(`⚠️ Confirmación final\n\n¿Estás SEGURO de eliminar a ${name}?`)) return;
+    setLoading(true);
+    try {
+      await adminApi.deleteUser(id);
+      toast.success(`✅ ${name} eliminado`);
+      fetchTab('Usuarios');
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Error al eliminar usuario');
+    } finally { setLoading(false); }
   };
 
   const resolveDispute = async (id: string) => {
@@ -178,17 +191,23 @@ export default function Admin() {
                         : <span className="text-xs text-yellow-400">Pendiente</span>}
                     </td>
                     <td className="px-4 py-3">
-                      {!u.identityVerified && u.selfieUrl && (
-                        <button onClick={() => verifyUser(u.id)}
-                          className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                          <CheckCircle size={12} /> Verificar
+                      <div className="flex items-center gap-2">
+                        {!u.identityVerified && u.selfieUrl && (
+                          <button onClick={() => verifyUser(u.id)}
+                            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                            <CheckCircle size={12} /> Verificar
+                          </button>
+                        )}
+                        <button onClick={() => deleteUser(u.id, `${u.name} ${u.lastName}`)}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium transition-colors">
+                          <Trash2 size={12} /> Eliminar
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={7} className="text-center py-8 text-slate-500 text-sm">Sin resultados</td></tr>
+                  <tr><td colSpan={8} className="text-center py-8 text-slate-500 text-sm">Sin resultados</td></tr>
                 )}
               </tbody>
             </table>
