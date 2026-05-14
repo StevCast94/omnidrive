@@ -5,6 +5,7 @@ import { getAccessToken } from './supabase';
 export const api = axios.create({
   baseURL: "https://omnidrive-production.up.railway.app/api",
   timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Attach Supabase access token to every request
