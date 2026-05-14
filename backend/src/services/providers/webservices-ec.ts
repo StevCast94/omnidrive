@@ -1,6 +1,6 @@
 // ── Provider: WebServices.ec ──────────────────────────────────────────
 // Documentación: https://webservices.ec/documentacion
-// API Base: https://webservices.ec/api/v1
+// API Base: https://webservices.ec
 
 import { VerificationProvider, IdentityResult } from '../verification';
 import https from 'https';
@@ -12,7 +12,7 @@ interface WebServicesConfig {
 
 const DEFAULT_CONFIG: WebServicesConfig = {
   apiKey: process.env.WEBSERVICES_EC_API_KEY || '',
-  baseUrl: process.env.WEBSERVICES_EC_BASE_URL || 'https://webservices.ec/api/v1',
+  baseUrl: process.env.WEBSERVICES_EC_BASE_URL || 'https://webservices.ec',
 };
 
 export class WebServicesEcProvider implements VerificationProvider {
@@ -51,8 +51,22 @@ export class WebServicesEcProvider implements VerificationProvider {
     }
 
     try {
-      const res = await this.request('POST', '/cedula/consultar', { numero: cedula });
+      const res = await this.request('GET', '/api/cedula/' + cedula);
       const data = JSON.parse(res.body);
+
+      // El 503 del proveedor significa que el servicio público no respondió
+      if (res.statusCode === 503 || data.data?.codigo === 503) {
+        return {
+          success: false,
+          cedula,
+          nombres: '',
+          apellidos: '',
+          estado: 'ERROR',
+          provedor: this.name,
+          error: 'El servicio del Registro Civil no está disponible temporalmente. Intenta más tarde.',
+          raw: data,
+        };
+      }
 
       if (!data || data.error) {
         return {
@@ -62,15 +76,18 @@ export class WebServicesEcProvider implements VerificationProvider {
           apellidos: '',
           estado: 'ERROR',
           provedor: this.name,
-          error: data?.mensaje || data?.error || 'Error en la consulta',
+          error: data?.message || data?.error || 'Error en la consulta',
           raw: data,
         };
       }
 
+      // La respuesta de WebServices.ec viene en data.data
+      const result = data.data || data;
+
       // Mapear respuesta del proveedor a nuestro formato estandar
-      const nombres = data.nombres || data.primer_nombre || '';
-      const apellidos = data.apellidos || data.primer_apellido || '';
-      const estado = data.estado || data.estado_cedula || 'ACTIVA';
+      const nombres = result.nombres || result.primer_nombre || result.nombre || '';
+      const apellidos = result.apellidos || result.primer_apellido || '';
+      const estado = result.estado || result.estado_cedula || 'ACTIVA';
 
       const success = estado.toUpperCase() === 'ACTIVA';
 
@@ -81,7 +98,7 @@ export class WebServicesEcProvider implements VerificationProvider {
         apellidos,
         estado,
         provedor: this.name,
-        raw: data,
+        raw: result,
       };
     } catch (e: any) {
       return {
