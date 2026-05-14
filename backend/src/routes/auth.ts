@@ -141,15 +141,16 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
     // Log para debug
     console.log('[oauth-profile] Creating user:', { name, lastName, email, phone: phone.substring(0,10), authId: authUser.id });
 
+    const userId = authUser.id.replace(/-/g, '').substring(0, 20);
     const user = await prisma.user.create({
       data: {
         authId: authUser.id,
         email,
-        phone,
+        phone: phone.length >= 10 ? phone : ('0000000000'),
         name,
         lastName,
         documentType: 'cedula',
-        documentId: '',
+        documentId: 'oauth-' + userId,
         avatarUrl: picture,
       },
       select: {
