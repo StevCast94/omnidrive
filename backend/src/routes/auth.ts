@@ -53,6 +53,11 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     // 4. Return the user profile (frontend will sign in separately to get the session token)
     return res.status(201).json({ data: { user }, error: null });
   } catch (e: any) {
+    console.error('[PUT /me] Error:', e.message);
+    if (e.code === 'P2002') {
+      const target = e.meta?.target?.join(', ') || 'campo único';
+      return res.status(409).json({ data: null, error: `Ya existe otro usuario con ese ${target}` });
+    }
     return res.status(500).json({ data: null, error: e.message });
   }
 });
@@ -173,6 +178,7 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
 authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const { name, lastName, phone, gender, birthDate } = req.body;
   try {
+    console.log('[PUT /me] body:', JSON.stringify(req.body));
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: {
