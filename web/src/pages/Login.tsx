@@ -1,4 +1,4 @@
-// ===== web/src/pages/Login.tsx =====
+// ===== web/src/ pages/Login.tsx =====
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Car } from 'lucide-react';
@@ -17,14 +17,12 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Sign in with Supabase — session stored automatically by the SDK
       const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
       });
       if (sbErr || !sbData.session) throw new Error(sbErr?.message ?? 'Login failed');
 
-      // 2. Fetch our app profile (token is now attached by api interceptor)
       const { data: res } = await auth.me();
       setUser(res.data);
 
@@ -37,43 +35,116 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setLoading(true);
-    try {
-      // ── ESTRATEGIA: redirect manual ──
-      // En lugar de dejar que Supabase maneje el redirect automático
-      // (que causa problemas con hash routing), obtenemos la URL
-      // de autorización y redirigimos nosotros mismos.
-      //
-      // Luego, cuando Google redirija a nuestra app, parseamos 
-      // parámetros tanto de search como del hash.
 
-      const baseUrl = window.location.origin;
+    // ── ESTRATEGIA: OAuth con popup ──
+    // En lugar de redirect (que causa problemas con hash routing),
+    // usamos una ventana emergente para el OAuth.
+    //
+    // Cuando la ventana se cierra, onAuthStateChange detecta la sesión
+    // y llamamos a /me para obtener el perfil.
+    //
+    // Esto evita COMPLETAMENTE el problema de Google redirigiendo
+    // a nuestra app con hash routing.
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: baseUrl + '/auth/callback',
-          skipBrowserRedirect: true, // ← ESTO es clave
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
+    // Obtener la URL de autorización
+    supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // La ventana popup se abre en Supabase, que redirige a Google
+        // Cuando Google completa, Supabase redirige la popup a su propia
+        // URL de callback interna, y el SDK de Supabase en la ventana
+        // padre detecta el cambio via postMessage.
+        //
+        // No necesitamos redirectTo porque la popup se comunica por postMessage.
+        redirectTo: window.location.origin + '/auth/callback',
+      },
+    }).then(({ data, error }) => {
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+      
+      if (data?.url) {
+        // Abrir popup con la URL de autorización
+        const width = 600;
+        const height = 700;
+        const left = Math.max(0, Math.round((screen.width - width) / 2));
+        const top = Math.max(0, Math.round((screen.height - height) / 2));
+        
+        const popup = window.open(
+          data.url,
+          'google-oauth',
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('No se pudo generar la URL de autenticación');
+        if (!popup) {
+          // Popup bloqueada — fallback a redirect normal
+          toast.error('Popup bloqueada. Redirigiendo...');
+          window.location.href = data.url;
+          return;
+        }
 
-      console.log('[Google Login] URL de autorización generada:', data.url.substring(0, 80) + '...');
+        // Timer para verificar si el popup se cerró
+        const checkPopup = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            console.log('[Google Login] Popup cerrada. Verificando sesión...');
 
-      // Redirigir manualmente
-      window.location.href = data.url;
+            // Verificar si la sesión se estableció
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log('[Google Login] Sesión encontrada:', session.user.email);
+              try {
+                const { data: res } = await auth.me();
+                setUser(res.data);
+                toast.success(`Bienvenido, ${res.data.name}!`);
+                navigate('/dashboard');
+              } catch {
+                // Nuevo usuario — crear perfil
+                const names = (session.user.user_metadata?.full_name || session.user.email || '').split(' ');
+                try {
+                  await auth.register({
+                    name: names[0] || session.user.email!.split('@')[0],
+                    lastName: names.slice(1).join(' ') || '',
+                    email: session.user.email!,
+                    phone: session.user.phone || '0000000000',
+                    password: crypto.randomUUID(),
+                    documentType: 'cedula',
+                    documentId: '0000000000',
+                    birthDate: '',
+                  });
+                  const { data: meRes } = await auth.me();
+                  setUser(meRes.data);
+                  toast.success(`¡Bienvenido, ${meRes.data.name}!`);
+                  navigate('/dashboard');
+                } catch (regErr: any) {
+                  toast.error(regErr?.response?.data?.error || 'Error al crear perfil');
+                }
+              }
+            } else {
+              toast.error('No se pudo iniciar sesión con Google');
+            }
+            setLoading(false);
+          }
+        }, 500);
 
-    } catch (err: any) {
-      toast.error(err.message ?? 'Error al iniciar con Google');
+        // Timeout de 2 minutos
+        setTimeout(() => {
+          clearInterval(checkPopup);
+          if (!popup.closed) popup.close();
+          setLoading(false);
+        }, 120000);
+      } else {
+        toast.error('No se pudo generar la URL de autenticación');
+        setLoading(false);
+      }
+    }).catch((err) => {
+      toast.error(err.message || 'Error al iniciar con Google');
       setLoading(false);
-    }
+    });
   };
 
   return (
