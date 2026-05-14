@@ -6,12 +6,24 @@ export const api = axios.create({
   baseURL: "https://omnidrive-production.up.railway.app/api",
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
+  transformRequest: [(data) => {
+    if (typeof data === 'object' && !(data instanceof FormData)) {
+      return JSON.stringify(data);
+    }
+    return data;
+  }],
 });
 
 // Attach Supabase access token to every request
 api.interceptors.request.use(async cfg => {
   const token = await getAccessToken();
-  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    cfg.headers.Authorization = `Bearer ${token}`;
+  }
+  // Force content-type for JSON bodies
+  if (cfg.data && typeof cfg.data === 'string' && cfg.data.startsWith('{')) {
+    cfg.headers['Content-Type'] = 'application/json';
+  }
   return cfg;
 });
 
