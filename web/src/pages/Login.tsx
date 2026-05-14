@@ -1,4 +1,4 @@
-﻿// ===== web/src/pages/Login.tsx =====
+// ===== web/src/pages/Login.tsx =====
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Car } from 'lucide-react';
@@ -40,25 +40,36 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      // El redirectTo debe coincidir EXACTAMENTE con las Redirect URLs registradas
-      // en Supabase Dashboard > Authentication > Providers > URL Configuration
-      const baseUrl = window.location.origin; // https://omnidrive.vercel.app
-      const redirectTo = baseUrl + '/auth/callback';
-      
-      console.log('[Google Login] redirectTo:', redirectTo);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
+      // ── ESTRATEGIA: redirect manual ──
+      // En lugar de dejar que Supabase maneje el redirect automático
+      // (que causa problemas con hash routing), obtenemos la URL
+      // de autorización y redirigimos nosotros mismos.
+      //
+      // Luego, cuando Google redirija a nuestra app, parseamos 
+      // parámetros tanto de search como del hash.
+
+      const baseUrl = window.location.origin;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
-          // Forzar PKCE flow explícito
+          redirectTo: baseUrl + '/auth/callback',
+          skipBrowserRedirect: true, // ← ESTO es clave
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
         },
       });
+
       if (error) throw error;
+      if (!data?.url) throw new Error('No se pudo generar la URL de autenticación');
+
+      console.log('[Google Login] URL de autorización generada:', data.url.substring(0, 80) + '...');
+
+      // Redirigir manualmente
+      window.location.href = data.url;
+
     } catch (err: any) {
       toast.error(err.message ?? 'Error al iniciar con Google');
       setLoading(false);

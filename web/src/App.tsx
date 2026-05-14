@@ -36,28 +36,40 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
 }
 
 /**
- * Obtiene la ruta desde el hash. Si no hay hash (URL directa,
- * ej: /auth/callback?code=xxx), la convierte a hash routing.
- * Devuelve SOLO la ruta sin query params (para matching).
+ * Normaliza la URL: si el path actual no tiene hash router,
+ * lo convierte a #/ruta?query. No toca el hash si ya existe.
+ * Solo se llama en mount, no bloquea el render.
  */
+function normalizeUrlOnMount() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
+    return; // ya está en hash router
+  }
+  // Sin hash — convertir path actual a hash
+  const path = window.location.pathname;
+  const search = window.location.search;
+  const route = path.replace(/^\//, '') || '/';
+  history.replaceState(null, '', '#' + route + search);
+}
+
 function parseHash(): string {
   const hash = window.location.hash;
   if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
     return (hash.replace(/^#/, '') || '/').split('?')[0];
   }
-  // No hay hash — convertir
+  // Si no hay hash (primer render antes de normalizeUrlOnMount)
   const path = window.location.pathname;
-  const search = window.location.search; // ej: ?code=xxx
-  const route = path.replace(/^\//, '') || '/';
-  // Asignar hash SIN perder query params
-  history.replaceState(null, '', '#' + route + search);
-  return route;
+  return path.replace(/^\//, '') || '/';
 }
 
 function RouterProvider({ routes }: { routes: Route[] }) {
+  // Parsear el estado inicial SIN modificar la URL
   const [path, setPath] = useState(() => parseHash());
 
   useEffect(() => {
+    // Normalizar la URL después del primer render
+    normalizeUrlOnMount();
+    
     const onHash = () => setPath(parseHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
