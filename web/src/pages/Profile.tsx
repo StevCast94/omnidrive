@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight, IdCard, CheckCircle } from 'lucide-react';
+import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight, ScanFace, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi, subscriptions as subsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -347,7 +347,7 @@ export default function Profile() {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-indigo-600/20 flex items-center justify-center">
-                  <IdCard size={22} className="text-indigo-400" />
+                  <ScanFace size={22} className="text-indigo-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">Verificación automática</h3>
