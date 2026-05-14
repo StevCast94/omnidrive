@@ -40,10 +40,22 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      // El redirectTo debe coincidir EXACTAMENTE con las Redirect URLs registradas
+      // en Supabase Dashboard > Authentication > Providers > URL Configuration
+      const baseUrl = window.location.origin; // https://omnidrive.vercel.app
+      const redirectTo = baseUrl + '/auth/callback';
+      
+      console.log('[Google Login] redirectTo:', redirectTo);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/auth/callback',
+          redirectTo,
+          // Forzar PKCE flow explícito
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       if (error) throw error;
