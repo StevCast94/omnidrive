@@ -1,12 +1,12 @@
 // ===== web/src/pages/AuthCallback.tsx =====
-// Maneja el callback OAuth de Google de forma ultra-robusta.
+// Maneja el callback OAuth de Google.
 //
-// La URL de llegada puede ser:
-//   /auth/callback?code=xxx             (sin hash — Vercel sirve index.html)
-//   /#/auth/callback?code=xxx           (con hash router — navegación interna)
-//   /#/auth/callback#access_token=xxx   (implicit flow — raro pero posible)
+// Google redirige a: /auth/callback?code=xxx
+// Con hash router, parseHash() lo convierte a: /#/auth/callback?code=xxx
 //
-// Parseamos parámetros de TODAS las fuentes y usamos Supabase para intercambiar.
+// Tuve problemas con getSession() que devuelve sesión de un login anterior
+// y el code de Google se pierde. Por eso usamos window.location.search
+// DIRECTAMENTE para leer el code antes de que el hash router lo modifique.
 
 import { useEffect, useRef } from 'react';
 import { useNavigate } from '@/lib/router-exports';
@@ -26,86 +26,99 @@ export default function AuthCallback() {
 
     (async () => {
       try {
-        // ── 1. Extraer parámetros OAuth de DONDE SEA ──
-        // La URL real completa se ve así en cada caso:
-        //   a) https://dominio/auth/callback?code=xxx
-        //   b) https://dominio/#/auth/callback?code=xxx
-        //   c) https://dominio/#/auth/callback#access_token=xxx (imposible, el navegador trunca el segundo hash)
-        //
-        // Leer de:
-        //   - window.location.search (query string real)
-        //   - window.location.hash (query params dentro del hash)
-        //   - fragmento después de # dentro del hash
+        // ── 1. Leer code de Google DIRECTAMENTE del query string ──
+        // Usamos el search original, NO el hash (porque parseHash() lo modifica)
+        const originalSearch = window.location.search; // "?code=xxx"
+        const code = new URLSearchParams(originalSearch).get('code');
+        const hashQuery = new URLSearchParams((window.location.hash.split('?')[1] || ''));
+        const hashCode = hashQuery.get('code');
 
-        const searchParams = new URLSearchParams(window.location.search);
-        const hashRaw = window.location.hash; // ej: "#/auth/callback?code=xxx"
-
-        let code = searchParams.get('code');
-        let accessToken = searchParams.get('access_token');
-
-        // Si no hay code en search, buscar en el hash
-        if (!code && hashRaw.includes('?')) {
-          const hashQuery = new URLSearchParams(hashRaw.split('?')[1]);
-          code = hashQuery.get('code');
-          accessToken = hashQuery.get('access_token');
-        }
+        const finalCode = code || hashCode;
 
         console.log('[AuthCallback] URL:', window.location.href);
-        console.log('[AuthCallback] code:', code ? 'presente' : 'ausente');
-        console.log('[AuthCallback] accessToken:', accessToken ? 'presente' : 'ausente');
+        console.log('[AuthCallback] search:', originalSearch);
+        console.log('[AuthCallback] hash:', window.location.hash);
+        console.log('[AuthCallback] code from search:', code);
+        console.log('[AuthCallback] code from hash:', hashCode);
+        console.log('[AuthCallback] final code:', finalCode ? 'PRESENTE' : 'AUSENTE');
 
         // ── 2. Intercambiar code por sesión ──
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw new Error(error.message);
-        } else if (accessToken) {
-          const refreshToken = (hashRaw.includes('?') ? new URLSearchParams(hashRaw.split('?')[1]).get('refresh_token') : null) || '';
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (finalCode) {
+          console.log('[AuthCallback] Intercambiando code por sesión...');
+          const { error } = await supabase.auth.exchangeCodeForSession(finalCode);
+          if (error) {
+            console.error('[AuthCallback] exchangeCodeForSession error:', error);
+            throw new Error(error.message);
+          }
+          console.log('[AuthCallback] Code intercambiado exitosamente');
         } else {
-          // Sin params — quizás Supabase ya procesó automáticamente
-          // o el usuario llegó aquí por navegación manual
-          console.log('[AuthCallback] Sin parámetros OAuth, verificando sesión existente...');
+          console.log('[AuthCallback] Sin code. Verificando sesión existente...');
         }
 
-        // ── 3. Esperar sesión ──
+        // ── 3. Obtener sesión ──
         await new Promise(r => setTimeout(r, 800));
-
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
         if (sessionError || !session) {
           throw new Error(sessionError?.message || 'No se pudo obtener la sesión');
         }
 
-        console.log('[AuthCallback] Sesión obtenida:', session.user.email);
+        console.log('[AuthCallback] Sesión:', session.user.email);
+        const accessToken = session.access_token;
 
-        // ── 4. Buscar o crear perfil ──
+        // ── 4. Buscar perfil ──
         let profile;
         try {
           const { data: res } = await auth.me();
           profile = res.data;
-          console.log('[AuthCallback] Perfil existente:', profile.name);
+          console.log('[AuthCallback] Perfil encontrado:', profile.name);
         } catch (meErr: any) {
-          console.log('[AuthCallback] Perfil no encontrado, creando...');
-          // Nuevo usuario — crear perfil
-          const names = (session.user.user_metadata?.full_name || '').split(' ');
+          console.log('[AuthCallback] Perfil no encontrado en DB. Buscando por authId...');
+
+          // El usuario existe en Supabase Auth pero quizás no en nuestra tabla users
+          // Intentar crear el registro manualmente
+          const names = (session.user.user_metadata?.full_name || session.user.email || '').split(' ');
+          const email = session.user.email!;
+
           try {
-            const regData = {
-              name: names[0] || 'Usuario',
+            // Llamar register que crea en Auth + Users
+            const regBody = {
+              name: names[0] || email.split('@')[0],
               lastName: names.slice(1).join(' ') || '',
-              email: session.user.email!,
+              email: email,
               phone: session.user.phone || session.user.user_metadata?.phone || '0000000000',
               password: crypto.randomUUID(),
               documentType: 'cedula',
               documentId: '0000000000',
               birthDate: '',
             };
-            console.log('[AuthCallback] Registrando:', regData.email);
-            await auth.register(regData);
-            const { data: res } = await auth.me();
-            profile = res.data;
+
+            console.log('[AuthCallback] Intentando register:', regBody.email);
+            const regRes = await auth.register(regBody);
+            profile = regRes.data.user;
             console.log('[AuthCallback] Perfil creado:', profile.name);
           } catch (regErr: any) {
-            console.error('[AuthCallback] Error al crear perfil:', regErr?.response?.data || regErr.message);
-            throw new Error('No se pudo crear tu perfil de usuario');
+            // Si falla porque el usuario ya existe en Auth (caso real),
+            // intentar obtener el perfil llamando a /me con el token actual
+            console.log('[AuthCallback] Register falló:', regErr?.response?.data?.error);
+
+            if (regErr?.response?.data?.error?.includes?.('already been registered')) {
+              // El usuario ya existe en Auth — probar a buscarlo en users por email
+              console.log('[AuthCallback] Usuario ya existe en Auth. Buscando perfil por email...');
+              try {
+                const { data: meRes } = await auth.me();
+                profile = meRes.data;
+                console.log('[AuthCallback] Perfil recuperado:', profile.name);
+              } catch {
+                // El usuario no tiene registro en nuestra tabla — no podemos continuar
+                throw new Error(
+                  'Tu cuenta de Google ya está registrada en nuestro sistema pero ' +
+                  'no tiene un perfil completo. Por favor, inicia sesión con email y contraseña.'
+                );
+              }
+            } else {
+              throw new Error(regErr?.response?.data?.error || 'Error al crear perfil de usuario');
+            }
           }
         }
 
@@ -113,7 +126,7 @@ export default function AuthCallback() {
         toast.success(`¡Bienvenido, ${profile.name}!`);
 
         // ── 5. Redirigir ──
-        history.replaceState(null, '', '#/dashboard');
+        window.location.hash = '#/dashboard';
         navigate('/dashboard');
 
       } catch (err: any) {
