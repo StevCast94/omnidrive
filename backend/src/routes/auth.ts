@@ -319,7 +319,7 @@ authRouter.post('/verificar-whatsapp', authenticate, async (req: AuthRequest, re
 });
 
 // PUT /api/auth/me
-authRouter.put('/me', authenticate, async (req: AuthRequest, req: Response) => {
+authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const { name, lastName, phone, gender, birthDate, documentType, documentId } = req.body;
   try {
     console.log('[PUT /me] body:', JSON.stringify(req.body));
