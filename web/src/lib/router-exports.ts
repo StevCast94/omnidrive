@@ -1,6 +1,6 @@
 // Router exports — reemplazo de react-router-dom
 // Importa desde @/lib/router (context standalone, sin dependencias circulares)
-export { useRouter, useNavigate, useParams } from '@/lib/router';
+export { useRouter, useNavigate, useNavigateDirect, useParams } from '@/lib/router';
 
 import { createElement } from 'react';
 import { useRouter } from '@/lib/router';

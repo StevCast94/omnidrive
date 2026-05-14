@@ -79,6 +79,12 @@ function RouterProvider({ routes }: { routes: Route[] }) {
     window.location.hash = '#' + to;
   }, []);
 
+  // Force re-render helper (para cuando mount/redirect no disparan hashchange)
+  const navigateDirect = useCallback((to: string) => {
+    history.replaceState(null, '', '#' + to);
+    setPath(to);
+  }, []);
+
   // Find matching route
   let matched: { element: React.ReactNode; params: Record<string, string> } | null = null;
   for (const route of routes) {
@@ -98,7 +104,7 @@ function RouterProvider({ routes }: { routes: Route[] }) {
   }
 
   return (
-    <RouterContext.Provider value={{ path, params: matched.params, navigate }}>
+    <RouterContext.Provider value={{ path, params: matched.params, navigate, navigateDirect }}>
       {matched.element}
     </RouterContext.Provider>
   );
