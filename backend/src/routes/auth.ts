@@ -155,7 +155,8 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
       },
       select: {
         id: true, authId: true, email: true, phone: true,
-        name: true, lastName: true, role: true,
+        name: true, lastName: true, documentType: true, documentId: true,
+        role: true,
         identityVerified: true, walletBalance: true,
         subscriptionTier: true, driverScore: true, createdAt: true,
       },
@@ -175,15 +176,18 @@ authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: {
-        ...(name      && { name }),
-        ...(lastName  && { lastName }),
-        ...(phone     && { phone }),
-        ...(gender    && { gender }),
-        ...(birthDate && { birthDate: new Date(birthDate) }),
+        ...(name         && { name }),
+        ...(lastName     && { lastName }),
+        ...(phone        && { phone }),
+        ...(gender       && { gender }),
+        ...(documentType && { documentType }),
+        ...(documentId   && { documentId }),
+        ...(birthDate    && { birthDate: new Date(birthDate) }),
       },
       select: {
         id: true, email: true, phone: true, name: true,
-        lastName: true, gender: true, birthDate: true, updatedAt: true,
+        lastName: true, documentType: true, documentId: true,
+        gender: true, birthDate: true, updatedAt: true,
       },
     });
     return res.json({ data: user, error: null });
