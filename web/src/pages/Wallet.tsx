@@ -10,7 +10,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; sign: string }
   payment:      { label: 'Pago',        color: 'text-blue-400',   sign: '-' },
   refund:       { label: 'Reembolso',   color: 'text-green-400',  sign: '+' },
   commission:   { label: 'Comisión',    color: 'text-slate-400',  sign: '-' },
-  subscription: { label: 'Suscripción', color: 'text-purple-400', sign: '-' },
+
 };
 
 type Modal = '' | 'deposit' | 'withdraw';

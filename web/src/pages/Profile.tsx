@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, BadgeCheck, Star, Car, Shield, Zap, Upload, Plus, ChevronRight, ScanFace, CheckCircle } from 'lucide-react';
+import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFace, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { auth as authApi, vehicles as vehiclesApi, subscriptions as subsApi } from '@/lib/api';
+import { auth as authApi, vehicles as vehiclesApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { PhoneInput } from '@/components/PhoneInput';
 import VerificationModal from '@/components/VerificationModal';
 
-const TABS = ['Perfil', 'Vehículos', 'Verificación', 'Suscripción'] as const;
+const TABS = ['Perfil', 'Vehículos', 'Verificación'] as const;
 type Tab = typeof TABS[number];
 
 export default function Profile() {
@@ -80,26 +80,6 @@ export default function Profile() {
     } finally { setSaving(false); }
   };
 
-  const subscribe = async (tier: string, interval: string) => {
-    setSaving(true);
-    try {
-      await subsApi.subscribe({ tier, interval });
-      toast.success(`¡Suscripción ${tier} activada!`);
-      updateUser({ subscriptionTier: tier as any });
-    } catch (e: any) {
-      toast.error(e.response?.data?.error ?? 'Error al suscribirse');
-    } finally { setSaving(false); }
-  };
-
-  const cancelSub = async () => {
-    if (!confirm('¿Cancelar suscripción?')) return;
-    try {
-      await subsApi.cancel();
-      toast.success('Suscripción cancelada');
-      updateUser({ subscriptionTier: 'free' });
-    } catch { toast.error('Error al cancelar'); }
-  };
-
   const vSet = (k: string, v: any) => setVehicleForm(f => ({ ...f, [k]: v }));
 
   const FEATURES = ['ac', 'gps', 'bluetooth', 'usb', 'backup_camera', 'sunroof', 'leather'];
@@ -127,10 +107,7 @@ export default function Profile() {
             </span>
             <span className="text-xs text-slate-600">·</span>
             <span className="text-xs text-slate-500">{user?.totalTrips} viajes</span>
-            <span className="text-xs text-slate-600">·</span>
-            <span className={`text-xs font-medium capitalize ${user?.subscriptionTier === 'free' ? 'text-slate-400' : user?.subscriptionTier === 'premium' ? 'text-yellow-400' : 'text-violet-400'}`}>
-              {user?.subscriptionTier}
-            </span>
+
           </div>
         </div>
       </div>
@@ -442,51 +419,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── SUSCRIPCIÓN ── */}
-      {tab === 'Suscripción' && (
-        <div className="space-y-4">
-          {/* Current plan */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <p className="text-sm text-slate-400 mb-1">Plan actual</p>
-            <p className="text-xl font-bold text-white capitalize">{user?.subscriptionTier === 'free' ? 'Free' : user?.subscriptionTier === 'premium' ? 'Premium ⭐' : 'Elite 💎'}</p>
-            {user?.subscriptionTier !== 'free' && (
-              <button onClick={cancelSub} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">Cancelar suscripción</button>
-            )}
-          </div>
 
-          {/* Plans */}
-          {plans && Object.entries(plans).map(([tier, p]: any) => {
-            const isCurrent = user?.subscriptionTier === tier;
-            return (
-              <div key={tier} className={`bg-slate-900 border rounded-2xl p-6 space-y-4 ${isCurrent ? 'border-indigo-500' : 'border-slate-800'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Zap size={18} className={tier === 'elite' ? 'text-violet-400' : 'text-yellow-400'} />
-                      <h3 className="font-bold text-white text-lg capitalize">{tier}</h3>
-                      {isCurrent && <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full">Activo</span>}
-                    </div>
-                    <p className="text-slate-400 text-sm">${p.monthly.price}/mes · ${p.yearly.price}/año</p>
-                  </div>
-                  {!isCurrent && (
-                    <button onClick={() => subscribe(tier, 'monthly')} disabled={saving}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors">
-                      {saving ? '...' : 'Suscribirse'}
-                    </button>
-                  )}
-                </div>
-                <ul className="space-y-2">
-                  {p.benefits.map((b: string) => (
-                    <li key={b} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-green-400 mt-0.5 flex-shrink-0">✓</span> {b}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

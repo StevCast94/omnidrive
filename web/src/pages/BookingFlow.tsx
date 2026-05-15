@@ -27,7 +27,7 @@ export default function BookingFlow() {
     hasInsurance: false,
     liabilityWaiver: false,
     tenantAccepted: false,
-    payWithWallet: user?.subscriptionTier !== 'free',
+    payWithWallet: false,
   });
 
   useEffect(() => {
@@ -217,7 +217,7 @@ export default function BookingFlow() {
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-white">Método de pago</h2>
 
-      {user?.subscriptionTier !== 'free' && (
+      {false && (
         <label className={`flex items-start gap-4 p-5 rounded-2xl border cursor-pointer transition-all ${opts.payWithWallet ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-700 bg-slate-800'}`}>
           <input type="radio" checked={opts.payWithWallet} onChange={() => setOpts(o => ({ ...o, payWithWallet: true }))} className="accent-indigo-500 w-4 h-4 mt-0.5" />
           <div className="flex-1">

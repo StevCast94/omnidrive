@@ -243,8 +243,8 @@ authRouter.post('/verificar-cedula', authenticate, async (req: AuthRequest, res:
         });
       }
       console.log('[verificar-cedula] Sin proveedor externo — validación offline OK');
-      var nombres = 'Usuario';                     // placeholder
-      var apellidos = 'Verificado';                 // placeholder
+      var nombres = user?.name || 'Usuario';
+      var apellidos = user?.lastName || 'Verificado';
       var estado = 'ACTIVA';
       var provedor = 'offline';
     }

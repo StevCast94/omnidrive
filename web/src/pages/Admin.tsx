@@ -167,7 +167,7 @@ export default function Admin() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Usuario', 'Documento', 'Wallet', 'Score', 'Suscripción', 'Estado', 'Acción'].map(h => (
+                  {['Usuario', 'Documento', 'Wallet', 'Score', 'Estado', 'Acción'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -184,7 +184,7 @@ export default function Admin() {
                     <td className="px-4 py-3 text-xs text-slate-400">{u.documentType} · {u.documentId}</td>
                     <td className="px-4 py-3 text-sm font-medium text-white">${Number(u.walletBalance).toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-slate-300">{u.driverScore}</td>
-                    <td className="px-4 py-3 text-xs capitalize text-slate-400">{u.subscriptionTier}</td>
+
                     <td className="px-4 py-3">
                       {u.identityVerified
                         ? <span className="flex items-center gap-1 text-xs text-green-400"><BadgeCheck size={12} /> Verificado</span>

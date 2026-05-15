@@ -88,11 +88,11 @@ export default function Dashboard() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-2 gap-3 mb-8">
         {[
           { label: 'Viajes realizados', val: user?.totalTrips ?? 0 },
           { label: 'Score conductor', val: user?.driverScore ?? 700 },
-          { label: 'Suscripción', val: user?.subscriptionTier === 'free' ? 'Free' : user?.subscriptionTier === 'premium' ? 'Premium ⭐' : 'Elite 💎' },
+          { label: 'Score conductor', val: user?.driverScore ?? 700 },
         ].map(s => (
           <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
             <p className="text-xl font-bold text-white">{s.val}</p>
