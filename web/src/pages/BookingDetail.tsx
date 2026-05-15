@@ -2,10 +2,11 @@
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   ChevronLeft, Car, Check, Clock, Play, Camera,
-  Flag, AlertTriangle, Star, MapPin, Navigation
+  Flag, AlertTriangle, Star, MapPin, Navigation, MessageCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { bookings as bookingsApi, reviewsApi, tracking } from '@/lib/api';
+import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 
 const TIMELINE = [
@@ -23,6 +24,7 @@ export default function BookingDetail() {
   const { user } = useAuthStore();
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
   const [showReview, setShowReview] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
@@ -294,6 +296,13 @@ export default function BookingDetail() {
           </div>
         )}
 
+        {/* Contactar al dueño/inquilino */}
+        <button onClick={() => setContactOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-medium text-sm transition-colors">
+          <MessageCircle size={16} className="text-cyan-400" />
+          {isOwner ? 'Contactar al inquilino' : 'Contactar al dueño'}
+        </button>
+
         {/* Cancel — both can cancel if pending/confirmed */}
         {(isTenant || isOwner) && ['pending', 'confirmed'].includes(booking.status) && (
           <button disabled={!!actionLoading}
@@ -368,6 +377,20 @@ export default function BookingDetail() {
           </div>
         </div>
       )}
+
+      <ContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        bookingId={booking.id}
+        vehicle={{
+          id: booking.vehicle.id,
+          brand: booking.vehicle.brand,
+          model: booking.vehicle.model,
+          ownerId: booking.vehicle.ownerId,
+          ownerPhone: booking.vehicle.owner?.phone,
+          ownerName: booking.vehicle.owner ? `${booking.vehicle.owner.name} ${booking.vehicle.owner.lastName}` : undefined,
+        }}
+      />
     </div>
   );
 }

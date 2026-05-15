@@ -1,13 +1,14 @@
 // ===== web/src/components/ContactModal.tsx =====
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@/lib/router-exports';
-import { X, MessageCircle, Send, Phone, Shield, ChevronRight, Info } from 'lucide-react';
+import { X, MessageCircle, Send, Phone, Shield, ChevronRight, Info, ExternalLink } from 'lucide-react';
 import { messages } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 
 interface ContactModalProps {
   open: boolean;
   onClose: () => void;
+  bookingId?: string; // Si hay booking, habilita chat interno
   vehicle: {
     id: string;
     brand: string;
@@ -18,7 +19,7 @@ interface ContactModalProps {
   };
 }
 
-export default function ContactModal({ open, onClose, vehicle }: ContactModalProps) {
+export default function ContactModal({ open, onClose, bookingId, vehicle }: ContactModalProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [convId, setConvId] = useState<string | null>(null);
@@ -33,10 +34,10 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
     if (open) {
       setConvId(null);
       setChatMessages([]);
-      setMode('select');
+      setMode(bookingId ? 'select' : 'chat');
       setNewText('');
     }
-  }, [open]);
+  }, [open, bookingId]);
 
   useEffect(() => {
     if (mode === 'chat' && convId) {
@@ -63,7 +64,7 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
     }
     setLoading(true);
     try {
-      const { data } = await messages.start(vehicle.id);
+      const { data } = await messages.start(vehicle.id, bookingId);
       setConvId(data.id);
       setMode('chat');
       loadMessages();
@@ -100,7 +101,9 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div>
-            <h3 className="text-white font-semibold text-sm">Contactar al dueño</h3>
+            <h3 className="text-white font-semibold text-sm">
+              {bookingId ? 'Contactar al dueño' : `Contactar a ${vehicle.ownerName || 'el dueño'}`}
+            </h3>
             <p className="text-slate-400 text-xs">{vehicle.brand} {vehicle.model}</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white p-1">
@@ -121,10 +124,9 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
           <div className="p-8 text-center">
             <p className="text-slate-400 text-sm">Eres el dueño de este vehículo</p>
           </div>
-        ) : mode === 'select' ? (
-          /* Selector de modo de contacto */
+        ) : mode === 'select' && bookingId ? (
+          /* Selector con booking -> chat disponible */
           <div className="p-4 space-y-3">
-            {/* Opción 1: Chat interno */}
             <button
               onClick={startChat}
               disabled={loading}
@@ -135,7 +137,7 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
               </div>
               <div className="flex-1 text-left">
                 <p className="text-white text-sm font-medium">Chat en la app</p>
-                <p className="text-slate-400 text-xs">Conversa directamente con el dueño</p>
+                <p className="text-slate-400 text-xs">Conversa con el dueño sobre tu reserva</p>
               </div>
               {loading ? (
                 <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
@@ -144,14 +146,9 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
               )}
             </button>
 
-            {/* Opción 2: WhatsApp */}
             {whatsappLink && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center gap-4 bg-green-900/20 hover:bg-green-900/30 border border-green-800/40 rounded-xl p-4 transition-colors"
-              >
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
+                className="w-full flex items-center gap-4 bg-green-900/20 hover:bg-green-900/30 border border-green-800/40 rounded-xl p-4 transition-colors">
                 <div className="w-10 h-10 bg-green-900/50 rounded-full flex items-center justify-center">
                   <Phone size={20} className="text-green-400" />
                 </div>
@@ -162,18 +159,13 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
                 <ChevronRight size={18} className="text-green-500" />
               </a>
             )}
-
-            <div className="flex items-center gap-2 pt-2">
-              <Info size={12} className="text-slate-600" />
-              <p className="text-xs text-slate-600">Sin comisiones ni intermediarios. Tú y el dueño acuerdan directamente.</p>
-            </div>
           </div>
-        ) : (
+        ) : bookingId || mode === 'chat' ? (
           /* Chat */
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {chatMessages.length === 0 && (
-                <p className="text-center text-slate-500 text-sm py-8">No hay mensajes aún</p>
+                <p className="text-center text-slate-500 text-sm py-8">No hay mensajes aún. Escribe al dueño sobre tu reserva.</p>
               )}
               {chatMessages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}>
@@ -195,7 +187,11 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
+            <div className="px-4 py-2 flex items-center gap-2 bg-slate-800/50 border-t border-slate-800">
+              <MessageCircle size={12} className="text-slate-500" />
+              <span className="text-[11px] text-slate-500">Pago directo entre usuarios — sin comisiones</span>
+            </div>
+
             <div className="p-4 border-t border-slate-800">
               <div className="flex gap-2">
                 <input
@@ -215,9 +211,35 @@ export default function ContactModal({ open, onClose, vehicle }: ContactModalPro
               </div>
             </div>
           </div>
+        ) : (
+          /* Sin booking -> solo WhatsApp */
+          <div className="p-4 space-y-3">
+            {whatsappLink ? (
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
+                className="w-full flex items-center gap-4 bg-green-900/20 hover:bg-green-900/30 border border-green-800/40 rounded-xl p-4 transition-colors">
+                <div className="w-10 h-10 bg-green-900/50 rounded-full flex items-center justify-center">
+                  <Phone size={20} className="text-green-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-white text-sm font-medium">Contactar por WhatsApp</p>
+                  <p className="text-green-400 text-xs">Abrir chat externo</p>
+                </div>
+                <ExternalLink size={18} className="text-green-500" />
+              </a>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-slate-500 text-sm">El dueño no ha configurado un número de contacto</p>
+              </div>
+            )}
+            <div className="flex items-center gap-2 pt-2">
+              <Info size={12} className="text-slate-600" />
+              <p className="text-xs text-slate-600">
+                Haz una reserva para activar el chat interno y coordinar los detalles con el dueño.
+              </p>
+            </div>
+          </div>
         )}
 
-        {/* Acción: si no está logueado */}
         {!user && (
           <div className="p-4 border-t border-slate-800">
             <button
