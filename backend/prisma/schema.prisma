@@ -260,6 +260,34 @@ model Subscription {
 
 // ========== NOTIFICATIONS ==========
 
+// ========== MESSAGING ==========
+
+model Conversation {
+  id        String    @id @default(uuid()) @db.Uuid
+  bookingId String?   @unique @db.Uuid
+  booking   Booking?  @relation(fields: [bookingId], references: [id])
+  vehicleId String?   @db.Uuid
+  vehicle   Vehicle?  @relation(fields: [vehicleId], references: [id])
+  // IDs de los participantes (inquilino y dueño)
+  userIds   String[]
+  lastMessageAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String       @db.Uuid
+  sender         User         @relation(fields: [senderId], references: [id])
+  text           String
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
 model Notification {
   id     String @id @default(uuid()) @db.Uuid
   userId String @db.Uuid

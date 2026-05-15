@@ -2,9 +2,10 @@
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   Star, MapPin, Users, Fuel, Settings, Shield, CheckCircle,
-  Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck
+  Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck, MessageCircle
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
+import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
@@ -23,6 +24,7 @@ export default function VehicleDetail() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Check-in / Check-out como hoteles
   const [startDate, setStartDate] = useState('');
@@ -358,6 +360,14 @@ export default function VehicleDetail() {
                   {user ? 'Reservar ahora' : 'Iniciar sesión para reservar'}
                 </button>
 
+                <button
+                  onClick={() => setContactOpen(true)}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-medium transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={16} className="text-cyan-400" />
+                  Contactar al dueño
+                </button>
+
                 {vehicle.withDriver && (
                   <p className="text-xs text-center text-slate-500">
                     Disponible con chofer (+${Number(vehicle.driverPrice ?? 0).toFixed(0)}/día)
@@ -380,6 +390,19 @@ export default function VehicleDetail() {
           </div>
         </div>
       </div>
+
+      <ContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        vehicle={{
+          id: vehicle.id,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          ownerId: vehicle.ownerId,
+          ownerPhone: vehicle.owner?.phone,
+          ownerName: vehicle.owner ? `${vehicle.owner.name} ${vehicle.owner.lastName}` : undefined,
+        }}
+      />
     </div>
   );
 }

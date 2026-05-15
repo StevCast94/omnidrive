@@ -104,6 +104,14 @@ export const subscriptions = {
   cancel: () => api.put('/subscriptions/cancel'),
 };
 
+export const messages = {
+  conversations: () => api.get('/messages'),
+  messages: (convId: string) => api.get(`/messages/${convId}/messages`),
+  start: (vehicleId: string, bookingId?: string) => api.post('/messages/start', { vehicleId, bookingId }),
+  send: (convId: string, text: string) => api.post(`/messages/${convId}/send`, { text }),
+  markRead: (convId: string) => api.post(`/messages/${convId}/read`),
+};
+
 export const adminApi = {
   bannedIdentities: (p?: any) => api.get('/admin/banned-identities', { params: p }),
   banIdentity: (d: { documentId: string; reason: string }) => api.post('/admin/banned-identities', d),

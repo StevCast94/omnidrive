@@ -35,6 +35,7 @@ export default function Navbar() {
             <NavLink to="/vehicles" current={path} label="Vehículos" />
             {user && (
               <>
+                <NavLink to="/messages" current={path} label="Mensajes" />
                 <NavLink to="/dashboard" current={path} label="Dashboard" />
                 <NavLink to="/wallet" current={path} label="Billetera" />
                 <NavLink to="/profile" current={path} label="Perfil" />
@@ -78,6 +79,7 @@ export default function Navbar() {
           <MobileNavLink to="/vehicles" current={path} label="Vehículos" onClick={() => setOpen(false)} />
           {user && (
             <>
+              <MobileNavLink to="/messages" current={path} label="Mensajes" onClick={() => setOpen(false)} />
               <MobileNavLink to="/dashboard" current={path} label="Dashboard" onClick={() => setOpen(false)} />
               <MobileNavLink to="/wallet" current={path} label="Billetera" onClick={() => setOpen(false)} />
               <MobileNavLink to="/profile" current={path} label="Perfil" onClick={() => setOpen(false)} />

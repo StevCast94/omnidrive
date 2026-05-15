@@ -15,6 +15,7 @@ import { adminRouter }         from './routes/admin';
 import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
 import { stripeRouter }        from './routes/stripe';
+import { messagingRouter }     from './routes/messaging';
 import { seedRouter }          from './routes/seed';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
@@ -58,6 +59,7 @@ app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
 
 // ── Seed data ─────────────────────────────────────────────────
+app.use('/api/messages', messagingRouter);
 app.use('/api/seed', seedRouter);
 
 // ── 404 ──────────────────────────────────────────────────────
