@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface CountryCode {
   code: string;
@@ -29,12 +29,28 @@ interface PhoneInputProps {
 
 export function PhoneInput({ value, onChange, placeholder = '99 000 0000', required, className, disabled }: PhoneInputProps) {
   const [open, setOpen] = useState(false);
+  const [displayText, setDisplayText] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cursorRef = useRef<number | null>(null);
 
   // Extract prefix and local number
   const detected = countryCodes.find(c => value.startsWith(c.prefix));
-  const current = detected ?? countryCodes[0]; // default Ecuador
+  const current = detected ?? countryCodes[0];
   const local = detected ? value.slice(detected.prefix.length) : value;
+
+  // Sincronizar displayText cuando cambia value externamente
+  useEffect(() => {
+    setDisplayText(formatLocal(local));
+  }, [value]);
+
+  // Restaurar cursor después del render
+  useEffect(() => {
+    if (cursorRef.current !== null && inputRef.current) {
+      inputRef.current.setSelectionRange(cursorRef.current, cursorRef.current);
+      cursorRef.current = null;
+    }
+  });
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -45,45 +61,66 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  function formatLocal(raw: string): string {
+    if (raw.length > 3) {
+      let f = raw.slice(0, 3) + ' ' + raw.slice(3, 7);
+      if (raw.length > 7) f += ' ' + raw.slice(7, 10);
+      return f;
+    }
+    return raw;
+  }
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    const limited = raw.slice(0, 10);
+    
+    // Calcular nueva posición del cursor
+    // Queremos que el cursor se quede donde el usuario hizo clic, no al final
+    const selStart = e.target.selectionStart ?? limited.length;
+    
+    // Contar dígitos antes de la posición del cursor en el texto mostrado
+    const displayedBefore = e.target.value.slice(0, selStart);
+    const digitsBefore = displayedBefore.replace(/\D/g, '').length;
+    
+    // El cursor debe ir después del mismo número de dígitos en el nuevo formateo
+    const formatted = formatLocal(limited);
+    let newCursorPos = 0;
+    let digitCount = 0;
+    for (let i = 0; i < formatted.length && digitCount < digitsBefore; i++) {
+      newCursorPos = i + 1;
+      if (formatted[i] >= '0' && formatted[i] <= '9') digitCount++;
+    }
+    // Avanzar hasta después del último dígito contado
+    if (digitsBefore > 0) {
+      while (newCursorPos < formatted.length && formatted[newCursorPos] >= '0' && formatted[newCursorPos] <= '9') {
+        newCursorPos++;
+      }
+    }
+    cursorRef.current = newCursorPos;
+    
+    setDisplayText(formatted);
+    onChange(current.prefix + limited);
+  }, [current.prefix, onChange]);
+
   const selectCountry = (cc: CountryCode) => {
     setOpen(false);
-    // Keep the local number part, just change prefix
     onChange(cc.prefix + local);
   };
 
-  const handleLocalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value.replace(/\D/g, ''); // only digits
-    if (raw.length > 10) raw = raw.slice(0, 10);  // max 10 digits local
-
-    // Format as "99 000 0000" or "99 000 000"
-    let formatted = raw;
-    if (raw.length > 3) formatted = raw.slice(0, 3) + ' ' + raw.slice(3);
-    if (raw.length > 7) formatted = raw.slice(0, 3) + ' ' + raw.slice(3, 7) + ' ' + raw.slice(7);
-
-    onChange(current.prefix + raw);
-    // The input displays the formatted version, but value stored is always digits
-    e.target.value = formatted;
-  };
-
-  const displayValue = (() => {
-    if (local.length > 3) return local.slice(0, 3) + ' ' + local.slice(3, 7) + (local.length > 7 ? ' ' + local.slice(7) : '');
-    return local;
-  })();
-
   return (
     <div ref={ref} className={`relative ${className ?? ''}`}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <label className="block text-sm font-medium text-slate-300 mb-1.5">
         Teléfono {required && <span className="text-red-500">*</span>}
       </label>
-      <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+      <div className="flex rounded-xl border border-slate-700 overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500 bg-slate-800">
         {/* Country selector */}
         <button
           type="button"
           onClick={() => setOpen(!open)}
           disabled={disabled}
-          className="flex items-center gap-1 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1 px-3 bg-slate-700 text-slate-200 text-sm font-medium hover:bg-slate-600 transition-colors disabled:opacity-50"
         >
-          <span className="text-lg">{current.flag}</span>
+          <span className="text-lg leading-none">{current.flag}</span>
           <span>{current.prefix}</span>
           <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -92,29 +129,33 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
 
         {/* Local number input */}
         <input
+          ref={inputRef}
           type="tel"
-          value={displayValue}
-          onChange={handleLocalChange}
+          value={displayText}
+          onChange={handleChange}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className="flex-1 px-3 py-2 outline-none text-gray-900 dark:text-white bg-white dark:bg-gray-800 placeholder-gray-400 disabled:opacity-50"
+          autoComplete="tel-national"
+          className="flex-1 px-4 py-3 outline-none text-white bg-transparent placeholder-slate-500 disabled:opacity-50 text-sm"
         />
       </div>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           {countryCodes.map(cc => (
             <button
               key={cc.code}
               type="button"
               onClick={() => selectCountry(cc)}
-              className={`flex items-center gap-3 w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors ${cc.code === current.code ? 'bg-blue-50 dark:bg-gray-700 font-medium' : ''}`}
+              className={`flex items-center gap-3 w-full px-3 py-2.5 text-left text-sm hover:bg-slate-700 transition-colors ${
+                cc.code === current.code ? 'bg-slate-700 font-medium text-cyan-400' : 'text-slate-200'
+              }`}
             >
-              <span className="text-lg">{cc.flag}</span>
-              <span className="text-gray-900 dark:text-white">{cc.name}</span>
-              <span className="text-gray-500 dark:text-gray-400 ml-auto">{cc.prefix}</span>
+              <span className="text-lg leading-none">{cc.flag}</span>
+              <span>{cc.name}</span>
+              <span className="text-slate-400 ml-auto">{cc.prefix}</span>
             </button>
           ))}
         </div>
@@ -126,10 +167,7 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
 /** Parse phone to E.164 or null */
 export function normalizePhone(raw: string): string {
   const cleaned = raw.replace(/\s/g, '');
-  // Already E.164? return as-is
   if (/^\+[1-9]\d{6,14}$/.test(cleaned)) return cleaned;
-  // If starts with 00, convert to +
   if (/^00/.test(cleaned)) return '+' + cleaned.slice(2);
-  // Unknown format — return as-is, backend will handle
   return cleaned;
 }

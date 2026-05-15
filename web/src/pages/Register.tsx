@@ -73,48 +73,39 @@ export default function Register() {
     </div>
   );
 
-  // Helper to detect if birthDate is a full ISO date vs just a partial
-  const birthValue = form.birthDate || '';
-  const displayBirth = (() => {
-    if (!birthValue) return { year: '', month: '', day: '' };
-    const d = new Date(birthValue);
-    if (isNaN(d.getTime())) return { year: '', month: '', day: '' };
-    return {
-      year: d.getFullYear().toString(),
-      month: (d.getMonth() + 1).toString().padStart(2, '0'),
-      day: d.getDate().toString().padStart(2, '0'),
-    };
-  })();
+  // Birth date: almacenamos directamente year, month, day como strings independientes
+  const [birthDay, setBirthDay] = useState({ year: '', month: '', day: '' });
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
-  // Días por mes según año y mes
-  const selectedYear = parseInt(displayBirth.year) || 0;
-  const selectedMonth = parseInt(displayBirth.month) || 0;
+  const selectedYear = parseInt(birthDay.year) || 0;
+  const selectedMonth = parseInt(birthDay.month) || 0;
   const daysInMonth = selectedYear && selectedMonth
     ? new Date(selectedYear, selectedMonth, 0).getDate()
     : 31;
 
-  // Si el día actual excede los días del mes, lo reseteamos
-  const currentDay = parseInt(displayBirth.day) || 0;
-  const validDay = currentDay > daysInMonth ? '' : displayBirth.day;
+  const currentDay = parseInt(birthDay.day) || 0;
+  const validDay = currentDay > daysInMonth ? '' : birthDay.day;
 
   const setBirthDate = (year: string, month: string, day: string) => {
-    // Auto-reset day if it exceeds the new month's days
-    const y = parseInt(year) || 0;
-    const m = parseInt(month) || 0;
-    const maxDays = y && m ? new Date(y, m, 0).getDate() : 31;
-    const d = parseInt(day) || 0;
-    const finalDay = d > maxDays ? '' : day;
+    const newYear = year !== undefined ? year : birthDay.year;
+    const newMonth = month !== undefined ? month : birthDay.month;
+    const newDay = day !== undefined ? day : birthDay.day;
+    
+    setBirthDay({ year: newYear, month: newMonth, day: newDay });
 
-    if (year && month && finalDay) {
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(finalDay));
+    const y = parseInt(newYear) || 0;
+    const m = parseInt(newMonth) || 0;
+    const maxDays = y && m ? new Date(y, m, 0).getDate() : 31;
+    const d = parseInt(newDay) || 0;
+    const finalDay = d > maxDays ? '' : newDay;
+
+    if (newYear && newMonth && finalDay) {
+      const date = new Date(parseInt(newYear), parseInt(newMonth) - 1, parseInt(finalDay));
       if (!isNaN(date.getTime())) {
         set('birthDate', date.toISOString().split('T')[0]);
       }
-    } else {
-      set('birthDate', '');
     }
   };
 
@@ -156,8 +147,8 @@ export default function Register() {
             <div className="grid grid-cols-3 gap-2">
               {/* ║ AÑO ║ MES ║ DÍA — orden importa para validación */}
               <select
-                value={displayBirth.year}
-                onChange={e => setBirthDate(e.target.value, displayBirth.month, displayBirth.day)}
+                value={birthDay.year}
+                onChange={e => setBirthDate(e.target.value, undefined, undefined)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
                 <option value="">Año</option>
@@ -166,8 +157,8 @@ export default function Register() {
                 ))}
               </select>
               <select
-                value={displayBirth.month}
-                onChange={e => setBirthDate(displayBirth.year, e.target.value, validDay)}
+                value={birthDay.month}
+                onChange={e => setBirthDate(undefined, e.target.value, undefined)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
                 <option value="">Mes</option>
@@ -182,7 +173,7 @@ export default function Register() {
               </select>
               <select
                 value={validDay}
-                onChange={e => setBirthDate(displayBirth.year, displayBirth.month, e.target.value)}
+                onChange={e => setBirthDate(undefined, undefined, e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
               >
                 <option value="">Día</option>
