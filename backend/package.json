@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "npx prisma generate; npx prisma db push --skip-generate --accept-data-loss; exit 0",
-    "start": "npx prisma generate && npx tsx src/index.ts",
+    "start": "sh entry.sh",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:generate": "npx prisma generate"
