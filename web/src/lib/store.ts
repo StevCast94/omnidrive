@@ -9,6 +9,9 @@ export interface User {
   phone: string;
   name: string;
   lastName: string;
+  gender?: string;
+  documentType?: string;
+  documentId?: string;
   identityVerified: boolean;
   walletBalance: number;
   subscriptionTier: 'free' | 'premium' | 'elite';

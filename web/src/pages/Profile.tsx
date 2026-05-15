@@ -20,7 +20,7 @@ export default function Profile() {
   const [tab, setTab] = useState<Tab>('Perfil');
   const [myVehicles, setMyVehicles] = useState<any[]>([]);
   const [plans, setPlans] = useState<any>(null);
-  const [form, setForm] = useState({ name: user?.name ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '', gender: '' });
+  const [form, setForm] = useState({ name: user?.name ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '', gender: user?.gender ?? '', documentType: user?.documentType ?? 'cedula', documentId: user?.documentId ?? '' });
   const [vehicleForm, setVehicleForm] = useState({
     brand: '', model: '', year: '', plate: '', color: '', vin: '',
     category: 'car', seats: '5', transmission: 'automatic', fuelType: 'gasoline',
