@@ -275,7 +275,15 @@ authRouter.post('/verificar-cedula', authenticate, async (req: AuthRequest, res:
       error: null,
     });
   } catch (e: any) {
+    const isTimeout = e.message?.includes('timed out') || e.message?.includes('timeout') || e.message?.includes('ETIMEDOUT');
     console.error('[verificar-cedula] Error:', e.message);
+    if (isTimeout) {
+      return res.status(504).json({
+        data: null,
+        error: 'El servicio del Registro Civil no respondió a tiempo. Intenta de nuevo más tarde o en horario laboral (lunes a viernes 8:00-17:00).',
+        code: 'UPSTREAM_TIMEOUT',
+      });
+    }
     return res.status(500).json({ data: null, error: e.message });
   }
 });

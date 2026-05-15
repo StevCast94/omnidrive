@@ -149,7 +149,7 @@ export class WebServicesEcProvider implements VerificationProvider {
           'Accept': 'application/json',
           'User-Agent': 'OmniDrive/1.0',
         },
-        timeout: 10000,
+        timeout: 15000,
       };
 
       if (postData) {
