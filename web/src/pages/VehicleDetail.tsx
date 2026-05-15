@@ -2,7 +2,7 @@
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   Star, MapPin, Users, Fuel, Settings, Shield, CheckCircle,
-  Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck, MessageCircle
+  Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck, MessageCircle, User
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import ContactModal from '@/components/ContactModal';
@@ -364,8 +364,8 @@ export default function VehicleDetail() {
                   onClick={() => setContactOpen(true)}
                   className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-medium transition-colors text-sm flex items-center justify-center gap-2"
                 >
-                  <MessageCircle size={16} className="text-cyan-400" />
-                  Contactar al dueño
+                  <User size={16} className="text-cyan-400" />
+                  Ver perfil del dueño
                 </button>
 
                 {vehicle.withDriver && (

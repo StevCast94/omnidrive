@@ -1,14 +1,17 @@
 // ===== web/src/components/ContactModal.tsx =====
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@/lib/router-exports';
-import { X, MessageCircle, Send, Phone, Shield, ChevronRight, Info, ExternalLink } from 'lucide-react';
-import { messages } from '@/lib/api';
+import {
+  X, MessageCircle, Send, Phone, Shield, ChevronRight,
+  Star, User, BadgeCheck, Car, Calendar, Award, ExternalLink
+} from 'lucide-react';
+import { messages, users as usersApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 
 interface ContactModalProps {
   open: boolean;
   onClose: () => void;
-  bookingId?: string; // Si hay booking, habilita chat interno
+  bookingId?: string;
   vehicle: {
     id: string;
     brand: string;
@@ -27,27 +30,41 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
   const [newText, setNewText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [mode, setMode] = useState<'select' | 'chat'>('select');
+  const [tab, setTab] = useState<'perfil' | 'contacto' | 'chat'>(bookingId ? 'contacto' : 'perfil');
+  const [profile, setProfile] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
       setConvId(null);
       setChatMessages([]);
-      setMode(bookingId ? 'select' : 'chat');
+      setTab(bookingId ? 'contacto' : 'perfil');
       setNewText('');
+      loadProfile();
     }
-  }, [open, bookingId]);
+  }, [open, bookingId, vehicle.ownerId]);
 
   useEffect(() => {
-    if (mode === 'chat' && convId) {
+    if (tab === 'chat' && convId) {
       loadMessages();
     }
-  }, [convId, mode]);
+  }, [convId, tab]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const loadProfile = async () => {
+    try {
+      const [profRes, revRes] = await Promise.all([
+        usersApi.getPublic(vehicle.ownerId),
+        usersApi.reviews(vehicle.ownerId),
+      ]);
+      setProfile(profRes.data);
+      setReviews(revRes.data || []);
+    } catch { /* silencioso */ }
+  };
 
   const loadMessages = async () => {
     if (!convId) return;
@@ -58,15 +75,11 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
   };
 
   const startChat = async () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
     setLoading(true);
     try {
       const { data } = await messages.start(vehicle.id, bookingId);
       setConvId(data.id);
-      setMode('chat');
+      setTab('chat');
       loadMessages();
     } catch (e: any) {
       const msg = e.response?.data?.error || 'Error al iniciar chat';
@@ -88,12 +101,14 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
   };
 
   const whatsappLink = vehicle.ownerPhone
-    ? `https://wa.me/${vehicle.ownerPhone.replace(/[^0-9]/g, '')}?text=Hola!%20Estoy%20interesad@%20en%20tu%20${vehicle.brand}%20${vehicle.model}%20en%20OmniDrive`
+    ? `https://wa.me/${vehicle.ownerPhone.replace(/[^0-9]/g, '')}?text=Hola!%20Soy%20${user?.name}%20de%20OmniDrive,%20tengo%20una%20reserva%20contigo`
     : null;
 
   if (!open) return null;
 
-  const isOwner = user?.id === vehicle.ownerId;
+  const avgRating = reviews.length
+    ? (reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : '—';
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center">
@@ -102,7 +117,7 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div>
             <h3 className="text-white font-semibold text-sm">
-              {bookingId ? 'Contactar al dueño' : `Contactar a ${vehicle.ownerName || 'el dueño'}`}
+              {bookingId ? `Contactar a ${vehicle.ownerName || 'el dueño'}` : `Dueño: ${vehicle.ownerName || '—'}`}
             </h3>
             <p className="text-slate-400 text-xs">{vehicle.brand} {vehicle.model}</p>
           </div>
@@ -111,21 +126,95 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
           </button>
         </div>
 
-        {/* Badge futura wallet */}
-        <div className="mx-4 mt-3 flex items-center gap-2 bg-indigo-900/30 border border-indigo-800/50 rounded-lg px-3 py-2">
-          <Shield size={14} className="text-indigo-400 shrink-0" />
-          <span className="text-xs text-indigo-300">
-            Pago directo entre usuarios — <span className="text-indigo-400 font-medium">Próximamente pagos protegidos</span>
-          </span>
-          <ChevronRight size={14} className="text-indigo-500 ml-auto shrink-0" />
-        </div>
+        {/* Tabs (solo si hay booking) */}
+        {bookingId && (
+          <div className="flex border-b border-slate-800">
+            <button
+              onClick={() => setTab('contacto')}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'contacto' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Contactar
+            </button>
+            <button
+              onClick={() => { setTab('perfil'); loadProfile(); }}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'perfil' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Perfil
+            </button>
+          </div>
+        )}
 
-        {isOwner ? (
+        {user?.id === vehicle.ownerId ? (
           <div className="p-8 text-center">
             <p className="text-slate-400 text-sm">Eres el dueño de este vehículo</p>
           </div>
-        ) : mode === 'select' && bookingId ? (
-          /* Selector con booking -> chat disponible */
+        ) : tab === 'perfil' || (!bookingId && tab === 'perfil') ? (
+          /* Perfil del dueño */
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Header del perfil */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-cyan-900 to-slate-800 rounded-full flex items-center justify-center">
+                <User size={24} className="text-cyan-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-white font-semibold">{profile?.name || vehicle.ownerName || 'Usuario'}</h4>
+                  {profile?.identityVerified && <BadgeCheck size={16} className="text-cyan-400" />}
+                </div>
+                <p className="text-xs text-slate-500">Miembro desde {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }) : '—'}</p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                <Star size={16} className="text-amber-400 mx-auto mb-1" />
+                <p className="text-white text-lg font-bold">{avgRating}</p>
+                <p className="text-[10px] text-slate-500">Valoración</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                <Award size={16} className="text-indigo-400 mx-auto mb-1" />
+                <p className="text-white text-lg font-bold">{profile?.driverScore || '—'}</p>
+                <p className="text-[10px] text-slate-500">Score</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                <Car size={16} className="text-slate-400 mx-auto mb-1" />
+                <p className="text-white text-lg font-bold">{profile?.totalTrips || 0}</p>
+                <p className="text-[10px] text-slate-500">Viajes</p>
+              </div>
+            </div>
+
+            {/* Reviews */}
+            <div>
+              <h5 className="text-sm font-medium text-slate-300 mb-2">Valoraciones recibidas</h5>
+              {reviews.length === 0 && (
+                <p className="text-xs text-slate-600 text-center py-4">Sin valoraciones aún</p>
+              )}
+              <div className="space-y-2">
+                {reviews.slice(0, 5).map(r => (
+                  <div key={r.id} className="bg-slate-800/30 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} size={12} className={s <= r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'} />
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-slate-600">{r.author.name}</span>
+                    </div>
+                    {r.comment && <p className="text-xs text-slate-400">"{r.comment}"</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {!bookingId && (
+              <div className="bg-indigo-900/30 border border-indigo-800/50 rounded-xl p-3 text-center">
+                <p className="text-xs text-indigo-300">Solicita una reserva para contactar directamente con el dueño</p>
+              </div>
+            )}
+          </div>
+        ) : tab === 'contacto' ? (
+          /* Opciones de contacto */
           <div className="p-4 space-y-3">
             <button
               onClick={startChat}
@@ -154,18 +243,18 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-white text-sm font-medium">WhatsApp</p>
-                  <p className="text-green-400 text-xs">Contacto directo externo</p>
+                  <p className="text-green-400 text-xs">Contacto externo directo</p>
                 </div>
-                <ChevronRight size={18} className="text-green-500" />
+                <ExternalLink size={18} className="text-green-500" />
               </a>
             )}
           </div>
-        ) : bookingId || mode === 'chat' ? (
+        ) : (
           /* Chat */
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {chatMessages.length === 0 && (
-                <p className="text-center text-slate-500 text-sm py-8">No hay mensajes aún. Escribe al dueño sobre tu reserva.</p>
+                <p className="text-center text-slate-500 text-sm py-8">Escribe al dueño sobre tu reserva</p>
               )}
               {chatMessages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}>
@@ -209,33 +298,6 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
                   <Send size={18} className="text-white" />
                 </button>
               </div>
-            </div>
-          </div>
-        ) : (
-          /* Sin booking -> solo WhatsApp */
-          <div className="p-4 space-y-3">
-            {whatsappLink ? (
-              <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center gap-4 bg-green-900/20 hover:bg-green-900/30 border border-green-800/40 rounded-xl p-4 transition-colors">
-                <div className="w-10 h-10 bg-green-900/50 rounded-full flex items-center justify-center">
-                  <Phone size={20} className="text-green-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-white text-sm font-medium">Contactar por WhatsApp</p>
-                  <p className="text-green-400 text-xs">Abrir chat externo</p>
-                </div>
-                <ExternalLink size={18} className="text-green-500" />
-              </a>
-            ) : (
-              <div className="text-center py-6">
-                <p className="text-slate-500 text-sm">El dueño no ha configurado un número de contacto</p>
-              </div>
-            )}
-            <div className="flex items-center gap-2 pt-2">
-              <Info size={12} className="text-slate-600" />
-              <p className="text-xs text-slate-600">
-                Haz una reserva para activar el chat interno y coordinar los detalles con el dueño.
-              </p>
             </div>
           </div>
         )}

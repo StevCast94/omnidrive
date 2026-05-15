@@ -104,6 +104,11 @@ export const subscriptions = {
   cancel: () => api.put('/subscriptions/cancel'),
 };
 
+export const users = {
+  getPublic: (id: string) => api.get(`/users/${id}`),
+  reviews: (id: string) => api.get(`/users/${id}/reviews`),
+};
+
 export const messages = {
   conversations: () => api.get('/messages'),
   messages: (convId: string) => api.get(`/messages/${convId}/messages`),

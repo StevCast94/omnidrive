@@ -95,7 +95,7 @@ vehiclesRouter.get('/:id', async (req, res: Response) => {
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: req.params.id as string },
       include: {
-        owner: { select: { id: true, name: true, lastName: true, driverScore: true, totalTrips: true, identityVerified: true, createdAt: true } },
+        owner: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true, totalTrips: true, identityVerified: true, createdAt: true } },
         reviews: { include: { author: { select: { id: true, name: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, take: 10 },
       },
     });
