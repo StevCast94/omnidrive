@@ -37,7 +37,7 @@ export default function Navbar() {
               <>
                 <NavLink to="/messages" current={path} label="Mensajes" />
                 <NavLink to="/dashboard" current={path} label="Dashboard" />
-                <NavLink to="/wallet" current={path} label="Billetera" />
+                {/* Wallet oculto hasta Stripe */}
                 <NavLink to="/profile" current={path} label="Perfil" />
                 {user.role === 'admin' && <NavLink to="/admin" current={path} label="Admin" />}
               </>
@@ -81,7 +81,7 @@ export default function Navbar() {
             <>
               <MobileNavLink to="/messages" current={path} label="Mensajes" onClick={() => setOpen(false)} />
               <MobileNavLink to="/dashboard" current={path} label="Dashboard" onClick={() => setOpen(false)} />
-              <MobileNavLink to="/wallet" current={path} label="Billetera" onClick={() => setOpen(false)} />
+              {/* Wallet oculto hasta Stripe */}
               <MobileNavLink to="/profile" current={path} label="Perfil" onClick={() => setOpen(false)} />
               {user.role === 'admin' && <MobileNavLink to="/admin" current={path} label="Admin" onClick={() => setOpen(false)} />}
             </>
