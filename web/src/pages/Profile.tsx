@@ -20,7 +20,14 @@ export default function Profile() {
   const [tab, setTab] = useState<Tab>('Perfil');
   const [myVehicles, setMyVehicles] = useState<any[]>([]);
   const [plans, setPlans] = useState<any>(null);
-  const [form, setForm] = useState({ name: user?.name ?? '', lastName: user?.lastName ?? '', phone: user?.phone ?? '', gender: user?.gender ?? '', documentType: user?.documentType ?? 'cedula', documentId: user?.documentId ?? '' });
+  const [form, setForm] = useState({
+    name: user?.name ?? '',
+    lastName: user?.lastName ?? '',
+    phone: user?.phone ?? '',
+    gender: user?.gender ?? '',
+    documentType: user?.documentType ?? 'cedula',
+    documentId: user?.documentId ?? '',
+  });
   const [vehicleForm, setVehicleForm] = useState({
     brand: '', model: '', year: '', plate: '', color: '', vin: '',
     category: 'car', seats: '5', transmission: 'automatic', fuelType: 'gasoline',
@@ -331,62 +338,107 @@ export default function Profile() {
       {/* ── VERIFICACIÓN ── */}
       {tab === 'Verificación' && (
         <div className="space-y-4">
-          <div className={`rounded-2xl p-5 border flex items-start gap-4 ${user?.identityVerified ? 'bg-green-500/5 border-green-500/20' : 'bg-yellow-500/5 border-yellow-500/20'}`}>
-            <Shield size={22} className={user?.identityVerified ? 'text-green-400 mt-0.5' : 'text-yellow-400 mt-0.5'} />
+          <div className={`rounded-2xl p-5 border flex items-start gap-4 ${
+            user?.identityVerified
+              ? 'bg-green-500/5 border-green-500/20'
+              : user?.selfieUrl
+              ? 'bg-blue-500/5 border-blue-500/20'
+              : 'bg-yellow-500/5 border-yellow-500/20'
+          }`}>
+            <Shield size={22} className={`mt-0.5 ${
+              user?.identityVerified ? 'text-green-400'
+              : user?.selfieUrl ? 'text-blue-400'
+              : 'text-yellow-400'
+            }`} />
             <div>
-              <p className="font-semibold text-white">{user?.identityVerified ? '✅ Identidad verificada' : '⏳ Pendiente de verificación'}</p>
+              <p className="font-semibold text-white">
+                {user?.identityVerified
+                  ? '✅ Identidad verificada'
+                  : user?.selfieUrl
+                  ? '📄 Documentos recibidos'
+                  : '⏳ Verificación pendiente'}
+              </p>
               <p className="text-sm text-slate-400 mt-1">
                 {user?.identityVerified
-                  ? 'Tu identidad fue verificada contra el Registro Civil. Ya puedes operar en la plataforma.'
-                  : 'Verifica tu identidad en segundos consultando tu cédula contra el Registro Civil.'}
+                  ? 'Tu identidad fue verificada exitosamente. Ya puedes publicar vehículos y alquilar con confianza.'
+                  : user?.selfieUrl
+                  ? 'Tus documentos han sido recibidos. Nuestro equipo los revisará y te notificaremos cuando esté listo.'
+                  : 'Para operar en OmniDrive necesitas verificar tu identidad subiendo fotos de tu documento y una selfie.'}
               </p>
             </div>
           </div>
 
-          {!user?.identityVerified && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-indigo-600/20 flex items-center justify-center">
-                  <ScanFace size={22} className="text-indigo-400" />
+          {user?.identityVerified && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <BadgeCheck size={18} className="text-green-400" />
+                Documentos subidos
+              </h3>
+              {user?.selfieUrl && (
+                <div className="flex gap-3">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-800">
+                    <img src={user.selfieUrl} className="w-full h-full object-cover" alt="Selfie" />
+                  </div>
+                  <div className="text-sm text-slate-400 space-y-1">
+                    <p className="text-white font-medium">Selfie</p>
+                    <p className="text-xs">Aprobada</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white">Verificación automática</h3>
-                  <p className="text-xs text-slate-400">Tu cédula será consultada en tiempo real contra el Registro Civil.</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-800 rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <CheckCircle size={12} className="text-green-400" />
-                  <span>Validación contra DIGERCIC</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <CheckCircle size={12} className="text-green-400" />
-                  <span>Resultado en tiempo real</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <CheckCircle size={12} className="text-green-400" />
-                  <span>Sin necesidad de subir fotos</span>
-                </div>
-              </div>
-
-              <button onClick={() => setShowVerification(true)}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors">
-                Verificar mi identidad
-              </button>
-
-              <p className="text-xs text-slate-600 text-center">$0.05 por consulta · Proveedor: WebServices.ec</p>
+              )}
             </div>
           )}
 
-          {/* Modal de verificación */}
-          <VerificationModal
-            isOpen={showVerification}
-            onClose={() => setShowVerification(false)}
-            onVerified={(data) => {
-              updateUser({ identityVerified: true, documentId: data?.user?.documentId });
-            }}
-          />
+          {!user?.identityVerified && (
+            <>
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-600/20 flex items-center justify-center">
+                    <ScanFace size={22} className="text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Verificación con documentos</h3>
+                    <p className="text-xs text-slate-400">Sube fotos de tu cédula/pasaporte y una selfie.</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <CheckCircle size={12} className="text-green-400" />
+                    <span>Foto frontal del documento</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <CheckCircle size={12} className="text-green-400" />
+                    <span>Foto reverso del documento</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <CheckCircle size={12} className="text-green-400" />
+                    <span>Selfie con tu rostro visible</span>
+                  </div>
+                </div>
+
+                <button onClick={() => setShowVerification(true)}
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors">
+                  {user?.selfieUrl ? 'Volver a subir documentos' : 'Subir documentos'}
+                </button>
+              </div>
+
+              {/* Modal de verificación */}
+              <VerificationModal
+                isOpen={showVerification}
+                onClose={() => setShowVerification(false)}
+                onVerified={(data) => {
+                  if (data?.user) {
+                    updateUser({
+                      identityVerified: data.user.identityVerified,
+                      selfieUrl: data.user.selfieUrl,
+                      documentFrontUrl: data.user.documentFrontUrl,
+                      documentBackUrl: data.user.documentBackUrl,
+                    });
+                  }
+                }}
+              />
+            </>
+          )}
         </div>
       )}
 

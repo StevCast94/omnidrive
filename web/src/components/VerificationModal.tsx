@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Shield, CheckCircle, AlertTriangle, Loader2, UserCheck, Smartphone, Phone } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Shield, CheckCircle, AlertTriangle, Loader2, Camera, Upload, CreditCard, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -10,332 +10,516 @@ interface Props {
   onVerified: (data: any) => void;
 }
 
-type Step = 'intro' | 'cedula' | 'verifying-cedula' | 'cedula-verified' | 'whatsapp' | 'verifying-whatsapp' | 'result';
+type Step = 'intro' | 'document' | 'selfie' | 'uploading' | 'success' | 'error';
 
 export default function VerificationModal({ isOpen, onClose, onVerified }: Props) {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [step, setStep] = useState<Step>('intro');
-  const [cedula, setCedula] = useState('');
-  const [phone, setPhone] = useState(user?.phone?.replace(/^0+/, '') || '');
-  const [cedulaResult, setCedulaResult] = useState<any>(null);
-  const [whatsappResult, setWhatsappResult] = useState<any>(null);
-  const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Reset al abrir
+  // Documento — fotos capturadas
+  const [documentFrontFile, setDocumentFrontFile] = useState<File | null>(null);
+  const [documentBackFile, setDocumentBackFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+
+  // Previsualizaciones
+  const [docFrontPreview, setDocFrontPreview] = useState<string | null>(null);
+  const [docBackPreview, setDocBackPreview] = useState<string | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+
+  // Cámara
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [cameraMode, setCameraMode] = useState<'document' | 'selfie' | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    };
+  }, [stream]);
+
   useEffect(() => {
     if (isOpen) {
       setStep('intro');
-      setCedula('');
-      setError('');
-      setCedulaResult(null);
-      setWhatsappResult(null);
+      setErrorMsg('');
+      setDocumentFrontFile(null);
+      setDocumentBackFile(null);
+      setSelfieFile(null);
+      setDocFrontPreview(null);
+      setDocBackPreview(null);
+      setSelfiePreview(null);
+      setCameraMode(null);
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        setStream(null);
+      }
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleVerifyCedula = async () => {
-    const clean = cedula.replace(/\s/g, '');
-    if (!/^\d{10}$/.test(clean)) {
-      setError('Ingresa un número de cédula válido de 10 dígitos');
-      return;
-    }
-    setError('');
-    setVerifying(true);
-    setStep('verifying-cedula');
-
+  // ─── Cámara ───────────────────────────────────────
+  const startCamera = async (mode: 'document' | 'selfie') => {
+    setCameraMode(mode);
     try {
-      const { data: res } = await authApi.verificarCedula(clean);
-      if (res.error) {
-        setError(res.error);
-        setCedulaResult(res.data?.result ?? null);
-        setStep('result');
-        return;
-      }
-      setCedulaResult(res.data);
-      toast.success('✅ Cédula verificada contra el Registro Civil');
-      setStep('cedula-verified');
-    } catch (e: any) {
-      const msg = e.response?.data?.error || 'Error al verificar la cédula';
-      setError(msg);
-      setCedulaResult(e.response?.data?.data?.result ?? null);
-      setStep('result');
-    } finally {
-      setVerifying(false);
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: mode === 'document'
+          ? { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+          : { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
+        audio: false,
+      });
+      setStream(s);
+      // Wait for next tick so videoRef is mounted
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch {
+      // Fallback: usar input file
+      setCameraMode(null);
+      fileInputRef.current?.click();
     }
   };
 
-  const handleVerifyWhatsApp = async () => {
-    const clean = phone.replace(/[^\d]/g, '');
-    if (clean.length < 9) {
-      setError('Ingresa un número de celular válido');
-      return;
-    }
-    setError('');
-    setVerifying(true);
-    setStep('verifying-whatsapp');
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current || !cameraMode) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    try {
-      const { data: res } = await authApi.verificarWhatsApp(clean);
-      if (res.error) {
-        setWhatsappResult({ exists: false, whatsapp: false });
-        setError(res.error);
-        setStep('result');
-        return;
-      }
-      setWhatsappResult(res.data);
-      if (res.data?.whatsapp) {
-        toast.success('✅ Número verificado con WhatsApp');
-        // Todo verificado! Cerrar
-        onVerified(cedulaResult);
-        setTimeout(onClose, 1500);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const file = new File([blob], `${cameraMode}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const preview = URL.createObjectURL(blob);
+
+      if (cameraMode === 'document') {
+        if (!documentFrontFile) {
+          setDocumentFrontFile(file);
+          setDocFrontPreview(preview);
+          toast('Ahora toma la foto del reverso del documento', { icon: '📄' });
+        } else if (!documentBackFile) {
+          setDocumentBackFile(file);
+          setDocBackPreview(preview);
+        }
       } else {
-        setError('El número no tiene WhatsApp activo');
-        setStep('result');
+        setSelfieFile(file);
+        setSelfiePreview(preview);
       }
-    } catch (e: any) {
-      const msg = e.response?.data?.error || 'Error al verificar WhatsApp';
-      setError(msg);
-      setStep('result');
-    } finally {
-      setVerifying(false);
+
+      // Stop camera
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      setStream(null);
+      setCameraMode(null);
+    }, 'image/jpeg', 0.85);
+  };
+
+  const stopCamera = () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    setStream(null);
+    setCameraMode(null);
+  };
+
+  // ─── Subida de fotos por file input ─────────────────
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    if (target === 'front') {
+      setDocumentFrontFile(file);
+      setDocFrontPreview(preview);
+    } else {
+      setDocumentBackFile(file);
+      setDocBackPreview(preview);
     }
   };
 
-  const skipWhatsApp = () => {
-    onVerified(cedulaResult);
-    toast.success('✅ Verificación completada');
-    setTimeout(onClose, 800);
+  const handleSelfieUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelfieFile(file);
+    setSelfiePreview(URL.createObjectURL(file));
+  };
+
+  // ─── Subir todo ─────────────────────────────────────
+  const handleUpload = async () => {
+    if (!documentFrontFile || !documentBackFile || !selfieFile) {
+      toast.error('Debes tomar ambas fotos del documento y la selfie');
+      return;
+    }
+
+    setStep('uploading');
+    setErrorMsg('');
+
+    try {
+      const fd = new FormData();
+      fd.append('selfie', selfieFile);
+      fd.append('documentFront', documentFrontFile);
+      fd.append('documentBack', documentBackFile);
+
+      const { data: res } = await authApi.verifyIdentity(fd);
+      if (res.error) {
+        setErrorMsg(res.error);
+        setStep('error');
+        return;
+      }
+
+      // Actualizar store con URLs
+      updateUser({
+        selfieUrl: res.data.user.selfieUrl,
+        identityVerified: false, // Pendiente de revisión manual
+      });
+
+      setStep('success');
+      toast.success('✅ Documentos subidos correctamente');
+      setTimeout(() => {
+        onVerified(res.data);
+        onClose();
+      }, 2000);
+    } catch (e: any) {
+      const msg = e.response?.data?.error || 'Error al subir los documentos';
+      setErrorMsg(msg);
+      setStep('error');
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      {/* Modal */}
-      <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md mx-4 overflow-hidden shadow-2xl">
-        {/* Close */}
+
+      <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg mx-4 overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-600 hover:text-white z-10 transition-colors">
           <X size={20} />
         </button>
 
-        {/* Pasos: indicator */}
-        <div className="px-8 pt-8 flex items-center gap-2">
-          {[1, 2].map(i => {
-            const active =
-              (i === 1 && !['intro', 'whatsapp', 'verifying-whatsapp'].includes(step)) ||
-              (i === 2 && ['whatsapp', 'verifying-whatsapp'].includes(step));
-            const done =
-              (i === 1 && ['cedula-verified', 'whatsapp', 'verifying-whatsapp'].includes(step)) ||
-              (i === 2 && step === 'whatsapp');
-            return (
-              <div key={i} className="flex items-center gap-2 flex-1">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${done || active ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                  {done ? '✓' : i}
-                </div>
-                <span className={`text-xs ${done || active ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {i === 1 ? 'Cédula' : 'WhatsApp'}
-                </span>
-                {i === 1 && <div className="flex-1 h-px bg-slate-800" />}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* INTRO */}
+        {/* ─── INTRO ─────────────────────────────────── */}
         {step === 'intro' && (
-          <div className="px-8 pt-5 pb-8 text-center space-y-6">
+          <div className="px-8 pt-8 pb-8 text-center space-y-6">
             <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto">
               <Shield size={32} className="text-indigo-400" />
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-white">Verifica tu identidad</h2>
               <p className="text-sm text-slate-400">
-                Necesitamos confirmar tu identidad en 2 pasos rápidos contra el Registro Civil y WhatsApp.
+                Para poder operar en OmniDrive necesitas subir una foto de tu documento de identidad y una selfie.
+                Tus datos están protegidos y solo se usan para verificación.
               </p>
             </div>
 
             <div className="bg-slate-800 rounded-2xl p-5 space-y-4 text-left">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center flex-shrink-0">
-                  <UserCheck size={16} className="text-indigo-400" />
+                  <CreditCard size={16} className="text-indigo-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Paso 1: Cédula</p>
-                  <p className="text-xs text-slate-500">Consultamos tu cédula contra el Registro Civil en tiempo real</p>
+                  <p className="text-sm font-medium text-white">1. Fotos del documento</p>
+                  <p className="text-xs text-slate-500">Toma foto frontal y reverso de tu cédula o pasaporte</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center flex-shrink-0">
-                  <Smartphone size={16} className="text-green-400" />
+                  <Camera size={16} className="text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Paso 2: WhatsApp</p>
-                  <p className="text-xs text-slate-500">Verificamos que tu celular tenga WhatsApp activo</p>
+                  <p className="text-sm font-medium text-white">2. Selfie</p>
+                  <p className="text-xs text-slate-500">Toma una selfie para confirmar tu identidad</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-600/20 flex items-center justify-center flex-shrink-0">
+                  <User size={16} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">3. Revisión</p>
+                  <p className="text-xs text-slate-500">Nuestro equipo revisa tus documentos y te notifica</p>
                 </div>
               </div>
             </div>
 
-            <button onClick={() => setStep('cedula')}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold transition-colors text-sm">
-              Comenzar
+            <button
+              onClick={() => { setStep('document'); setErrorMsg(''); }}
+              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold transition-colors text-sm"
+            >
+              Comenzar verificación
             </button>
-            <p className="text-xs text-slate-600">$0.05 de costo operativo · Consulta contra DIGERCIC y WhatsApp</p>
+            <p className="text-xs text-slate-600">Tus documentos se almacenan de forma segura en Supabase Storage con cifrado</p>
           </div>
         )}
 
-        {/* CEDULA INPUT */}
-        {step === 'cedula' && (
-          <div className="px-8 pt-5 pb-8 space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-white">Paso 1: Ingresa tu cédula</h2>
-              <p className="text-sm text-slate-400">Tu número será consultado contra el Registro Civil para verificar tu identidad.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 mb-2 font-medium">Número de cédula</label>
-              <input
-                value={cedula}
-                onChange={e => { setCedula(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleVerifyCedula()}
-                placeholder="10 dígitos sin guiones"
-                maxLength={10}
-                inputMode="numeric"
-                autoFocus
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white text-center tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 placeholder:text-sm placeholder:tracking-normal"
-              />
-              {error && (
-                <p className="flex items-center gap-1.5 text-xs text-red-400 mt-2">
-                  <AlertTriangle size={12} /> {error}
-                </p>
-              )}
-            </div>
-
-            <button onClick={handleVerifyCedula} disabled={cedula.length !== 10 || verifying}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-colors text-sm">
-              {verifying ? 'Verificando...' : 'Verificar cédula'}
-            </button>
-
-            <button onClick={() => setStep('intro')} className="w-full text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              ← Atrás
-            </button>
-          </div>
-        )}
-
-        {/* VERIFYING CEDULA */}
-        {step === 'verifying-cedula' && (
-          <div className="px-8 pt-5 pb-8 text-center space-y-5">
-            <Loader2 size={40} className="animate-spin text-indigo-400 mx-auto" />
+        {/* ─── DOCUMENTO ──────────────────────────────── */}
+        {step === 'document' && (
+          <div className="px-8 pt-8 pb-8 space-y-5">
             <div className="space-y-1">
-              <p className="font-semibold text-white">Consultando al Registro Civil</p>
-              <p className="text-sm text-slate-400">Verificando cédula {cedula}...</p>
+              <h2 className="text-xl font-bold text-white">Foto del documento</h2>
+              <p className="text-sm text-slate-400">
+                Toma una foto clara del <strong>frente</strong> y <strong>reverso</strong> de tu cédula o pasaporte.
+              </p>
             </div>
+
+            {/* Cámara activa */}
+            {cameraMode === 'document' && (
+              <div className="space-y-3">
+                <div className="relative bg-black rounded-2xl overflow-hidden aspect-[4/3]">
+                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="absolute inset-0 border-4 border-indigo-400/50 rounded-2xl pointer-events-none" />
+                  <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-white/80 bg-black/50 px-3 py-1 rounded-full">
+                    {!documentFrontFile ? 'Foto frontal' : 'Foto reverso'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={capturePhoto}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium text-sm"
+                  >
+                    Tomar foto
+                  </button>
+                  <button onClick={stopCamera}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Preview o selector */}
+            {cameraMode !== 'document' && (
+              <div className="space-y-4">
+                {/* Frente */}
+                <div className={`border-2 border-dashed rounded-2xl p-4 text-center transition-colors ${docFrontPreview ? 'border-green-500/50' : 'border-slate-700'}`}>
+                  {docFrontPreview ? (
+                    <div className="space-y-2">
+                      <img src={docFrontPreview} className="max-h-40 mx-auto rounded-xl object-contain" alt="Frente documento" />
+                      <div className="flex gap-2 justify-center">
+                        <button onClick={() => { setDocumentFrontFile(null); setDocFrontPreview(null); }}
+                          className="text-xs text-slate-400 hover:text-red-400"
+                        >
+                          Eliminar
+                        </button>
+                        <button onClick={() => startCamera('document')}
+                          className="text-xs text-indigo-400 hover:text-indigo-300"
+                        >
+                          Retomar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => startCamera('document')} className="w-full py-6 space-y-2">
+                      <Upload size={28} className="mx-auto text-slate-500" />
+                      <p className="text-sm font-medium text-slate-300">Foto frontal del documento</p>
+                      <p className="text-xs text-slate-500">Usa la cámara o selecciona un archivo</p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={e => handleFileUpload(e, 'front')}
+                        className="hidden"
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {/* Reverso */}
+                <div className={`border-2 border-dashed rounded-2xl p-4 text-center transition-colors ${docBackPreview ? 'border-green-500/50' : 'border-slate-700'}`}>
+                  {docBackPreview ? (
+                    <div className="space-y-2">
+                      <img src={docBackPreview} className="max-h-40 mx-auto rounded-xl object-contain" alt="Reverso documento" />
+                      <div className="flex gap-2 justify-center">
+                        <button onClick={() => { setDocumentBackFile(null); setDocBackPreview(null); }}
+                          className="text-xs text-slate-400 hover:text-red-400"
+                        >
+                          Eliminar
+                        </button>
+                        <button onClick={() => startCamera('document')}
+                          className="text-xs text-indigo-400 hover:text-indigo-300"
+                        >
+                          Retomar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { if (docFrontPreview) startCamera('document'); else toast.error('Primero toma la foto frontal'); }}
+                      className="w-full py-6 space-y-2"
+                    >
+                      <Upload size={28} className="mx-auto text-slate-500" />
+                      <p className="text-sm font-medium text-slate-300">Foto reverso del documento</p>
+                      <p className="text-xs text-slate-500">Toma la foto después de la frontal</p>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => setStep('intro')}
+                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!documentFrontFile || !documentBackFile) {
+                        toast.error('Debes tomar ambas fotos del documento');
+                        return;
+                      }
+                      setStep('selfie');
+                      setErrorMsg('');
+                    }}
+                    disabled={!documentFrontFile || !documentBackFile}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl font-medium text-sm"
+                  >
+                    Siguiente — Selfie
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* CEDULA VERIFIED — now ask for WhatsApp */}
-        {step === 'cedula-verified' && cedulaResult && (
-          <div className="px-8 pt-5 pb-8 space-y-6">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-3">
-                <CheckCircle size={26} className="text-green-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white">✅ Cédula verificada</h2>
-              <p className="text-sm text-slate-400 mt-1">Tu cédula está activa en el Registro Civil.</p>
+        {/* ─── SELFIE ────────────────────────────────── */}
+        {step === 'selfie' && (
+          <div className="px-8 pt-8 pb-8 space-y-5">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white">Selfie</h2>
+              <p className="text-sm text-slate-400">
+                Toma una selfie clara, sin lentes ni gorra, con buena iluminación.
+              </p>
             </div>
 
-            <div className="bg-slate-800 rounded-2xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Nombres</span>
-                <span className="text-white font-medium">{cedulaResult.verification?.nombres || '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Apellidos</span>
-                <span className="text-white font-medium">{cedulaResult.verification?.apellidos || '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Estado</span>
-                <span className="text-green-400 font-medium">{cedulaResult.verification?.estado}</span>
-              </div>
-            </div>
-
-            {/* WhatsApp step */}
-            <div className="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
-              <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
-                <Smartphone size={16} className="text-green-400" />
-                Paso 2: Verifica tu WhatsApp
-              </h3>
-              <p className="text-xs text-slate-400 mb-4">Confirmamos que tu número tenga WhatsApp activo para recibir notificaciones.</p>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">+593</span>
-                  <input
-                    value={phone}
-                    onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && handleVerifyWhatsApp()}
-                    placeholder="99 000 0000"
-                    inputMode="numeric"
-                    autoFocus
-                    className="w-full pl-14 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600" />
+            {cameraMode === 'selfie' && (
+              <div className="space-y-3">
+                <div className="relative bg-black rounded-2xl overflow-hidden aspect-[3/4] max-w-xs mx-auto">
+                  <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" autoPlay playsInline muted />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="absolute inset-0 border-4 border-green-400/50 rounded-2xl pointer-events-none" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={capturePhoto}
+                    className="flex-1 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-medium text-sm"
+                  >
+                    Tomar selfie
+                  </button>
+                  <button onClick={stopCamera}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300"
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex flex-col gap-2">
-              <button onClick={handleVerifyWhatsApp} disabled={verifying || phone.length < 9}
-                className="w-full py-3.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-                {verifying ? (
-                  <Loader2 size={16} className="animate-spin" />
+            {cameraMode !== 'selfie' && (
+              <div className="space-y-4">
+                {selfiePreview ? (
+                  <div className="space-y-3">
+                    <img src={selfiePreview} className="max-h-64 mx-auto rounded-2xl object-contain" alt="Selfie" />
+                    <div className="flex gap-2 justify-center">
+                      <button onClick={() => { setSelfieFile(null); setSelfiePreview(null); }}
+                        className="text-xs text-slate-400 hover:text-red-400"
+                      >
+                        Eliminar
+                      </button>
+                      <button onClick={() => startCamera('selfie')}
+                        className="text-xs text-indigo-400 hover:text-indigo-300"
+                      >
+                        Retomar
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <Phone size={16} />
+                  <div className="border-2 border-dashed border-slate-700 rounded-2xl">
+                    <button onClick={() => startCamera('selfie')} className="w-full py-8 space-y-3">
+                      <Camera size={36} className="mx-auto text-slate-500" />
+                      <p className="text-sm font-medium text-slate-300">Abrir cámara frontal</p>
+                      <p className="text-xs text-slate-500">O selecciona una foto de tu galería</p>
+                    </button>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="user"
+                      onChange={handleSelfieUpload}
+                      className="hidden"
+                    />
+                  </div>
                 )}
-                {verifying ? 'Verificando...' : 'Verificar con WhatsApp'}
-              </button>
-              <button onClick={skipWhatsApp}
-                className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                Omitir verificación WhatsApp y continuar
-              </button>
-            </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => { setStep('document'); stopCamera(); }}
+                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300"
+                  >
+                    Atrás
+                  </button>
+                  <button onClick={handleUpload} disabled={!selfieFile}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+                  >
+                    <Upload size={16} />
+                    Subir documentos
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* VERIFYING WHATSAPP */}
-        {step === 'verifying-whatsapp' && (
-          <div className="px-8 pt-5 pb-8 text-center space-y-5">
-            <Loader2 size={40} className="animate-spin text-indigo-400 mx-auto" />
+        {/* ─── SUBIENDO ───────────────────────────────── */}
+        {step === 'uploading' && (
+          <div className="px-8 pt-12 pb-12 text-center space-y-5">
+            <Loader2 size={48} className="animate-spin text-indigo-400 mx-auto" />
             <div className="space-y-1">
-              <p className="font-semibold text-white">Verificando WhatsApp</p>
-              <p className="text-sm text-slate-400">Consultando si +593 {phone} tiene WhatsApp activo...</p>
+              <p className="font-semibold text-white text-lg">Subiendo documentos...</p>
+              <p className="text-sm text-slate-400">Estamos almacenando tus fotos de forma segura.</p>
+            </div>
+            <div className="w-48 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
+              <div className="h-full bg-indigo-500 rounded-full animate-pulse" style={{ width: '60%' }} />
             </div>
           </div>
         )}
 
-        {/* RESULT — error general */}
-        {step === 'result' && (
-          <div className="px-8 pt-5 pb-8 text-center space-y-5">
+        {/* ─── ÉXITO ──────────────────────────────────── */}
+        {step === 'success' && (
+          <div className="px-8 pt-10 pb-10 text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto">
+              <CheckCircle size={34} className="text-green-400" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white">¡Documentos subidos!</h2>
+              <p className="text-sm text-slate-400">
+                Hemos recibido tus fotos. Un revisor verificará tus documentos y te notificaremos cuando esté listo.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ─── ERROR ──────────────────────────────────── */}
+        {step === 'error' && (
+          <div className="px-8 pt-8 pb-8 text-center space-y-5">
             <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto">
               <AlertTriangle size={34} className="text-red-400" />
             </div>
             <div className="space-y-1">
               <h2 className="text-xl font-bold text-white">Algo salió mal</h2>
-              <p className="text-sm text-slate-400">{error || 'No se pudo completar la verificación. Intenta de nuevo.'}</p>
+              <p className="text-sm text-slate-400">{errorMsg || 'No pudimos subir tus documentos. Intenta de nuevo.'}</p>
             </div>
-
             <div className="flex gap-3">
-              <button onClick={() => {
-                if (cedulaResult?.verification?.nombres) {
-                  setStep('cedula-verified');
-                } else {
-                  setStep('cedula');
-                }
-                setError('');
-              }}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium transition-colors text-sm">
+              <button onClick={() => { setStep('document'); setErrorMsg(''); }}
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium text-sm"
+              >
                 Intentar de nuevo
               </button>
               <button onClick={onClose}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium transition-colors text-sm text-slate-400">
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium text-sm text-slate-400"
+              >
                 Cerrar
               </button>
             </div>
@@ -346,7 +530,7 @@ export default function VerificationModal({ isOpen, onClose, onVerified }: Props
         <div className="px-8 pb-5">
           <div className="flex items-center justify-center gap-2 text-xs text-slate-600">
             <Shield size={10} />
-            <span>Datos consultados contra DIGERCIC + WhatsApp vía WebServices.ec</span>
+            <span>Documentos almacenados en Supabase Storage con cifrado AES-256</span>
           </div>
         </div>
       </div>
