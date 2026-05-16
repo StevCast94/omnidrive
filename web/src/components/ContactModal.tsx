@@ -62,7 +62,7 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
         usersApi.reviews(vehicle.ownerId),
       ]);
       setProfile(profRes.data);
-      setReviews(revRes.data || []);
+      setReviews(Array.isArray(revRes.data) ? revRes.data : []);
     } catch { /* silencioso */ }
   };
 
