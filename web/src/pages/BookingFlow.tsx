@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from '@/lib/router-exports';
-import { Car, ChevronRight, Check, FileText, MessageCircle } from 'lucide-react';
+import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi } from '@/lib/api';
 
@@ -42,6 +42,8 @@ export default function BookingFlow() {
     : Math.ceil(hours) * Number(vehicle.pricePerHour);
   const total = base;
   const deposit = Number(vehicle.deposit);
+
+  const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
 
   const fmt = (n: number) => `$${n.toFixed(2)}`;
 
@@ -106,31 +108,60 @@ export default function BookingFlow() {
         <p className="text-sm font-medium text-white">{days} día{days !== 1 ? 's' : ''} ({Math.round(hours)} horas)</p>
       </div>
 
-      {/* Disclaimer */}
+      {/* Disclaimer — colapsable */}
       <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
         <div className="flex items-start gap-3">
           <FileText size={20} className="text-cyan-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-white mb-2">Descargo de responsabilidad</p>
-            <div className="text-xs text-slate-300 leading-relaxed space-y-3">
-              <p>
-                <strong>OmniDrive</strong> es una plataforma <strong>P2P de contacto</strong> entre el dueño de un vehículo y el arrendatario. 
-                <strong className="text-cyan-400"> No intervenimos en el proceso de alquiler</strong>, no gestionamos pagos, 
-                no recibimos comisiones, ni resolvemos disputas entre las partes.
-              </p>
-              <p>
-                Al aceptar este descargo:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-slate-400">
-                <li>Entiendo que <strong>OmniDrive solo facilita el contacto</strong> entre las partes.</li>
-                <li>El acuerdo de alquiler, condiciones, depósito y pago se negocian <strong>directamente entre el dueño y yo</strong>.</li>
-                <li>OmniDrive <strong>no se hace responsable</strong> por daños, robos, accidentes, incumplimientos o disputas.</li>
-                <li>OmniDrive <strong>no recibe comisiones</strong> — es un directorio gratuito de contacto.</li>
-                <li>OmniDrive provee herramientas de <strong>verificación de identidad</strong> y <strong>sistema de calificación</strong> como filtro de seguridad adicional.</li>
-                <li>OmniDrive ofrece un sistema opcional de <strong>rastreo con dispositivo móvil</strong> durante el alquiler como medida de seguridad.</li>
-                <li>Las partes pueden reportar incidentes para que queden registrados en el <strong>historial del usuario</strong> (vetos internos).</li>
-              </ul>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-white">Descargo de responsabilidad</p>
+              <button
+                type="button"
+                onClick={() => setDisclaimerExpanded(!disclaimerExpanded)}
+                className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex-shrink-0 ml-2"
+              >
+                {disclaimerExpanded ? 'Ver menos' : 'Ver más'}
+                {disclaimerExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
             </div>
+
+            {/* Resumen siempre visible */}
+            <p className="text-xs text-slate-400 leading-relaxed">
+              OmniDrive es una plataforma <strong>P2P de contacto</strong> entre el dueño de un vehículo y el arrendatario.{' '}
+              <strong className="text-cyan-400">No intervenimos en el proceso de alquiler</strong>, no gestionamos pagos, 
+              no recibimos comisiones, ni resolvemos disputas.
+            </p>
+
+            {/* Contenido completo — solo si expandido */}
+            {disclaimerExpanded && (
+              <div className="mt-3 text-xs text-slate-300 leading-relaxed space-y-3 border-t border-slate-700/50 pt-3">
+                <div className="bg-cyan-900/20 border border-cyan-800/30 rounded-xl p-4 space-y-2">
+                  <p className="text-sm font-semibold text-cyan-300">Nuestra visión</p>
+                  <p className="text-slate-400">
+                    OmniDrive nace con el propósito de <strong className="text-slate-200">optimizar los recursos</strong>{' '}
+                    de nuestra comunidad: convertir vehículos pasivos en activos productivos, aportar a un modelo de movilidad
+                    más eficiente y sostenible, ofrecer filtros de seguridad sólidos basados en verificación de identidad,
+                    rastreo opcional con dispositivo móvil y un sistema de calificaciones, y sobre todo,{' '}
+                    <strong className="text-slate-200">construir una comunidad sólida</strong> donde la confianza sea la base
+                    de cada transacción.
+                  </p>
+                </div>
+
+                <p className="font-medium text-slate-200">Al aceptar este descargo, entiendo y reconozco que:</p>
+                <ul className="list-disc list-inside space-y-1.5 text-slate-400">
+                  <li><strong className="text-slate-300">OmniDrive solo facilita el contacto</strong> entre las partes interesadas.</li>
+                  <li>El acuerdo de alquiler, condiciones, depósito, forma de pago y plazos se negocian <strong className="text-slate-300">directamente entre el dueño y el arrendatario</strong>, sin intervención de la plataforma.</li>
+                  <li>OmniDrive <strong className="text-slate-300">no se hace responsable</strong> por daños, robos, accidentes, incumplimientos contractuales o disputas entre las partes.</li>
+                  <li>OmniDrive <strong className="text-slate-300">no recibe comisiones, fees ni ningún tipo de ingreso</strong> por las transacciones acordadas entre usuarios. Es un directorio gratuito de contacto.</li>
+                  <li>OmniDrive <strong className="text-slate-300">no interviene en la resolución de disputas</strong>. Las partes deben resolver sus diferencias de forma directa o mediante las autoridades competentes.</li>
+                  <li>OmniDrive provee herramientas complementarias de seguridad como <strong className="text-slate-300">verificación de identidad</strong> con documentos, <strong className="text-slate-300">sistema de calificación</strong> post-viaje, <strong className="text-slate-300">rastreo opcional con dispositivo móvil</strong> durante el alquiler, y registro de incidentes para <strong className="text-slate-300">vetos internos</strong> dentro de la comunidad.</li>
+                  <li>El <strong className="text-slate-300">sistema de calificación (Score)</strong> permite a la comunidad conocer la confiabilidad de cada usuario basado en experiencias previas.</li>
+                </ul>
+                <p className="text-slate-500 italic mt-2">
+                  Al marcar la casilla abajo, aceptas este descargo de manera explícita y voluntaria.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -139,10 +170,10 @@ export default function BookingFlow() {
             type="checkbox"
             checked={disclaimerAccepted}
             onChange={e => setDisclaimerAccepted(e.target.checked)}
-            className="accent-cyan-500 w-5 h-5 mt-0.5 rounded"
+            className="accent-cyan-500 w-5 h-5 mt-0.5 rounded flex-shrink-0"
           />
           <span className="text-sm text-slate-200 leading-relaxed">
-            He leído, entiendo y acepto el descargo de responsabilidad. Reconozco que OmniDrive es únicamente un servicio de contacto P2P y que el acuerdo de alquiler se realiza directamente con el propietario del vehículo.
+            He leído, entiendo y <strong>acepto el descargo de responsabilidad</strong>. Reconozco que OmniDrive es únicamente un servicio de contacto P2P y que el acuerdo de alquiler se realiza directamente con el propietario del vehículo.
           </span>
         </label>
       </div>
