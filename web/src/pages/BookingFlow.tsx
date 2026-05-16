@@ -18,6 +18,8 @@ export default function BookingFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<any>(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
+  const fmt = (n: number) => `$${n.toFixed(2)}`;
 
   useEffect(() => {
     vehiclesApi.get(vehicleId!)
@@ -42,10 +44,6 @@ export default function BookingFlow() {
     : Math.ceil(hours) * Number(vehicle.pricePerHour);
   const total = base;
   const deposit = Number(vehicle.deposit);
-
-  const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
-
-  const fmt = (n: number) => `$${n.toFixed(2)}`;
 
   // ── Submit booking ──
   const handleSubmit = async () => {
