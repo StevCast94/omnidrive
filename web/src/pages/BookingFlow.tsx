@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from '@/lib/router-exports';
-import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi } from '@/lib/api';
 
@@ -205,6 +205,9 @@ export default function BookingFlow() {
 
   /* ───────── Paso 2: Confirmación ───────── */
   const StepConfirmed = () => {
+    const ownerName = vehicle.owner?.name && vehicle.owner?.lastName
+      ? `${vehicle.owner.name} ${vehicle.owner.lastName}`
+      : 'el propietario';
     const ownerPhone = vehicle.owner?.phone || vehicle.phone;
     const waMsg = ownerPhone
       ? `https://wa.me/${ownerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
@@ -213,7 +216,7 @@ export default function BookingFlow() {
       : null;
 
     return (
-      <div className="max-lg mx-auto px-4 py-8">
+      <div className="max-w-lg mx-auto px-4 py-8">
         <div className="text-center space-y-6 py-8">
           <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/30">
             <Check size={36} className="text-green-400" />
@@ -225,25 +228,66 @@ export default function BookingFlow() {
             </p>
           </div>
 
-          {/* Contactar por WhatsApp */}
-          {waMsg && (
-            <a
-              href={waMsg}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 px-6 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-semibold text-sm transition-colors"
-            >
-              <MessageCircle size={20} />
-              Contactar al dueño por WhatsApp
-            </a>
-          )}
-
-          {booking && (
-            <div className="bg-slate-800 rounded-xl p-4 text-left space-y-2 text-sm">
-              <p className="text-slate-400">ID de solicitud: <span className="text-white font-mono">{booking.id.slice(0, 8).toUpperCase()}</span></p>
-              <p className="text-slate-400">Estado: <span className="text-yellow-400 font-medium">Pendiente — contacta al dueño</span></p>
+          {/* Datos del dueño + contacto */}
+          <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700 text-left space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                <User size={22} className="text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">{ownerName}</p>
+                {ownerPhone && (
+                  <p className="text-xs text-slate-400 mt-0.5">{ownerPhone}</p>
+                )}
+                <p className="text-xs text-cyan-400/60 mt-0.5">Propietario</p>
+              </div>
             </div>
-          )}
+
+            <div className="border-t border-slate-700 pt-3 space-y-2">
+              <p className="text-xs text-slate-500 font-medium">Detalles de tu solicitud</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-slate-800/50 rounded-lg p-2.5">
+                  <p className="text-slate-500">Vehículo</p>
+                  <p className="text-white font-medium">{vehicle.brand} {vehicle.model}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-2.5">
+                  <p className="text-slate-500">Duración</p>
+                  <p className="text-white font-medium">{days} día{days !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-2.5">
+                  <p className="text-slate-500">Inicio</p>
+                  <p className="text-white font-medium">{new Date(startAt).toLocaleDateString('es-EC')}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-2.5">
+                  <p className="text-slate-500">Fin</p>
+                  <p className="text-white font-medium">{new Date(endAt).toLocaleDateString('es-EC')}</p>
+                </div>
+              </div>
+              {booking && (
+                <div className="bg-slate-800/50 rounded-lg p-2.5 text-xs">
+                  <p className="text-slate-500">ID: <span className="text-white font-mono">{booking.id.slice(0, 8).toUpperCase()}</span></p>
+                  <p className="text-yellow-400 font-medium mt-0.5">⏳ Pendiente — contacta al dueño</p>
+                </div>
+              )}
+            </div>
+
+            {/* WhatsApp — siempre visible */}
+            {waMsg ? (
+              <a
+                href={waMsg}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-green-600 hover:bg-green-500 rounded-xl font-semibold text-sm transition-colors"
+              >
+                <MessageCircle size={20} />
+                Contactar a {ownerName} por WhatsApp
+              </a>
+            ) : (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 text-xs text-yellow-400 text-center">
+                El propietario no tiene teléfono registrado. Vuelve pronto para contactarlo.
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-3">
             <button onClick={() => navigate('/dashboard')}

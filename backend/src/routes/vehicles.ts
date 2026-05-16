@@ -52,7 +52,7 @@ vehiclesRouter.get('/', async (req: AuthRequest, res: Response) => {
     let vehicles = await prisma.vehicle.findMany({
       where,
       include: {
-        owner: { select: { id: true, name: true, lastName: true, driverScore: true, totalTrips: true } },
+        owner: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true, totalTrips: true } },
         _count: { select: { reviews: true } },
       },
     });
