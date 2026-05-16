@@ -1,24 +1,47 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from '@/lib/router-exports';
-import { Car, ArrowLeft, Mail, KeyRound, CheckCircle, Loader2 } from 'lucide-react';
+import { Car, ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 
-type Step = 'email' | 'code' | 'reset' | 'done';
+type Step = 'email' | 'sent' | 'reset' | 'done';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState(['', '', '', '', '', '']);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const sendCode = async () => {
+  // Si el usuario viene de un recovery link con token, mostrar reset
+  useEffect(() => {
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.split('?')[1] || window.location.search);
+    const type = params.get('type');
+    if (type === 'recovery') {
+      setStep('reset');
+    }
+  }, []);
+
+  // Si ya hay sesión, redirigir
+  useEffect(() => {
+    if (user) {
+      // Si el usuario ya está logueado y quiere cambiar contraseña
+      const hashSearch = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+      if (hashSearch.get('type') === 'recovery') {
+        setStep('reset');
+      } else {
+        navigate('/');
+      }
+    }
+  }, [user]);
+
+  const sendRecovery = async () => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       setError('Ingresa un email válido');
       return;
@@ -27,58 +50,16 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth/callback?type=recovery',
+        redirectTo: window.location.origin + '/#/forgot-password?type=recovery',
       });
       if (err) throw err;
-      toast.success('Código enviado a tu correo');
-      setStep('code');
-      setTimeout(() => codeRefs.current[0]?.focus(), 300);
+      setStep('sent');
+      toast.success('Revisa tu correo');
     } catch (e: any) {
-      setError(e.message || 'Error al enviar código');
+      setError(e.message || 'Error al enviar el correo');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCodeChange = (i: number, val: string) => {
-    if (val.length > 1) {
-      // Pegado
-      const digits = val.replace(/\D/g, '').slice(0, 6).split('');
-      const newCode = [...code];
-      digits.forEach((d, j) => { if (i + j < 6) newCode[i + j] = d; });
-      setCode(newCode);
-      const nextIdx = Math.min(i + digits.length, 5);
-      codeRefs.current[nextIdx]?.focus();
-      return;
-    }
-    const digit = val.replace(/\D/g, '').slice(-1);
-    const newCode = [...code];
-    newCode[i] = digit;
-    setCode(newCode);
-    if (digit && i < 5) codeRefs.current[i + 1]?.focus();
-  };
-
-  const handleCodeKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !code[i] && i > 0) {
-      codeRefs.current[i - 1]?.focus();
-    }
-    if (e.key === 'Enter' && code.every(c => c)) {
-      verifyCode();
-    }
-  };
-
-  const verifyCode = () => {
-    // Con Supabase, el código se verifica automáticamente al hacer click en el link del email.
-    // Si usamos magic link + redirect, el token viene en la URL.
-    // Para flujo manual: mostramos el siguiente paso
-    const fullCode = code.join('');
-    if (fullCode.length !== 6) {
-      setError('Ingresa el código completo de 6 dígitos');
-      return;
-    }
-    setError('');
-    setStep('reset');
-    setTimeout(() => setShowPassword(true), 200);
   };
 
   const resetPassword = async () => {
@@ -126,7 +107,7 @@ export default function ForgotPassword() {
                 <Mail size={28} className="text-cyan-400" />
               </div>
               <h2 className="text-xl font-bold text-white">¿Olvidaste tu contraseña?</h2>
-              <p className="text-sm text-slate-400">Te enviaremos un código de verificación a tu correo electrónico.</p>
+              <p className="text-sm text-slate-400">Te enviaremos un enlace para restablecer tu contraseña.</p>
             </div>
 
             <div>
@@ -134,7 +115,7 @@ export default function ForgotPassword() {
               <input
                 type="email" required value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && sendCode()}
+                onKeyDown={e => e.key === 'Enter' && sendRecovery()}
                 placeholder="tu@email.com"
                 autoFocus
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
@@ -143,11 +124,11 @@ export default function ForgotPassword() {
 
             {error && <p className="text-xs text-red-400">{error}</p>}
 
-            <button onClick={sendCode} disabled={loading || !email}
+            <button onClick={sendRecovery} disabled={loading || !email}
               className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              {loading ? 'Enviando...' : 'Enviar código'}
+              {loading ? 'Enviando...' : 'Enviar enlace'}
             </button>
 
             <p className="text-center text-sm text-slate-500">
@@ -156,57 +137,40 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {/* ─── CÓDIGO ─── */}
-        {step === 'code' && (
-          <div className="bg-slate-900 rounded-2xl p-8 border border-slate-800 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-cyan-600/20 flex items-center justify-center mx-auto">
-                <KeyRound size={28} className="text-cyan-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white">Código de verificación</h2>
-              <p className="text-sm text-slate-400">Ingresa el código de 6 dígitos que enviamos a <strong className="text-white">{email}</strong></p>
+        {/* ─── ENVIADO ─── */}
+        {step === 'sent' && (
+          <div className="bg-slate-900 rounded-2xl p-8 border border-slate-800 text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-600/20 flex items-center justify-center mx-auto">
+              <Mail size={32} className="text-cyan-400" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white">Revisa tu correo</h2>
+              <p className="text-sm text-slate-400">
+                Hemos enviado un enlace de restauración a <strong className="text-white">{email}</strong>.
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                Haz clic en el enlace del correo y serás redirigido para crear una nueva contraseña.
+              </p>
             </div>
 
-            <div className="flex justify-center gap-2">
-              {code.map((d, i) => (
-                <input
-                  key={i}
-                  ref={el => { codeRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={d}
-                  onChange={e => handleCodeChange(i, e.target.value)}
-                  onKeyDown={e => handleCodeKeyDown(i, e)}
-                  onPaste={e => {
-                    if (i === 0) {
-                      e.preventDefault();
-                      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                      if (pasted) {
-                        const newCode = pasted.split('').concat(['','','','','','']).slice(0, 6);
-                        setCode(newCode);
-                        codeRefs.current[Math.min(pasted.length, 5)]?.focus();
-                      }
-                    }
-                  }}
-                  className="w-11 h-12 bg-slate-800 border border-slate-700 rounded-xl text-center text-lg font-bold text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-                />
-              ))}
+            <div className="bg-slate-800 rounded-xl p-4 space-y-2 text-left">
+              <p className="text-xs text-slate-400 font-medium">¿No recibiste el correo?</p>
+              <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
+                <li>Revisa la carpeta de spam / correo no deseado</li>
+                <li>Asegúrate de haber escrito el email correctamente</li>
+                <li>Si usas Gmail, revisa la pestaña "Promociones"</li>
+              </ul>
             </div>
 
-            {error && <p className="text-xs text-red-400 text-center">{error}</p>}
-
-            <button onClick={verifyCode} disabled={code.some(c => !c)}
-              className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors"
+            <button onClick={sendRecovery} disabled={loading}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium text-sm transition-colors"
             >
-              Verificar código
+              {loading ? 'Enviando...' : 'Reenviar enlace'}
             </button>
 
-            <div className="text-center">
-              <button onClick={sendCode} className="text-xs text-slate-500 hover:text-cyan-400 transition-colors">
-                ¿No recibiste el código? Reenviar
-              </button>
-            </div>
+            <p className="text-center text-sm text-slate-500">
+              <Link to="/login" className="text-cyan-400 hover:text-cyan-300">Volver a inicio de sesión</Link>
+            </p>
           </div>
         )}
 
@@ -215,13 +179,14 @@ export default function ForgotPassword() {
           <div className="bg-slate-900 rounded-2xl p-8 border border-slate-800 space-y-5">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-cyan-600/20 flex items-center justify-center mx-auto">
-                <KeyRound size={28} className="text-cyan-400" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
               </div>
               <h2 className="text-xl font-bold text-white">Nueva contraseña</h2>
-              <p className="text-sm text-slate-400">Ingresa tu nueva contraseña.</p>
+              <p className="text-sm text-slate-400">Tu identidad ha sido verificada. Ingresa tu nueva contraseña.</p>
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Nueva contraseña</label>
               <div className="relative">
@@ -249,7 +214,6 @@ export default function ForgotPassword() {
               </div>
             </div>
 
-            {/* Confirmar */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Confirmar contraseña</label>
               <input
@@ -286,7 +250,7 @@ export default function ForgotPassword() {
             </div>
             <div className="space-y-1">
               <h2 className="text-xl font-bold text-white">¡Contraseña actualizada!</h2>
-              <p className="text-sm text-slate-400">Tu contraseña se ha cambiado correctamente. Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+              <p className="text-sm text-slate-400">Tu contraseña se ha cambiado correctamente.</p>
             </div>
             <button onClick={() => navigate('/login')}
               className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-semibold text-sm transition-colors"
