@@ -9,8 +9,7 @@ import crypto from 'crypto';
 export const bookingsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-const SERVICE_FEE_RATE = 0.15;
-const INSURANCE_FEE_PER_DAY = 5;
+// OmniDrive MVP — sin comisiones, sin seguro de plataforma
 
 function calcDuration(startAt: Date, endAt: Date): { hours: number; days: number } {
   const ms = endAt.getTime() - startAt.getTime();
@@ -109,14 +108,8 @@ bookingsRouter.post('/', authenticate, async (req: AuthRequest, res: Response) =
     const { hours, days } = calcDuration(start, end);
     const baseAmount = calcBase(Number(vehicle.pricePerHour), Number(vehicle.pricePerDay), hours, days);
     const driverFee = withDriver && vehicle.withDriver ? Number(vehicle.driverPrice ?? 0) * Math.ceil(days || 1) : 0;
-    const insuranceFee = hasInsurance ? INSURANCE_FEE_PER_DAY * Math.ceil(days || 1) : 0;
-    const serviceFee = (baseAmount + driverFee + insuranceFee) * SERVICE_FEE_RATE;
-    const totalAmount = baseAmount + driverFee + insuranceFee + serviceFee;
+    const totalAmount = baseAmount + driverFee;
     const deposit = Number(vehicle.deposit);
-
-    // Insurance consent validation
-    if (!hasInsurance && !liabilityWaiver)
-      return res.status(400).json({ data: null, error: 'Must accept liability waiver if no insurance' });
 
     const booking = await prisma.booking.create({
       data: {
@@ -127,16 +120,16 @@ bookingsRouter.post('/', authenticate, async (req: AuthRequest, res: Response) =
         withDriver: Boolean(withDriver),
         baseAmount,
         driverFee,
-        insuranceFee,
-        serviceFee,
+        insuranceFee: 0,
+        serviceFee: 0,
         totalAmount,
         deposit,
-        hasInsurance: Boolean(hasInsurance),
-        insuranceDetails: insuranceDetails ?? (liabilityWaiver ? {
-          type: 'liability_waiver',
-          tenantAcceptedAt: new Date().toISOString(),
-        } : null),
-        liabilityWaiver: Boolean(liabilityWaiver),
+        hasInsurance: false,
+        insuranceDetails: {
+          type: 'disclaimer_p2p',
+          disclaimerAcceptedAt: new Date().toISOString(),
+        },
+        liabilityWaiver: true,
       },
     });
 

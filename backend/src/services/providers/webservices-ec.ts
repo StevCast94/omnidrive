@@ -153,7 +153,7 @@ export class WebServicesEcProvider implements VerificationProvider {
       };
 
       if (postData) {
-        options.headers!['Content-Length'] = Buffer.byteLength(postData).toString();
+        (options.headers as Record<string, string>)['Content-Length'] = Buffer.byteLength(postData).toString();
       }
 
       const req = https.request(options, (res) => {

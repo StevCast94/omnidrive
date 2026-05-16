@@ -6,6 +6,20 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import { verifyIdentity, getProvider } from '../services/verification';
 
+// ── Validación offline de cédula ecuatoriana (módulo 10) ──
+function validarCedulaEcuatoriana(cedula: string): boolean {
+  if (!/^\d{10}$/.test(cedula)) return false;
+  const digitoVerificador = parseInt(cedula[9], 10);
+  let suma = 0;
+  for (let i = 0; i < 9; i++) {
+    let valor = parseInt(cedula[i], 10);
+    if (i % 2 === 0) { valor *= 2; if (valor > 9) valor -= 9; }
+    suma += valor;
+  }
+  const resultado = (10 - (suma % 10)) % 10;
+  return resultado === digitoVerificador;
+}
+
 export const authRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -324,7 +338,7 @@ authRouter.post('/verificar-whatsapp', authenticate, async (req: AuthRequest, re
       return res.status(500).json({ data: null, error: 'El servicio de verificación WhatsApp no está disponible.' });
     }
 
-    const result = await verifyWhatsApp(fullNumber);
+    const result = await provider.verificarWhatsApp(fullNumber);
 
     return res.json({
       data: {
