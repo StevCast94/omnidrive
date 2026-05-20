@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -22,7 +23,7 @@ import { WebServicesEcProvider } from './services/providers/webservices-ec';
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Stripe webhook MUST come before express.json() ──────────
+// 🔥 Stripe webhook MUST come before express.json() 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 // Stripe sends a raw Buffer; json() would break signature check
 app.use(
   '/api/stripe',
@@ -30,7 +31,7 @@ app.use(
   stripeRouter
 );
 
-// ── Global middleware ────────────────────────────────────────
+// ⚙️ Global middleware ⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL ?? '*',
@@ -39,12 +40,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// ── Health check ─────────────────────────────────────────────
+// 🩺 Health check 🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺🩺
 app.get('/health', (_req, res) =>
   res.json({ status: 'ok', ts: new Date(), env: process.env.NODE_ENV })
 );
 
-// ── API routes ───────────────────────────────────────────────
+// 🔌 API routes 🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌
 app.use('/api/auth',          authRouter);
 app.use('/api/users',         usersRouter);
 app.use('/api/vehicles',      vehiclesRouter);
@@ -57,20 +58,29 @@ app.use('/api/admin',         adminRouter);
 app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
 
-// ── Seed data ─────────────────────────────────────────────────
+// 🌱 Seed data 🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱
 
 app.use('/api/seed', seedRouter);
 
-// ── 404 ──────────────────────────────────────────────────────
-app.use((_req, res) => res.status(404).json({ data: null, error: 'Not found' }));
+// 🌐 Serve frontend static files (production: Railway unified deploy)
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir, { maxAge: '1h' }));
 
-// ── Error handler ────────────────────────────────────────────
+// 🔄 SPA fallback — non-API GET requests → index.html (React Router handles routing)
+app.get(/^(?!\/api\/).*/, (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// ⚠️ 404 — API routes that don't match
+app.use('/api', (_req, res) => res.status(404).json({ data: null, error: 'Not found' }));
+
+// 🧯 Error handler 🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯🧯
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Error]', err);
   res.status(500).json({ data: null, error: err.message ?? 'Internal server error' });
 });
 
-// ── Init verification provider ──────────────────────────────
+// 📡 Init verification provider 📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡📡
 const wsProvider = new WebServicesEcProvider();
 if (wsProvider.isConfigured) {
   setProvider(wsProvider);
@@ -79,9 +89,9 @@ if (wsProvider.isConfigured) {
   console.log('[Init] Verification provider: NONE (set WEBSERVICES_EC_API_KEY env var)');
 }
 
-// ── Start ────────────────────────────────────────────────────
+// 🚀 Start 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 app.listen(PORT, () =>
-  console.log(`🚗 OmniDrive API running on port ${PORT} [${process.env.NODE_ENV ?? 'development'}]`)
+  console.log(`🚗 OmniDrive unified on port ${PORT} [${process.env.NODE_ENV ?? 'development'}]`)
 );
 
 export default app;

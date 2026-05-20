@@ -2,8 +2,11 @@
 import axios from 'axios';
 import { getAccessToken } from './supabase';
 
+// Use same-origin /api in production (Railway), explicit URL for local dev
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 export const api = axios.create({
-  baseURL: "https://omnidrive-production.up.railway.app/api",
+  baseURL: API_BASE,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
   transformRequest: [(data) => {
