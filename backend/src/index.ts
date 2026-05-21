@@ -17,6 +17,7 @@ import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
 import { stripeRouter }        from './routes/stripe';
 import { seedRouter }          from './routes/seed';
+import { uploadRouter }        from './routes/upload';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
 
@@ -59,8 +60,10 @@ app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
 
 // 🌱 Seed data 🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱🌱
-
 app.use('/api/seed', seedRouter);
+
+// 📸 Upload de imágenes (Cloudinary) 📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸📸
+app.use('/api/upload', uploadRouter);
 
 // 🌐 Serve frontend static files (production: Railway unified deploy)
 const publicDir = path.join(__dirname, '..', 'public');
