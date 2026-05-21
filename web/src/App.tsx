@@ -56,6 +56,11 @@ function normalizeUrlOnMount() {
 
 function parseHash(): string {
   const hash = window.location.hash;
+  // Detectar OAuth callback: hash contiene access_token o code=
+  // Esto pasa cuando Google redirectea con #access_token=xxx (sin /auth/callback delante)
+  if (/access_token=|code=|error=/.test(hash)) {
+    return 'auth/callback';
+  }
   if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
     return (hash.replace(/^#/, '') || '/').split('?')[0];
   }
