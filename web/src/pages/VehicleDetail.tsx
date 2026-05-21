@@ -190,17 +190,13 @@ export default function VehicleDetail() {
             </div>
           )}
 
-          {/* Insurance */}
-          <div className={`rounded-xl p-4 border flex items-start gap-3 ${vehicle.insurance ? 'bg-green-500/5 border-green-500/20' : 'bg-yellow-500/5 border-yellow-500/20'}`}>
-            <Shield size={18} className={vehicle.insurance ? 'text-green-400 mt-0.5' : 'text-yellow-400 mt-0.5'} />
+          {/* Insurance — obligatorio en todos los vehículos */}
+          <div className="rounded-xl p-4 border flex items-start gap-3 bg-green-500/5 border-green-500/20">
+            <Shield size={18} className="text-green-400 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-white">
-                {vehicle.insurance ? 'Seguro vigente incluido' : 'Sin seguro del propietario'}
-              </p>
+              <p className="text-sm font-medium text-white">Seguro obligatorio incluido</p>
               <p className="text-xs text-slate-400 mt-0.5">
-                {vehicle.insurance
-                  ? `Vence: ${vehicle.insuranceExpires ? new Date(vehicle.insuranceExpires).toLocaleDateString('es-EC') : 'Vigente'}`
-                  : 'Puedes contratar el seguro de la plataforma por $5/día'}
+                Este vehículo cuenta con seguro contratado por el propietario. En caso de cualquier inconveniente, la cobertura es responsabilidad del propietario y su aseguradora. OmniDrive actúa únicamente como plataforma de conexión entre arrendatario y propietario.
               </p>
             </div>
           </div>
