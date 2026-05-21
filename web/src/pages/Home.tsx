@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from '@/lib/router-exports';
 import {
   Car, Shield, Star, Zap, User, ChevronRight,
-  TrendingUp, Clock, Award
+  TrendingUp, Clock, Award, Gauge, LayoutGrid, Bike, 
+  Truck, Container, Gem
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
@@ -10,13 +11,13 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 
 const CATEGORIES = [
-  { id: '', label: 'Todos', emoji: '🚗' },
-  { id: 'car', label: 'Autos', emoji: '🚗' },
-  { id: 'suv', label: 'SUV', emoji: '🚙' },
-  { id: 'motorcycle', label: 'Motos', emoji: '🏍️' },
-  { id: 'van', label: 'Furgonetas', emoji: '🚐' },
-  { id: 'truck', label: 'Camionetas', emoji: '🛻' },
-  { id: 'luxury', label: 'Lujo', emoji: '✨' },
+  { id: '', label: 'Todos', icon: LayoutGrid },
+  { id: 'car', label: 'Autos', icon: Car },
+  { id: 'suv', label: 'SUV', icon: Gauge },
+  { id: 'motorcycle', label: 'Motos', icon: Bike },
+  { id: 'van', label: 'Furgonetas', icon: Container },
+  { id: 'truck', label: 'Camionetas', icon: Truck },
+  { id: 'luxury', label: 'Lujo', icon: Gem },
 ];
 
 export default function Home() {
@@ -103,17 +104,21 @@ export default function Home() {
       </section>
 
       {/* ═══════════ Categorías ═══════════ */}
-      <section className="max-w-7xl mx-auto px-4 -mt-12 relative z-10">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {CATEGORIES.map(c => (
-            <button
-              key={c.id}
-              onClick={() => navigate(`/vehicles?category=${c.id}`)}
-              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-slate-900 border border-slate-800 hover:border-cyan-500 rounded-2xl text-sm font-medium text-slate-300 hover:text-white transition-all shadow-lg shadow-black/20"
-            >
-              <span>{c.emoji}</span> {c.label}
-            </button>
-          ))}
+      <section className="max-w-7xl mx-auto px-4 -mt-20 relative z-10">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {CATEGORIES.map(c => {
+            const Icon = c.icon;
+            return (
+              <button
+                key={c.id}
+                onClick={() => navigate(c.id ? `/vehicles?category=${c.id}` : '/vehicles')}
+                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-3 bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 hover:border-cyan-500/40 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-all duration-300 hover:bg-slate-800/60 shadow-lg shadow-black/10"
+              >
+                <Icon size={16} className="text-cyan-400/70 group-hover:text-cyan-400 transition-colors" />
+                {c.label}
+              </button>
+            );
+          })}
         </div>
       </section>
 
