@@ -5,6 +5,27 @@ import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 
+/**
+ * Extrae parametros del hash fragment (formatos posibles):
+ *   #/auth/callback#access_token=xxx&token_type=bearer&...
+ *   #access_token=xxx&token_type=bearer&...
+ */
+function parseHashParams(): Record<string, string> {
+  const raw = window.location.hash;
+  // Buscar el fragmento que empieza con access_token= o code=
+  // El hash router pone #/auth/callback#... o directamente #access_token...
+  const fragmentIdx = raw.search(/access_token=|code=|error=/);
+  if (fragmentIdx === -1) {
+    // Fallback: tratar todo el hash como query params
+    const clean = raw.replace(/^#\/?/, '') || '';
+    // Si contiene '/' es una ruta, no params
+    if (clean.includes('/') && !clean.includes('=')) return {};
+    try { return Object.fromEntries(new URLSearchParams(clean)); } catch { return {}; }
+  }
+  const fragment = raw.slice(fragmentIdx);
+  try { return Object.fromEntries(new URLSearchParams(fragment)); } catch { return {}; }
+}
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const navigateDirect = useNavigateDirect();
@@ -18,16 +39,15 @@ export default function AuthCallback() {
     (async () => {
       try {
         // ── 1. Leer parámetros del hash ──
-        const hash = window.location.hash;
-        const hashClean = hash.replace(/^#\/?/, '');
-        const hashFragmentParams = Object.fromEntries(new URLSearchParams(hashClean));
+        const params = parseHashParams();
+        console.log('[AuthCallback] Params found:', Object.keys(params).join(', '));
 
-        const error = hashFragmentParams.error;
+        const error = params.error;
         if (error) throw new Error(`Google OAuth error: ${error}`);
 
         // ── 2. Restaurar sesión ──
-        const accessToken = hashFragmentParams.access_token;
-        const refreshToken = hashFragmentParams.refresh_token || '';
+        const accessToken = params.access_token;
+        const refreshToken = params.refresh_token || '';
 
         if (accessToken) {
           await supabase.auth.setSession({
@@ -39,7 +59,7 @@ export default function AuthCallback() {
         // ── 3. Obtener sesión ──
         const { data: { session }, error: sessErr } = await supabase.auth.getSession();
         if (sessErr || !session) throw new Error('No session');
-        console.log('[AuthCallback] Sesión OK:', session.user.email);
+        console.log('[AuthCallback] Session OK:', session.user.email);
 
         // ── 4. Crear/obtener perfil ──
         const token = session.access_token;
@@ -61,9 +81,7 @@ export default function AuthCallback() {
 
         setUser(profile);
 
-        // ── 5. Redirigir forzadamente (navigateDirect evita hashchange race) ──
-        // Si el perfil está incompleto (phone genérico o documentId placeholder),
-        // redirigir a /profile para que complete datos
+        // ── 5. Redirigir ──
         const needsCompletion = 
           profile.phone === '0000000000' || 
           profile.documentId?.startsWith('oauth-');
@@ -81,7 +99,7 @@ export default function AuthCallback() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-cyan-400 mx-auto mb-4" />
-        <p className="text-slate-400">Completando autenticación...</p>
+        <p className="text-slate-400">Completando autenticacion...</p>
       </div>
     </div>
   );

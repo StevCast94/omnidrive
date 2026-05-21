@@ -44,7 +44,11 @@ export default function Login() {
     oauthInProgress.current = true;
     setLoading(true);
 
-    const redirectTo = window.location.origin + '/auth/callback';
+    // El redirect debe apuntar AL HASH para que el hash router de la app lo capture
+    // Supabase mete el access_token despues del #, y la app espera #/auth/callback
+    // Al poner origin + '/auth/callback' el browser interpreta /auth/callback#token
+    // y el hash router nunca lo ve porque no hay #/ delante
+    const redirectTo = window.location.origin + '/#' + '/auth/callback';
 
     console.log('[Google Login] redirectTo:', redirectTo);
 
