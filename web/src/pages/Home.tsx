@@ -84,38 +84,23 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Stats sociales */}
-          <div className="mt-12 grid grid-cols-3 gap-6 max-w-lg mx-auto">
-            {[
-              { icon: Car, value: featured.length > 0 ? featured.length + '+' : '50+', label: 'Vehículos' },
-              { icon: User, value: '200+', label: 'Usuarios' },
-              { icon: Star, value: '4.8', label: 'Calificación' },
-            ].map(({ icon: Icon, value, label }) => (
-              <div key={label} className="text-center">
-                <div className="inline-flex p-2 bg-slate-800/80 rounded-xl mb-2 border border-slate-700">
-                  <Icon size={18} className="text-cyan-400" />
-                </div>
-                <p className="text-xl font-bold text-white">{value}</p>
-                <p className="text-xs text-slate-500">{label}</p>
-              </div>
-            ))}
-          </div>
+          {/* Stats sociales — eliminados */}
         </div>
       </section>
 
-      {/* ═══════════ Categorías ═══════════ */}
-      <section className="max-w-7xl mx-auto px-4 -mt-20 relative z-10">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      {/* ═══════════ Categorías — rectangulares, full-width ═══════════ */}
+      <section className="max-w-7xl mx-auto px-4 -mt-16 relative z-10">
+        <div className="flex flex-wrap justify-center gap-1.5">
           {CATEGORIES.map(c => {
             const Icon = c.icon;
             return (
               <button
                 key={c.id}
                 onClick={() => navigate(c.id ? `/vehicles?category=${c.id}` : '/vehicles')}
-                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-3 bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 hover:border-cyan-500/40 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-all duration-300 hover:bg-slate-800/60 shadow-lg shadow-black/10"
+                className="flex-1 min-w-[100px] max-w-[140px] flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 hover:border-cyan-500/40 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all duration-300"
               >
-                <Icon size={16} className="text-cyan-400/70 group-hover:text-cyan-400 transition-colors" />
-                {c.label}
+                <Icon size={14} className="text-cyan-400/70 shrink-0" />
+                <span>{c.label}</span>
               </button>
             );
           })}
