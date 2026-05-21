@@ -50,6 +50,7 @@ model User {
   bookings      Booking[]      @relation("Tenant")
   reviews       Review[]
   documents     UserDocument[]
+  messages      Message[]
   notifications Notification[]
   transactions  Transaction[]
   subscription  Subscription?
@@ -137,8 +138,9 @@ model Vehicle {
   features     String[]
 
   // Relaciones
-  bookings Booking[]
-  reviews  Review[]
+  bookings      Booking[]
+  conversations Conversation[]
+  reviews       Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,7 +197,8 @@ model Booking {
   paymentStatus String  @default("pending") // pending, held, released, refunded
   transactionId String?
 
-  review Review?
+  conversations Conversation[]
+  review         Review?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
