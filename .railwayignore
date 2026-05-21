@@ -1,0 +1,6 @@
+web/
+.git/
+.gitignore
+README.md
+tmp-photos/
+scripts/
