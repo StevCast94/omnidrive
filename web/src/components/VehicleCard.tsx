@@ -1,5 +1,8 @@
-﻿import { useNavigate, useParams, Link } from '@/lib/router-exports';
+// ===== web/src/components/VehicleCard.tsx =====
+import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Star, MapPin, Users, Car } from 'lucide-react';
+import { Card } from './ui/Card';
+import { Badge } from './ui/Badge';
 import clsx from 'clsx';
 
 interface Props {
@@ -12,83 +15,136 @@ const CATEGORY_LABELS: Record<string, string> = {
   van: 'Furgoneta', truck: 'Camioneta', luxury: 'Lujo',
 };
 
+const CATEGORY_COLORS: Record<string, 'cyan' | 'indigo' | 'green' | 'amber' | 'red'> = {
+  car: 'cyan',
+  suv: 'indigo',
+  motorcycle: 'green',
+  van: 'amber',
+  truck: 'indigo',
+  luxury: 'amber',
+};
+
 export default function VehicleCard({ vehicle: v, compact = false }: Props) {
   const photo = v.photos?.[0];
 
   return (
-    <Link to={`/vehicles/${v.id}`} className={clsx(
-      'group bg-slate-900 rounded-2xl border border-slate-800 hover:border-indigo-500/50 transition-all overflow-hidden',
-      compact ? 'flex gap-3 p-3' : 'flex flex-col'
-    )}>
-      {/* Image */}
-      <div className={clsx(
-        'bg-slate-800 overflow-hidden flex-shrink-0',
-        compact ? 'w-24 h-24 rounded-xl' : 'h-48 w-full'
+    <Link
+      to={`/vehicles/${v.id}`}
+      className="block group"
+    >
+      <Card className={clsx(
+        'overflow-hidden cursor-pointer flex flex-col h-full',
+        compact ? 'flex-row' : ''
       )}>
-        {photo ? (
-          <img src={photo} alt={`${v.brand} ${v.model}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-600">
-            <Car size={compact ? 28 : 40} />
-          </div>
-        )}
-      </div>
+        {/* Image Cover */}
+        <div className={clsx(
+          'relative overflow-hidden flex-shrink-0',
+          compact ? 'w-24 h-24' : 'h-48 w-full'
+        )}>
+          {photo ? (
+            <img
+              src={photo}
+              alt={`${v.brand} ${v.model}`}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
+              <Car size={compact ? 28 : 40} />
+            </div>
+          )}
+          {/* Gradient overlay for text readability */}
+          {!compact && (
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+          )}
 
-      {/* Info */}
-      <div className={clsx('flex-1', compact ? '' : 'p-4')}>
-        {/* Category badge */}
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-indigo-400 uppercase tracking-wide">
-            {CATEGORY_LABELS[v.category] ?? v.category}
-          </span>
-          {v.withDriver && (
-            <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full">Con chofer</span>
+          {/* Badge categoría */}
+          <div className={clsx('absolute top-3 left-3', compact && 'hidden')}>
+            <Badge variant={CATEGORY_COLORS[v.category] ?? 'cyan'}>
+              {CATEGORY_LABELS[v.category] ?? v.category}
+            </Badge>
+          </div>
+
+          {/* Title overlay on image for non-compact */}
+          {!compact && (
+            <div className="absolute bottom-3 left-3">
+              <h3 className="text-lg font-bold text-white leading-tight">
+                {v.brand} {v.model}
+              </h3>
+              <p className="text-sm text-slate-300">{v.year}</p>
+            </div>
           )}
         </div>
 
-        <h3 className="font-semibold text-white text-sm mb-1 truncate">
-          {v.brand} {v.model} {v.year}
-        </h3>
+        {/* Info */}
+        <div className={clsx('flex-1 flex flex-col', compact ? 'p-3' : 'p-4')}>
+          {compact ? (
+            <>
+              <div className="flex items-start justify-between mb-1">
+                <div>
+                  <span className="text-xs font-medium text-cyan-400 uppercase tracking-wide">
+                    {CATEGORY_LABELS[v.category] ?? v.category}
+                  </span>
+                  <h3 className="font-semibold text-white text-sm truncate">
+                    {v.brand} {v.model} {v.year}
+                  </h3>
+                </div>
+                {v.withDriver && (
+                  <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full flex-shrink-0">Con chofer</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {v.withDriver && (
+                <div className="mb-2">
+                  <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full">Con chofer</span>
+                </div>
+              )}
+            </>
+          )}
 
-        {/* Location */}
-        {v.locationName && (
-          <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
-            <MapPin size={11} />
-            <span className="truncate">{v.locationName}</span>
-            {(v as any).distance !== undefined && (
-              <span className="ml-auto flex-shrink-0 text-slate-600">
-                {((v as any).distance).toFixed(1)} km
+          {/* Location */}
+          {v.locationName && (
+            <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
+              <MapPin size={11} className="text-cyan-400" />
+              <span className="truncate">{v.locationName}</span>
+              {(v as any).distance !== undefined && (
+                <span className="ml-auto flex-shrink-0 text-slate-600">
+                  {((v as any).distance).toFixed(1)} km
+                </span>
+              )}
+            </div>
+          )}
+
+          {!compact && (
+            <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+              <span className="flex items-center gap-1"><Users size={11} /> {v.seats} asientos</span>
+              <span>{v.transmission === 'automatic' ? 'Automático' : 'Manual'}</span>
+              <span>{v.fuelType}</span>
+            </div>
+          )}
+
+          {/* Rating & Price */}
+          <div className={clsx(
+            'flex items-center justify-between',
+            compact ? 'mt-auto' : 'mt-auto pt-3 border-t border-slate-800'
+          )}>
+            <div className="flex items-center gap-1">
+              <Star size={13} className="text-amber-400 fill-amber-400" />
+              <span className="text-xs text-slate-300 font-medium">
+                {v.rating > 0 ? v.rating.toFixed(1) : 'Nuevo'}
               </span>
-            )}
-          </div>
-        )}
-
-        {!compact && (
-          <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
-            <span className="flex items-center gap-1"><Users size={11} /> {v.seats} asientos</span>
-            <span>{v.transmission === 'automatic' ? 'Automático' : 'Manual'}</span>
-            <span>{v.fuelType}</span>
-          </div>
-        )}
-
-        {/* Rating & Price */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Star size={13} className="text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-slate-300 font-medium">
-              {v.rating > 0 ? v.rating.toFixed(1) : 'Nuevo'}
-            </span>
-            {v._count?.reviews > 0 && (
-              <span className="text-xs text-slate-600">({v._count.reviews})</span>
-            )}
-          </div>
-          <div className="text-right">
-            <span className="text-sm font-bold text-white">${Number(v.pricePerDay).toFixed(0)}</span>
-            <span className="text-xs text-slate-500">/día</span>
+              {v._count?.reviews > 0 && (
+                <span className="text-xs text-slate-600">({v._count.reviews})</span>
+              )}
+            </div>
+            <div className="text-right">
+              <span className="text-sm font-bold text-white">${Number(v.pricePerDay).toFixed(0)}</span>
+              <span className="text-xs text-slate-500">/día</span>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
     </Link>
   );
 }

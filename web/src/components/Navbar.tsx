@@ -1,17 +1,26 @@
 // ===== web/src/components/Navbar.tsx =====
-import { useState } from 'react';
-import { Menu, X, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, LogOut, User as UserIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import NotificationBell from './NotificationBell';
-import clsx from 'clsx';
 import { useNavigate, useRouter } from '@/lib/router';
+import { Logo } from './ui/Logo';
+import { Button } from './ui/Button';
+import clsx from 'clsx';
 
 export default function Navbar() {
   const { user, clearUser } = useAuthStore();
   const navigate = useNavigate();
   const { path } = useRouter();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -19,25 +28,32 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const userInitials = user
+    ? ((user.name?.charAt(0) || '') + (user.lastName?.charAt(0) || '')).toUpperCase() || user.email.charAt(0).toUpperCase()
+    : '';
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <nav className={clsx(
+      'fixed top-0 left-0 right-0 z-50 transition-all duration-400',
+      scrolled
+        ? 'bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg py-2'
+        : 'bg-transparent border-b border-transparent py-4'
+    )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between">
           {/* Logo */}
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-xl font-bold text-white">
-            <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-lg text-sm">OD</span>
-            <span className="hidden sm:inline">OmniDrive</span>
+          <button onClick={() => navigate('/')} className="flex-shrink-0">
+            <Logo variant="horizontal" className={scrolled ? 'scale-90 transition-transform' : 'transition-transform'} />
           </button>
 
           {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-8">
             <NavLink to="/" current={path} label="Inicio" />
             <NavLink to="/vehicles" current={path} label="Vehículos" />
             {user && (
               <>
                 <NavLink to="/messages" current={path} label="Mensajes" />
                 <NavLink to="/dashboard" current={path} label="Dashboard" />
-                {/* Wallet oculto hasta Stripe */}
                 <NavLink to="/profile" current={path} label="Perfil" />
                 {user.role === 'admin' && <NavLink to="/admin" current={path} label="Admin" />}
               </>
@@ -49,24 +65,34 @@ export default function Navbar() {
             {user ? (
               <>
                 <NotificationBell />
-                <button onClick={handleLogout} className="text-slate-400 hover:text-white transition">
-                  <LogOut size={20} />
+                <button
+                  onClick={handleLogout}
+                  className="text-slate-400 hover:text-white transition p-2"
+                  title="Cerrar sesión"
+                >
+                  <LogOut size={18} />
+                </button>
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-shadow"
+                >
+                  {userInitials || <UserIcon size={16} />}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => navigate('/login')} className="text-slate-300 hover:text-white transition text-sm font-medium">
-                  Iniciar sesión
-                </button>
-                <button onClick={() => navigate('/register')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+                  Ingresar
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
                   Registrarse
-                </button>
+                </Button>
               </>
             )}
           </div>
 
           {/* Mobile hamburger */}
-          <button onClick={() => setOpen(!open)} className="md:hidden text-slate-300">
+          <button onClick={() => setOpen(!open)} className="md:hidden text-slate-300 hover:text-white transition p-2">
             {open ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -74,29 +100,36 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pb-4 space-y-2">
+        <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 pb-4 pt-2 space-y-2 animate-slide-down">
           <MobileNavLink to="/" current={path} label="Inicio" onClick={() => setOpen(false)} />
           <MobileNavLink to="/vehicles" current={path} label="Vehículos" onClick={() => setOpen(false)} />
           {user && (
             <>
               <MobileNavLink to="/messages" current={path} label="Mensajes" onClick={() => setOpen(false)} />
               <MobileNavLink to="/dashboard" current={path} label="Dashboard" onClick={() => setOpen(false)} />
-              {/* Wallet oculto hasta Stripe */}
               <MobileNavLink to="/profile" current={path} label="Perfil" onClick={() => setOpen(false)} />
               {user.role === 'admin' && <MobileNavLink to="/admin" current={path} label="Admin" onClick={() => setOpen(false)} />}
             </>
           )}
-          {!user && (
-            <>
-              <MobileNavLink to="/login" current={path} label="Iniciar sesión" onClick={() => setOpen(false)} />
-              <MobileNavLink to="/register" current={path} label="Registrarse" onClick={() => setOpen(false)} />
-            </>
-          )}
-          {user && (
-            <button onClick={() => { handleLogout(); setOpen(false); }} className="block w-full text-left text-red-400 py-2 text-sm font-medium">
-              Cerrar sesión
-            </button>
-          )}
+          <div className="pt-3 border-t border-slate-800 space-y-2">
+            {user ? (
+              <button
+                onClick={() => { handleLogout(); setOpen(false); }}
+                className="w-full flex items-center gap-2 text-left text-red-400 hover:text-red-300 py-2 text-sm font-medium"
+              >
+                <LogOut size={16} /> Cerrar sesión
+              </button>
+            ) : (
+              <>
+                <Button variant="outline" className="w-full" onClick={() => { navigate('/login'); setOpen(false); }}>
+                  Ingresar
+                </Button>
+                <Button variant="primary" className="w-full" onClick={() => { navigate('/register'); setOpen(false); }}>
+                  Registrarse
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>
@@ -109,9 +142,16 @@ function NavLink({ to, current, label }: { to: string; current: string; label: s
   return (
     <button
       onClick={() => navigate(to)}
-      className={clsx('text-sm font-medium transition', isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-white')}
+      className={clsx(
+        'text-sm font-medium relative transition-colors group',
+        isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-white'
+      )}
     >
       {label}
+      <span className={clsx(
+        'absolute -bottom-1 left-1/2 h-0.5 bg-cyan-400 transition-all duration-300',
+        isActive ? 'w-full left-0' : 'w-0 group-hover:w-full group-hover:left-0'
+      )} />
     </button>
   );
 }
@@ -122,7 +162,10 @@ function MobileNavLink({ to, current, label, onClick }: { to: string; current: s
   return (
     <button
       onClick={() => { navigate(to); onClick(); }}
-      className={clsx('block w-full text-left py-2 text-sm font-medium', isActive ? 'text-indigo-400' : 'text-slate-300')}
+      className={clsx(
+        'block w-full text-left py-2 text-sm font-medium',
+        isActive ? 'text-cyan-400' : 'text-slate-300 hover:text-white'
+      )}
     >
       {label}
     </button>

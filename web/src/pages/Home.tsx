@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from '@/lib/router-exports';
 import {
   Car, Shield, Star, Zap, User, ChevronRight,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 const CATEGORIES = [
   { id: '', label: 'Todos', emoji: '🚗' },
@@ -30,55 +32,67 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* ═══════════ HERO — Persuasivo, sin buscador ═══════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 pt-16 pb-24 md:pb-32">
-        {/* Background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.08)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(139,92,246,0.06)_0%,_transparent_50%)]" />
+    <div className="min-h-screen bg-slate-950 overflow-hidden">
+      {/* ═══════════ HERO — con efectos de fondo rediseñados ═══════════ */}
+      <section className="relative overflow-hidden pt-32 pb-24 md:pb-32 lg:pt-48 lg:pb-36 min-h-[80vh] flex items-center">
+        {/* Background Effects — gradientes, grid, blur */}
+        <div className="absolute inset-0 z-0">
+          {/* Grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+          {/* Gradient glowing orbs */}
+          <div className="absolute left-0 right-0 top-0 m-auto h-[310px] w-[310px] rounded-full bg-cyan-500 opacity-20 blur-[100px] animate-pulse" />
+          <div className="absolute right-20 bottom-0 h-[250px] w-[250px] rounded-full bg-indigo-500 opacity-20 blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+          {/* Original radial gradients (keep for compatibility) */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.08)_0%,_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(139,92,246,0.06)_0%,_transparent_50%)]" />
+        </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-1.5 text-indigo-400 text-sm font-medium mb-6">
-            <Zap size={14} /> La plataforma P2P de vehículos de Ecuador
-          </div>
+          <Badge variant="cyan" className="mb-6 px-4 py-1.5 text-sm">
+            <Zap size={14} className="mr-1" /> El futuro de la movilidad compartida
+          </Badge>
 
-          {/* Headline principal */}
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">
-            Renta un vehículo sin complicaciones
+          {/* Headline con gradient text */}
+          <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-4 leading-tight tracking-tight">
+            Conduce cualquier auto,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
+              en cualquier lugar.
+            </span>
           </h1>
-          <p className="text-lg md:text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
-            Conectamos propietarios y arrendatarios de forma segura.
-            Autos, motos, camionetas y más — sin papeleo ni sucursales.
+          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+            Únete a la red P2P más avanzada. Renta el vehículo perfecto de anfitriones locales o genera ingresos con el tuyo.
           </p>
 
-          {/* CTA principal — lleva directamente a ver vehículos */}
+          {/* CTA principal */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
+            <Button
+              size="lg"
               onClick={() => navigate('/vehicles')}
-              className="group flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-base transition-all shadow-lg shadow-indigo-600/25 hover:shadow-indigo-500/40"
             >
-              Ver vehículos disponibles
-              <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
-            </button>
-            <button
+              <span className="flex items-center gap-2">
+                Explorar Vehículos <ChevronRight size={18} />
+              </span>
+            </Button>
+            <Button
+              size="lg"
+              variant="secondary"
               onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl font-semibold text-sm transition-colors"
             >
-              Publicar mi vehículo
-            </button>
+              Convertirse en Anfitrión
+            </Button>
           </div>
 
-          {/* Stats sociales — rápida validación de confianza */}
+          {/* Stats sociales */}
           <div className="mt-12 grid grid-cols-3 gap-6 max-w-lg mx-auto">
             {[
-              { icon: Car, value: featured.length + '+', label: 'Vehículos' },
-              { icon: User, value: featured.length * 2 + '+', label: 'Usuarios' },
+              { icon: Car, value: featured.length > 0 ? featured.length + '+' : '50+', label: 'Vehículos' },
+              { icon: User, value: '200+', label: 'Usuarios' },
               { icon: Star, value: '4.8', label: 'Calificación' },
             ].map(({ icon: Icon, value, label }) => (
               <div key={label} className="text-center">
-                <div className="inline-flex p-2 bg-slate-800/80 rounded-xl mb-2">
-                  <Icon size={18} className="text-indigo-400" />
+                <div className="inline-flex p-2 bg-slate-800/80 rounded-xl mb-2 border border-slate-700">
+                  <Icon size={18} className="text-cyan-400" />
                 </div>
                 <p className="text-xl font-bold text-white">{value}</p>
                 <p className="text-xs text-slate-500">{label}</p>
@@ -95,7 +109,7 @@ export default function Home() {
             <button
               key={c.id}
               onClick={() => navigate(`/vehicles?category=${c.id}`)}
-              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-2xl text-sm font-medium text-slate-300 hover:text-white transition-all shadow-lg shadow-black/20"
+              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-slate-900 border border-slate-800 hover:border-cyan-500 rounded-2xl text-sm font-medium text-slate-300 hover:text-white transition-all shadow-lg shadow-black/20"
             >
               <span>{c.emoji}</span> {c.label}
             </button>
@@ -111,7 +125,7 @@ export default function Home() {
             <p className="text-sm text-slate-500 mt-1">Los más populares entre nuestros arrendatarios</p>
           </div>
           <button onClick={() => navigate('/vehicles')}
-            className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+            className="flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
             Ver todos <ChevronRight size={14} />
           </button>
         </div>
@@ -131,10 +145,9 @@ export default function Home() {
             <Car size={48} className="mx-auto mb-4 opacity-30" />
             <p className="text-lg font-medium mb-1">Aún no hay vehículos publicados</p>
             <p className="text-sm mb-6">Sé el primero en ofrecer tu vehículo en OmniDrive</p>
-            <button onClick={() => navigate('/register')}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-sm transition-colors">
+            <Button onClick={() => navigate('/register')}>
               Publicar mi vehículo
-            </button>
+            </Button>
           </div>
         )}
       </section>
@@ -147,17 +160,17 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Search, step: '1', title: 'Elige tu vehículo', desc: 'Explora por categoría o encuentra el que más te guste.' },
-              { icon: CalendarCheck, step: '2', title: 'Selecciona las fechas', desc: 'Check-in y check-out como en hotel. Mínimo 1 día.' },
-              { icon: ShieldCheck, step: '3', title: 'Reserva segura', desc: 'Pago protegido en wallet. Verificación de identidad incluida.' },
+              { icon: SearchIcon, step: '1', title: 'Elige tu vehículo', desc: 'Explora por categoría o encuentra el que más te guste.' },
+              { icon: CalendarIcon, step: '2', title: 'Selecciona las fechas', desc: 'Check-in y check-out como en hotel. Mínimo 1 día.' },
+              { icon: ShieldIcon, step: '3', title: 'Reserva segura', desc: 'Pago protegido en wallet. Verificación de identidad incluida.' },
             ].map(({ icon: Icon, step, title, desc }) => (
               <div key={step} className="text-center relative">
                 <div className="relative inline-flex mb-5">
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-xs font-bold z-10">
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-xs font-bold z-10 text-white">
                     {step}
                   </div>
-                  <div className="p-4 bg-indigo-500/10 rounded-2xl">
-                    <Icon size={28} className="text-indigo-400" />
+                  <div className="p-4 bg-cyan-500/10 rounded-2xl">
+                    <Icon size={28} className="text-cyan-400" />
                   </div>
                 </div>
                 <h3 className="font-semibold text-white mb-2">{title}</h3>
@@ -180,9 +193,9 @@ export default function Home() {
             { icon: TrendingUp, title: 'Para dueños: genera ingresos', desc: 'Tu vehículo parado es dinero perdido. Publícalo gratis y empieza a recibir solicitudes.' },
             { icon: Award, title: 'Soporte Ecuador', desc: 'Pensada para el mercado ecuatoriano. Precios en USD, soporte en español.' },
           ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-indigo-500/40 transition-colors">
-              <div className="inline-flex p-3 bg-indigo-500/10 rounded-2xl mb-4">
-                <Icon size={22} className="text-indigo-400" />
+            <div key={title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/40 transition-colors">
+              <div className="inline-flex p-3 bg-cyan-500/10 rounded-2xl mb-4">
+                <Icon size={22} className="text-cyan-400" />
               </div>
               <h3 className="font-semibold text-white mb-2">{title}</h3>
               <p className="text-sm text-slate-400 leading-relaxed">{desc}</p>
@@ -192,8 +205,8 @@ export default function Home() {
       </section>
 
       {/* ═══════════ CTA Final ═══════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-indigo-900/50 to-violet-900/50 border-y border-indigo-800/30 py-20">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(99,102,241,0.1)_0%,_transparent_60%)]" />
+      <section className="relative overflow-hidden bg-gradient-to-r from-cyan-900/50 to-indigo-900/50 border-y border-cyan-800/30 py-20">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(6,182,212,0.1)_0%,_transparent_60%)]" />
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             ¿Tienes un vehículo sin usar?
@@ -203,18 +216,20 @@ export default function Home() {
             Publica el tuyo gratis y empieza a generar ingresos desde hoy.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
+            <Button
               onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-white text-slate-900 hover:bg-slate-200 rounded-2xl font-bold text-base transition-colors"
+              variant="primary"
+              size="lg"
             >
               Publicar mi vehículo
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => navigate('/vehicles')}
-              className="px-8 py-4 bg-slate-800/70 hover:bg-slate-700 border border-slate-700 rounded-2xl font-semibold text-sm transition-colors"
+              variant="secondary"
+              size="lg"
             >
               Ver como arrendatario
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -222,7 +237,7 @@ export default function Home() {
   );
 }
 
-// Helper icons que no están en lucide por defecto
-function Search(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>; }
-function CalendarCheck(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>; }
-function ShieldCheck(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>; }
+// SVG helper icons for "Cómo funciona" section
+function SearchIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>; }
+function CalendarIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>; }
+function ShieldIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>; }
