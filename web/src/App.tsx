@@ -157,7 +157,7 @@ const routes: Route[] = [
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
   { path: '/wallet', element: <Layout><PrivateRoute><Wallet /></PrivateRoute></Layout> },
   { path: '/profile', element: <Layout><PrivateRoute><Profile /></PrivateRoute></Layout> },
-  { path: '/admin', element: <Layout><AdminRoute><Admin /></AdminRoute></Layout> },
+  { path: '/admin', element: <Admin /> },
   { path: '*', element: <Layout><NavigateHome /></Layout> },
 ];
 
