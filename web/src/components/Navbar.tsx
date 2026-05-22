@@ -74,9 +74,13 @@ export default function Navbar() {
                 </button>
                 <button
                   onClick={() => navigate('/profile')}
-                  className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-shadow"
+                  className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center overflow-hidden hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-shadow"
                 >
-                  {userInitials || <UserIcon size={16} />}
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-white">{userInitials || <UserIcon size={16} />}</span>
+                  )}
                 </button>
               </>
             ) : (

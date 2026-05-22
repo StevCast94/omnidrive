@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFace, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFace, CheckCircle, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -90,10 +90,51 @@ export default function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
+      {/* Header con avatar */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl font-bold">
-          {user?.name?.[0]}{user?.lastName?.[0]}
+        <div className="relative group">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center overflow-hidden">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl font-bold text-white">
+                {user?.name?.[0] || '?'}{user?.lastName?.[0] || ''}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => document.getElementById('avatar-input')?.click()}
+            className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-800 border border-slate-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-slate-700"
+            title="Cambiar foto"
+          >
+            <Camera size={12} className="text-slate-300" />
+          </button>
+          <input
+            id="avatar-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                toast.error('La imagen no puede superar 5MB');
+                return;
+              }
+              try {
+                const formData = new FormData();
+                formData.append('avatar', file);
+                const token = (await import('@/lib/api')).api.defaults.headers?.Authorization || '';
+                const { data: res } = await (await import('@/lib/api')).api.post('/auth/avatar', formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' },
+                });
+                if (res?.data?.avatarUrl) {
+                  updateUser({ avatarUrl: res.data.avatarUrl });
+                  toast.success('Foto de perfil actualizada');
+                }
+              } catch { toast.error('Error al subir la imagen'); }
+            }}
+          />
         </div>
         <div>
           <div className="flex items-center gap-2">
@@ -107,7 +148,6 @@ export default function Profile() {
             </span>
             <span className="text-xs text-slate-600">·</span>
             <span className="text-xs text-slate-500">{user?.totalTrips} viajes</span>
-
           </div>
         </div>
       </div>

@@ -60,6 +60,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       select: {
         id: true, authId: true, email: true, phone: true,
         name: true, lastName: true, role: true,
+        avatarUrl: true,
         identityVerified: true, walletBalance: true,
         subscriptionTier: true, driverScore: true, createdAt: true,
       },
@@ -120,7 +121,7 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
       select: {
         id: true, authId: true, email: true, phone: true,
         name: true, lastName: true, documentType: true, documentId: true,
-        birthDate: true, gender: true, identityVerified: true, selfieUrl: true,
+        birthDate: true, gender: true, avatarUrl: true, identityVerified: true, selfieUrl: true,
         walletBalance: true, subscriptionTier: true, subscriptionEnds: true,
         driverScore: true, totalTrips: true, totalKm: true, role: true,
         createdAt: true, documents: true,
@@ -171,11 +172,12 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
         lastName,
         documentType: 'cedula',
         documentId: 'oauth-' + userId,
-        // avatarUrl no existe en el schema Prisma aún
+        avatarUrl: picture || null, // foto de perfil de Google
       },
       select: {
         id: true, authId: true, email: true, phone: true,
         name: true, lastName: true, documentType: true, documentId: true,
+        avatarUrl: true,
         role: true,
         identityVerified: true, walletBalance: true,
         subscriptionTier: true, driverScore: true, createdAt: true,
@@ -373,10 +375,63 @@ authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
       select: {
         id: true, email: true, phone: true, name: true,
         lastName: true, documentType: true, documentId: true,
+        avatarUrl: true,
         gender: true, birthDate: true, updatedAt: true,
       },
     });
     return res.json({ data: user, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// POST /api/auth/avatar — Subir foto de perfil manual
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req: any, file: any, cb: any) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Formato no soportado. Usa: jpg, png, webp, gif'));
+  },
+});
+
+authRouter.post('/avatar', authenticate, avatarUpload.single('avatar'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ data: null, error: 'No se envió ninguna imagen' });
+    }
+
+    const uid = req.user!.id;
+    const buffer = req.file.buffer;
+
+    const { v2: cloudinary } = require('cloudinary');
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    const result = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'omnidrive/avatars',
+          public_id: 'avatar-' + uid,
+          overwrite: true,
+          transformation: [{ width: 400, height: 400, crop: 'limit', quality: 'auto:best', format: 'webp' }],
+        },
+        (err: any, res: any) => (err ? reject(err) : resolve(res))
+      );
+      stream.end(buffer);
+    });
+
+    const avatarUrl = result.secure_url.replace('/upload/', '/upload/q_auto:best,f_auto,w_400/');
+    await prisma.user.update({
+      where: { id: uid },
+      data: { avatarUrl },
+    });
+
+    return res.json({ data: { avatarUrl }, error: null });
   } catch (e: any) {
     return res.status(500).json({ data: null, error: e.message });
   }

@@ -22,6 +22,9 @@ model User {
   birthDate    DateTime?
   gender       String?
 
+  // Avatar / Foto de perfil
+  avatarUrl String?
+
   // Verificación
   identityVerified Boolean   @default(false)
   selfieUrl        String?
