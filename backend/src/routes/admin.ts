@@ -419,3 +419,64 @@ adminRouter.get('/metrics', async (_req, res: Response) => {
     return res.status(500).json({ data: null, error: e.message });
   }
 });
+
+// ── Superadmin: Admin management ──
+
+adminRouter.get('/admins', async (req: AuthRequest, res: Response) => {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ['admin', 'superadmin', 'verifier'] } },
+      select: { id: true, email: true, name: true, lastName: true, role: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return res.json({ data: admins, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+adminRouter.post('/create-admin', async (req: AuthRequest, res: Response) => {
+  const { email, password, role } = req.body;
+  if (!email || !password || !role) {
+    return res.status(400).json({ data: null, error: 'email, password y role requeridos' });
+  }
+  if (!['admin', 'verifier'].includes(role)) {
+    return res.status(400).json({ data: null, error: 'Role debe ser admin o verifier' });
+  }
+  try {
+    const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+      email, password, email_confirm: true,
+    });
+    if (authErr) return res.status(400).json({ data: null, error: authErr.message });
+    const name = email.split('@')[0];
+    const user = await prisma.user.create({
+      data: {
+        authId: authData.user.id, email, phone: '0000000000',
+        name: name.split('.')[0] || 'Admin',
+        lastName: name.split('.').slice(1).join('.') || email.split('@')[0],
+        documentType: 'cedula', documentId: 'admin-' + authData.user.id.slice(0, 8),
+        role,
+      },
+      select: { id: true, email: true, name: true, lastName: true, role: true },
+    });
+    return res.status(201).json({ data: user, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+adminRouter.delete('/delete-admin/:userId', async (req: AuthRequest, res: Response) => {
+  const { userId } = req.params;
+  try {
+    const target = await prisma.user.findUnique({ where: { id: userId } });
+    if (!target) return res.status(404).json({ data: null, error: 'No encontrado' });
+    if (target.role === 'superadmin') {
+      return res.status(403).json({ data: null, error: 'No puedes eliminar al superadmin' });
+    }
+    await supabase.auth.admin.deleteUser(target.authId);
+    await prisma.user.delete({ where: { id: userId } });
+    return res.json({ data: { deleted: userId }, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});

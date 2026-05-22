@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Car, CreditCard, AlertTriangle, BarChart2,
-  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2
+  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2, UserPlus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, adminApi } from '@/lib/api';
+import { useAuthStore } from '@/lib/store';
 
-const TABS = ['Métricas', 'Usuarios', 'Vehículos', 'Reservas', 'Transacciones', 'Disputas', 'Vetos'] as const;
-type Tab = typeof TABS[number];
+// Roles disponibles en el sistema
+const ALL_TABS = ['Métricas', 'Usuarios', 'Vehículos', 'Reservas', 'Transacciones', 'Disputas', 'Vetos'] as const;
+type Tab = typeof ALL_TABS[number];
+
+// Permisos por rol
+const ROLE_PERMS: Record<string, Tab[]> = {
+  verifier: ['Usuarios', 'Vetos'],
+  admin: ['Usuarios', 'Vehículos', 'Reservas', 'Disputas', 'Vetos'],
+  superadmin: [...ALL_TABS, 'Admins'] as any,
+};
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   'text-yellow-400 bg-yellow-400/10',
@@ -19,7 +28,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Admin() {
-  const [tab, setTab] = useState<Tab>('Métricas');
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === 'superadmin';
+  // Filtrar tabs segun rol
+  const TABS: string[] = (ROLE_PERMS[user?.role || ''] || ALL_TABS) as unknown as string[];
+  const [tab, setTab] = useState<string>(TABS[0] || 'Métricas');
   const [metrics, setMetrics] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -32,8 +45,35 @@ export default function Admin() {
   const [disputeResolution, setDisputeResolution] = useState<Record<string, { text: string; amount: string }>>({});
   const [banForm, setBanForm] = useState({ documentId: '', reason: '' });
   const [showBanForm, setShowBanForm] = useState(false);
+  // Admin management (superadmin only)
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [newAdmin, setNewAdmin] = useState({ email: '', password: '', role: 'admin' });
+  const [createAdminLoading, setCreateAdminLoading] = useState(false);
 
-  const fetchTab = async (t: Tab) => {
+  const createAdmin = async () => {
+    setCreateAdminLoading(true);
+    try {
+      await api.post('/admin/create-admin', newAdmin);
+      toast.success('Admin creado');
+      setNewAdmin({ email: '', password: '', role: 'admin' });
+      fetchTab('Admins');
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Error al crear admin');
+    } finally { setCreateAdminLoading(false); }
+  };
+
+  const deleteAdmin = async (userId: string, email: string) => {
+    if (!confirm(`¿Eliminar a ${email}?`)) return;
+    try {
+      await api.delete('/admin/delete-admin/' + userId);
+      toast.success('Admin eliminado');
+      setAdmins(prev => prev.filter(a => a.id !== userId));
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Error al eliminar');
+    }
+  };
+
+  const fetchTab = async (t: string) => {
     setLoading(true);
     try {
       switch (t) {
@@ -44,6 +84,7 @@ export default function Admin() {
         case 'Transacciones': { const r = await api.get('/admin/transactions'); setTransactions(r.data.data.transactions); break; }
         case 'Disputas': { const r = await api.get('/admin/disputes'); setDisputes(r.data.data); break; }
         case 'Vetos': { const r = await adminApi.bannedIdentities(); setBanned(r.data.data ?? r.data.banned ?? []); break; }
+        case 'Admins': { const r = await api.get('/admin/admins'); setAdmins(r.data.data || []); break; }
       }
     } catch { toast.error('Error al cargar'); }
     finally { setLoading(false); }
@@ -405,6 +446,66 @@ export default function Admin() {
       )}
 
       {/* ── VETOS ── */}
+      {/* Superadmin: Gestionar admins */}
+      {!loading && tab === 'Admins' && isSuperAdmin && (
+        <div className="space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 className="font-semibold text-white mb-3">Crear admin</h3>
+            <div className="space-y-3">
+              <input
+                value={newAdmin.email} onChange={e => setNewAdmin(f => ({ ...f, email: e.target.value }))}
+                placeholder="Email del nuevo admin"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input
+                value={newAdmin.password} onChange={e => setNewAdmin(f => ({ ...f, password: e.target.value }))}
+                type="password"
+                placeholder="Contraseña"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div className="flex gap-3">
+                {[
+                  { val: 'admin', label: 'Admin completo' },
+                  { val: 'verifier', label: 'Verificador' },
+                ].map(o => (
+                  <button key={o.val} type="button"
+                    onClick={() => setNewAdmin(f => ({ ...f, role: o.val }))}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${newAdmin.role === o.val ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <button onClick={createAdmin} disabled={createAdminLoading || !newAdmin.email || !newAdmin.password}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors">
+                {createAdminLoading ? 'Creando...' : 'Crear admin'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 className="font-semibold text-white mb-3">Admins activos</h3>
+            {admins.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">No hay admins creados</p>
+            ) : (
+              <div className="space-y-2">
+                {admins.map(a => (
+                  <div key={a.id} className="flex items-center justify-between bg-slate-800 rounded-xl px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-white">{a.name} {a.lastName}</p>
+                      <p className="text-xs text-slate-500">{a.email} · {a.role}</p>
+                    </div>
+                    {a.role !== 'superadmin' && (
+                      <button onClick={() => deleteAdmin(a.id, a.email)}
+                        className="text-red-400 hover:text-red-300 text-xs px-3 py-1.5 bg-red-500/10 rounded-lg transition-colors">
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {!loading && tab === 'Vetos' && (
         <div className="space-y-4">
           {/* Header */}

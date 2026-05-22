@@ -135,7 +135,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     navigate('/login');
     return null;
   }
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'verifier') {
     navigate('/');
     return null;
   }

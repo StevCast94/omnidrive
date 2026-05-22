@@ -45,7 +45,7 @@ model User {
   totalKm     Float @default(0)
 
   // Roles
-  role String @default("user") // user, admin
+  role String @default("user") // user, verifier, admin, superadmin
 
   // Relaciones
   vehicles      Vehicle[]
