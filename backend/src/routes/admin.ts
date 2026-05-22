@@ -69,19 +69,20 @@ adminRouter.get('/auth/verify', async (req: any, res: any) => {
   } catch { res.status(401).json({ error: 'Token inválido' }); }
 });
 
-// ── Middleware: proteger rutas admin con JWT ──
+// ── Middleware: proteger TODAS las rutas admin con JWT propio (reemplaza authenticate + requireAdmin) ──
 adminRouter.use((req: any, res: any, next: any) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.admin = decoded;
+    const allowedRoles = ['admin', 'superadmin', 'verifier'];
+    if (!allowedRoles.includes(decoded.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    req.user = { id: decoded.id, role: decoded.role, email: decoded.username || '' };
     next();
   } catch { return res.status(401).json({ error: 'Token inválido' }); }
 });
-
-// Preservar rutas existentes (ahora protegidas con JWT admin en lugar de Supabase)
-adminRouter.use(authenticate, requireAdmin);
 
 // GET /api/admin/users
 adminRouter.get('/users', async (req: AuthRequest, res: Response) => {
