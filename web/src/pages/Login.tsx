@@ -1,7 +1,7 @@
 // ===== web/src/pages/Login.tsx =====
 import { useState, useRef } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/api';
@@ -15,6 +15,7 @@ export default function Login() {
   const { setUser } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const oauthInProgress = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,16 +103,25 @@ export default function Login() {
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               required
-              autoComplete="email"
+              autoComplete="off"
             />
-            <Input
-              label="Contraseña"
-              type="password"
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              required
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Input
+                label="Contraseña"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center text-slate-400">
