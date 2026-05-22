@@ -44,7 +44,7 @@ export default function BookingDetail() {
 
   useEffect(() => { fetchBooking(); }, [id]);
 
-  // GPS tracking — tenant sends location every 30s during active booking
+  // GPS tracking - tenant sends location every 30s during active booking
   useEffect(() => {
     if (!booking || booking.status !== 'active' || booking.tenantId !== user?.id) return;
     const send = () => {
@@ -303,7 +303,7 @@ export default function BookingDetail() {
           {isOwner ? 'Contactar al inquilino' : 'Contactar al dueño'}
         </button>
 
-        {/* Cancel — both can cancel if pending/confirmed */}
+        {/* Cancel - both can cancel if pending/confirmed */}
         {(isTenant || isOwner) && ['pending', 'confirmed'].includes(booking.status) && (
           <button disabled={!!actionLoading}
             onClick={() => action('cancel', () => bookingsApi.cancel(id!))}
@@ -312,15 +312,15 @@ export default function BookingDetail() {
           </button>
         )}
 
-        {/* Review — completed, not yet reviewed */}
+        {/* Review — completed, cualquiera de los dos puede calificar al otro */}
         {booking.status === 'completed' && !booking.review && (isTenant || isOwner) && (
           <button onClick={() => setShowReview(true)}
             className="w-full py-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-            <Star size={16} /> Dejar reseña
+            <Star size={16} /> {isTenant ? 'Calificar al dueño' : 'Calificar al arrendatario'}
           </button>
         )}
 
-        {/* Dispute — owner, completed/active */}
+        {/* Dispute - owner, completed/active */}
         {isOwner && ['active', 'completed'].includes(booking.status) && !isDisputed && (
           <button onClick={() => setShowDispute(true)}
             className="w-full py-3 border border-orange-500/20 text-orange-400 hover:bg-orange-500/10 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
@@ -333,26 +333,36 @@ export default function BookingDetail() {
       {showReview && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-5">
-            <h3 className="font-bold text-white text-lg">Dejar reseña</h3>
+            <div className="text-center">
+              <h3 className="font-bold text-white text-lg">
+                {isTenant ? 'Calificar al dueño' : 'Calificar al arrendatario'}
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                {isTenant
+                  ? `¿Cómo fue tu experiencia con ${booking.vehicle?.owner?.name || 'el dueño'}?`
+                  : `¿Cómo fue tu experiencia con ${booking.tenant?.name || 'el arrendatario'}?`}
+              </p>
+            </div>
             <div className="flex gap-2 justify-center">
               {[1,2,3,4,5].map(n => (
                 <button key={n} onClick={() => setReviewForm(f => ({ ...f, rating: n }))}>
-                  <Star size={28} className={n <= reviewForm.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
+                  <Star size={32} className={n <= reviewForm.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
                 </button>
               ))}
             </div>
             <textarea value={reviewForm.comment}
               onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
-              placeholder="Escribe tu comentario (opcional)..."
+              placeholder="Cuenta cómo te fue (opcional)..."
               rows={3}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
             <div className="flex gap-3">
               <button onClick={() => setShowReview(false)} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition-colors">Cancelar</button>
               <button onClick={async () => {
                 const targetId = isTenant ? booking.vehicle?.owner?.id : booking.tenantId;
-                await reviewsApi.create({ bookingId: id, targetId, rating: reviewForm.rating, comment: reviewForm.comment });
+                await reviewsApi.create({ bookingId: id, targetId: targetId, rating: reviewForm.rating, comment: reviewForm.comment });
                 toast.success('Reseña enviada'); setShowReview(false); fetchBooking();
-              }} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition-colors">Enviar</button>
+                // Recargar booking para mostrar la reseña
+              }} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition-colors">Enviar reseña</button>
             </div>
           </div>
         </div>

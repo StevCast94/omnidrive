@@ -56,13 +56,6 @@ reviewsRouter.post('/', authenticate, async (req: AuthRequest, res: Response) =>
       });
     }
 
-    // Update driver score (simple delta: +20 for 5★, +10 for 4★, 0 for 3★, -10 for 2★, -20 for 1★)
-    const scoreDelta = (parseInt(rating) - 3) * 10;
-    await prisma.user.update({
-      where: { id: targetId },
-      data: { driverScore: { increment: scoreDelta } },
-    });
-
     // Notify reviewed user
     await prisma.notification.create({
       data: {
