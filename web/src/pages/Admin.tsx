@@ -216,7 +216,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
         case 'Reservas': { const r = await adminFetch('/bookings'); setBookings(r.data.bookings || []); break; }
         case 'Transacciones': { const r = await adminFetch('/transactions'); setTransactions(r.data.transactions || []); break; }
         case 'Disputas': { const r = await adminFetch('/disputes'); setDisputes(r.data || []); break; }
-        case 'Vetos': { const r = await adminFetch('/banned'); setBanned(r.data || r.banned || []); break; }
+        case 'Vetos': { const r = await adminFetch('/banned-identities'); setBanned(r.data || r.banned || []); break; }
         case 'Admins': { const r = await adminFetch('/admins'); setAdmins(r.data || []); break; }
       }
     } catch { toast.error('Error al cargar'); }
@@ -252,12 +252,12 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
 
   const banIdentity = async () => {
     if (!banForm.documentId || !banForm.reason) return toast.error('Completa todos los campos');
-    try { await adminFetch('/banned', { method: 'POST', body: JSON.stringify(banForm) }); toast.success('Vetado'); setShowBanForm(false); setBanForm({ documentId: '', reason: '' }); fetchTab('Vetos'); }
+    try { await adminFetch('/banned-identities', { method: 'POST', body: JSON.stringify(banForm) }); toast.success('Vetado'); setShowBanForm(false); setBanForm({ documentId: '', reason: '' }); fetchTab('Vetos'); }
     catch { toast.error('Error'); }
   };
 
   const unbanIdentity = async (id: string) => {
-    try { await adminFetch('/banned/' + id, { method: 'DELETE' }); toast.success('Desbloqueado'); fetchTab('Vetos'); }
+    try { await adminFetch('/banned-identities/' + id, { method: 'DELETE' }); toast.success('Desbloqueado'); fetchTab('Vetos'); }
     catch { toast.error('Error'); }
   };
 
