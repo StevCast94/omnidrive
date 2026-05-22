@@ -84,10 +84,32 @@ app.use('/api/upload', uploadRouter);
 
 // 🌐 Serve frontend static files (production: Railway unified deploy)
 const publicDir = path.join(__dirname, '..', 'public');
-app.use(express.static(publicDir, { maxAge: '1h' }));
+
+// Assets con hash de Vite: cache inmutable por 1 año
+app.use('/assets', express.static(path.join(publicDir, 'assets'), {
+  maxAge: '365d',
+  immutable: true,
+}));
+
+// Otros archivos estáticos (favicon, manifest, icons, etc.)
+app.use(express.static(publicDir, {
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    }
+  },
+}));
 
 // 🔄 SPA fallback — non-API GET requests → index.html (React Router handles routing)
 app.get(/^(?!\/api\/).*/, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
