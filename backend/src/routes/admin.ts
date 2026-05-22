@@ -1,11 +1,86 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { supabase } from '../lib/supabase';
+import jwt from 'jsonwebtoken';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { refundPayment } from '../services/wallet';
 import { verifyIdentity } from '../services/verification';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'omnidrive_admin_jwt_2026';
+
 export const adminRouter = Router();
+
+// ── Admin Login (no requiere token, usa username + password) ──
+adminRouter.post('/auth/login', async (req: any, res: any) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+  }
+  try {
+    // Buscar admin por username
+    const admin = await prisma.user.findUnique({ where: { username } });
+    if (!admin || !['admin', 'superadmin', 'verifier'].includes(admin.role)) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    // Verificar contraseña contra Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: admin.email,
+      password,
+    });
+    if (error || !data.session) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    // Crear token JWT propio para admin
+    const token = jwt.sign(
+      { id: admin.id, role: admin.role, username: admin.username },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    return res.json({
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        name: admin.name,
+        lastName: admin.lastName,
+        role: admin.role,
+      },
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Verificar token admin ──
+adminRouter.get('/auth/verify', async (req: any, res: any) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, username: true, name: true, lastName: true, role: true },
+    });
+    if (!user) return res.status(401).json({ error: 'Admin no encontrado' });
+    res.json({ ok: true, admin: user });
+  } catch { res.status(401).json({ error: 'Token inválido' }); }
+});
+
+// ── Middleware: proteger rutas admin con JWT ──
+adminRouter.use((req: any, res: any, next: any) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.admin = decoded;
+    next();
+  } catch { return res.status(401).json({ error: 'Token inválido' }); }
+});
+
+// Preservar rutas existentes (ahora protegidas con JWT admin en lugar de Supabase)
 adminRouter.use(authenticate, requireAdmin);
 
 // GET /api/admin/users

@@ -51,6 +51,7 @@ async function main() {
       phone: '+593999000001',
       name: 'Stevens',
       lastName: 'SuperAdmin',
+      username: 'stevens',
       documentType: 'cedula',
       documentId: '1700000000',
       role: 'superadmin',

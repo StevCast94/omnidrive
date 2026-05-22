@@ -14,6 +14,7 @@ model User {
   id           String   @id @default(uuid()) @db.Uuid
   authId       String   @unique @db.Uuid   // Supabase Auth UID
   email        String   @unique
+  username     String?  @unique              // Login de administrador (solo admins)
   phone        String   @unique
   name         String
   lastName     String
