@@ -16,6 +16,7 @@ export default function Profile() {
   useEffect(() => {
     const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
     if (qp.get('tab') === 'vehicle') setTab('Vehículos');
+    if (qp.get('tab') === 'verificacion') setTab('Verificación');
   }, []);
   const [tab, setTab] = useState<Tab>('Perfil');
   const [myVehicles, setMyVehicles] = useState<any[]>([]);
@@ -459,9 +460,26 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── VERIFICACIÓN ── */}
+        {/* ── VERIFICACIÓN ── */}
       {tab === 'Verificación' && (
         <div className="space-y-4">
+
+          {/* Rechazada */}
+          {user?.verificationNotes && !user?.identityVerified && (
+            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 flex items-start gap-4">
+              <Shield size={22} className="mt-0.5 text-red-400 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-red-400">❌ Verificación rechazada</p>
+                <p className="text-sm text-slate-400 mt-1"><strong>Motivo:</strong> {user.verificationNotes}</p>
+                <p className="text-xs text-slate-500 mt-2">Corrige los datos y vuelve a subir tus documentos siguiendo las recomendaciones.</p>
+                <button onClick={() => setShowVerification(true)}
+                  className="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors">
+                  Reintentar verificación
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className={`rounded-2xl p-5 border flex items-start gap-4 ${
             user?.identityVerified
               ? 'bg-green-500/5 border-green-500/20'

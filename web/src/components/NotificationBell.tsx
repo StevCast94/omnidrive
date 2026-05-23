@@ -31,7 +31,8 @@ export default function NotificationBell() {
 
   const handleClick = (n: any) => {
     markRead(n.id);
-    if (n.data?.bookingId) navigate(`/bookings/${n.data.bookingId}`);
+    if (n.data?.bookingId) navigate("/bookings/" + n.data.bookingId);
+    else if (n.type === "identity_rejected") navigate("/profile?tab=verificacion");
     setOpen(false);
   };
 

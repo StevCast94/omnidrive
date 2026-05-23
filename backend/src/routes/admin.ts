@@ -108,7 +108,7 @@ adminRouter.get('/users', async (req: AuthRequest, res: Response) => {
           documentType: true, documentId: true, identityVerified: true,
           selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
           walletBalance: true, subscriptionTier: true, driverScore: true,
-          totalTrips: true, role: true, createdAt: true,
+          totalTrips: true, role: true, createdAt: true, birthDate: true, gender: true,
         },
       }),
       prisma.user.count({ where }),
