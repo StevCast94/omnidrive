@@ -26,11 +26,12 @@ export default function VehicleDetail() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
 
-  // Check-in / Check-out como hoteles
+  // Check-in / Check-out — desde el vehículo
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const CHECKIN_HOUR = '14:00';
-  const CHECKOUT_HOUR = '12:00';
+  const checkInHour = vehicle?.checkInTime || '14:00';
+  const checkOutHour = vehicle?.checkOutTime || '12:00';
+  const isFlexible = vehicle?.flexibleCheckin !== false; // true por defecto
   const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -40,8 +41,8 @@ export default function VehicleDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const getStartAtISO = () => startDate ? `${startDate}T${CHECKIN_HOUR}:00.000Z` : '';
-  const getEndAtISO = () => endDate ? `${endDate}T${CHECKOUT_HOUR}:00.000Z` : '';
+  const getStartAtISO = () => startDate ? `${startDate}T${checkInHour}:00.000Z` : '';
+  const getEndAtISO = () => endDate ? `${endDate}T${checkOutHour}:00.000Z` : '';
 
   const handleStartDateChange = (val: string) => {
     setStartDate(val);
@@ -285,7 +286,11 @@ export default function VehicleDetail() {
                       onChange={e => handleStartDateChange(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
-                      Disponible desde las <span className="text-indigo-400 font-medium">14:00</span>
+                      {isFlexible ? (
+                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
+                      ) : (
+                        <>Disponible desde las <span className="text-indigo-400 font-medium">{checkInHour}</span></>
+                      )}
                     </p>
                   </div>
 
@@ -301,7 +306,11 @@ export default function VehicleDetail() {
                       onChange={e => handleEndDateChange(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
-                      Debes devolverlo antes de las <span className="text-indigo-400 font-medium">12:00</span>
+                      {isFlexible ? (
+                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
+                      ) : (
+                        <>Debes devolverlo antes de las <span className="text-indigo-400 font-medium">{checkOutHour}</span></>
+                      )}
                     </p>
                   </div>
 
@@ -310,11 +319,11 @@ export default function VehicleDetail() {
                     <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-700/50">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>Inicio</span>
-                        <span className="text-white font-medium">{formatDateLong(startDate)} · 14:00</span>
+                        <span className="text-white font-medium">{formatDateLong(startDate)}{!isFlexible ? ` · ${checkInHour}` : ''}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-slate-400 mt-1.5">
                         <span>Fin</span>
-                        <span className="text-white font-medium">{formatDateLong(endDate)} · 12:00</span>
+                        <span className="text-white font-medium">{formatDateLong(endDate)}{!isFlexible ? ` · ${checkOutHour}` : ''}</span>
                       </div>
                       <div className="border-t border-slate-700/50 mt-2 pt-2 flex items-center justify-between text-xs">
                         <span className="text-slate-500">Duración</span>

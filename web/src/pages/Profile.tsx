@@ -480,7 +480,15 @@ export default function Profile() {
                 {/* Horario flexible */}
                 <div className="bg-slate-800 rounded-xl p-4 space-y-3">
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={vehicleForm.flexibleCheckin} onChange={e => vSet('flexibleCheckin', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                    <input type="checkbox" checked={vehicleForm.flexibleCheckin} onChange={e => {
+                      const val = e.target.checked;
+                      vSet('flexibleCheckin', val);
+                      if (!val) {
+                        // Pre-llenar con defaults si están vacíos
+                        if (!vehicleForm.checkInTime) vSet('checkInTime', '14:00');
+                        if (!vehicleForm.checkOutTime) vSet('checkOutTime', '12:00');
+                      }
+                    }} className="accent-indigo-500 w-4 h-4" />
                     <div>
                       <span className="text-sm text-slate-300">Horario flexible / A libre acuerdo</span>
                       <p className="text-xs text-slate-500">Check-in y check-out se coordinan entre las partes en los pasos previos a la entrega</p>
