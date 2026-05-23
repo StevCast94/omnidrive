@@ -107,6 +107,7 @@ adminRouter.get('/users', async (req: AuthRequest, res: Response) => {
           id: true, email: true, phone: true, name: true, lastName: true,
           documentType: true, documentId: true, identityVerified: true,
           selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
+          verificationNotes: true,
           walletBalance: true, subscriptionTier: true, driverScore: true,
           totalTrips: true, role: true, createdAt: true, birthDate: true, gender: true,
         },
