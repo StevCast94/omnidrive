@@ -152,7 +152,7 @@ export default function Dashboard() {
                 <Empty text="Aún no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {myVehicles.map(v => <VehicleCard key={v.id} vehicle={v} />)}
+                  {myVehicles.map(v => <VehicleCard key={v.id} vehicle={v} onClick={() => navigate('/profile?tab=vehicle')} />)}
                 </div>
               )}
             </div>
