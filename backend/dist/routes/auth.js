@@ -117,7 +117,9 @@ exports.authRouter.get('/me', auth_1.authenticate, async (req, res) => {
             select: {
                 id: true, authId: true, email: true, phone: true,
                 name: true, lastName: true, documentType: true, documentId: true,
-                birthDate: true, gender: true, avatarUrl: true, identityVerified: true, selfieUrl: true,
+                birthDate: true, gender: true, avatarUrl: true, identityVerified: true,
+                selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
+                verificationNotes: true, verifiedAt: true,
                 walletBalance: true, subscriptionTier: true, subscriptionEnds: true,
                 driverScore: true, totalTrips: true, totalKm: true, role: true,
                 createdAt: true, documents: true,
