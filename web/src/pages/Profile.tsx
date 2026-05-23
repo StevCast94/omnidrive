@@ -72,7 +72,7 @@ export default function Profile() {
   const createVehicle = async () => {
     setSaving(true);
     try {
-      const formData = { ...vehicleForm, features: JSON.stringify(vehicleForm.features) };
+      const formData = { ...vehicleForm };
       if (editingVehicle) {
         await vehiclesApi.update(editingVehicle.id, formData);
         // Subir fotos adicionales
