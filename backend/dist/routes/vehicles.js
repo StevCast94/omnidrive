@@ -157,9 +157,29 @@ exports.vehiclesRouter.put('/:id', auth_1.authenticate, async (req, res) => {
             return res.status(404).json({ data: null, error: 'Vehicle not found' });
         if (vehicle.ownerId !== req.user.id && req.user.role !== 'admin')
             return res.status(403).json({ data: null, error: 'Not authorized' });
+        const data = { ...req.body };
+        // Parse numeric fields
+        if (data.year)
+            data.year = parseInt(data.year);
+        if (data.seats)
+            data.seats = parseInt(data.seats);
+        if (data.doors)
+            data.doors = parseInt(data.doors);
+        if (data.pricePerHour)
+            data.pricePerHour = parseFloat(data.pricePerHour);
+        if (data.pricePerDay)
+            data.pricePerDay = parseFloat(data.pricePerDay);
+        if (data.pricePerKm)
+            data.pricePerKm = parseFloat(data.pricePerKm);
+        if (data.deposit)
+            data.deposit = parseFloat(data.deposit);
+        if (data.driverPrice)
+            data.driverPrice = parseFloat(data.driverPrice);
+        if (data.features && typeof data.features === 'string')
+            data.features = JSON.parse(data.features);
         const updated = await prisma_1.prisma.vehicle.update({
             where: { id: req.params.id },
-            data: req.body,
+            data,
         });
         return res.json({ data: updated, error: null });
     }
