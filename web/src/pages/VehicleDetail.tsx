@@ -333,13 +333,9 @@ export default function VehicleDetail() {
                       <span>${Number(vehicle.pricePerDay).toFixed(0)} × {nights} día{nights !== 1 ? 's' : ''}</span>
                       <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Comisión plataforma (15%)</span>
-                      <span>${(nights * Number(vehicle.pricePerDay) * 0.15).toFixed(2)}</span>
-                    </div>
                     <div className="flex justify-between font-semibold text-white border-t border-slate-700 pt-2">
-                      <span>Total</span>
-                      <span>${(nights * Number(vehicle.pricePerDay) * 1.15).toFixed(2)}</span>
+                      <span>Total (pagas al dueño)</span>
+                      <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
                     </div>
                     {Number(vehicle.deposit) > 0 && (
                       <p className="text-xs text-slate-500">
