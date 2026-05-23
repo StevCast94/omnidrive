@@ -100,8 +100,8 @@ exports.authRouter.post('/verify-identity', auth_1.authenticate, upload.fields([
         ]);
         const user = await prisma_1.prisma.user.update({
             where: { id: uid },
-            data: { selfieUrl, documentFrontUrl, documentBackUrl },
-            select: { id: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true, identityVerified: true },
+            data: { selfieUrl, documentFrontUrl, documentBackUrl, verificationNotes: null },
+            select: { id: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true, identityVerified: true, verificationNotes: true },
         });
         return res.json({ data: { user, message: 'Documents uploaded. Pending manual review.' }, error: null });
     }

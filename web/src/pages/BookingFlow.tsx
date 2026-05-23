@@ -365,12 +365,12 @@ export default function BookingFlow() {
         onClose={() => setShowVerification(false)}
         onVerified={(data) => {
           updateUser({
-            identityVerified: data.identityVerified,
-            selfieUrl: data.selfieUrl,
-            documentFrontUrl: data.documentFrontUrl,
-            documentBackUrl: data.documentBackUrl,
-            verificationNotes: data.verificationNotes,
-            verifiedAt: data.verifiedAt,
+            identityVerified: data.identityVerified ?? data.user?.identityVerified ?? false,
+            selfieUrl: data.selfieUrl ?? data.user?.selfieUrl,
+            documentFrontUrl: data.documentFrontUrl ?? data.user?.documentFrontUrl,
+            documentBackUrl: data.documentBackUrl ?? data.user?.documentBackUrl,
+            verificationNotes: data.verificationNotes ?? data.user?.verificationNotes ?? null as any,
+            verifiedAt: data.verifiedAt ?? data.user?.verifiedAt,
           });
           setShowVerification(false);
         }}

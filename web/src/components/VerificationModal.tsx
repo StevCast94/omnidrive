@@ -174,10 +174,13 @@ export default function VerificationModal({ isOpen, onClose, onVerified }: Props
         return;
       }
 
-      // Actualizar store con URLs
+      // Actualizar store con URLs — limpiar estado de rechazo previo
       updateUser({
         selfieUrl: res.data.user.selfieUrl,
+        documentFrontUrl: res.data.user.documentFrontUrl,
+        documentBackUrl: res.data.user.documentBackUrl,
         identityVerified: false, // Pendiente de revisión manual
+        verificationNotes: null as any, // limpiar motivo de rechazo previo
       });
 
       setStep('success');

@@ -582,6 +582,7 @@ export default function Profile() {
                       selfieUrl: data.user.selfieUrl,
                       documentFrontUrl: data.user.documentFrontUrl,
                       documentBackUrl: data.user.documentBackUrl,
+                      verificationNotes: data.user.verificationNotes ?? null as any,
                     });
                   }
                 }}
