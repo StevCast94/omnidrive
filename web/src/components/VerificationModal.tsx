@@ -441,16 +441,8 @@ export default function VerificationModal({ isOpen, onClose, onVerified }: Props
                     <button onClick={() => startCamera('selfie')} className="w-full py-8 space-y-3">
                       <Camera size={36} className="mx-auto text-slate-500" />
                       <p className="text-sm font-medium text-slate-300">Abrir cámara frontal</p>
-                      <p className="text-xs text-slate-500">O selecciona una foto de tu galería</p>
+                      <p className="text-xs text-slate-500">Debes usar la cámara en vivo para verificar tu identidad</p>
                     </button>
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="user"
-                      onChange={handleSelfieUpload}
-                      className="hidden"
-                    />
                   </div>
                 )}
 

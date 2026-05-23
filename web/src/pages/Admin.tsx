@@ -7,8 +7,10 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Car, CreditCard, AlertTriangle, BarChart2,
-  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2, UserPlus, LogOut, Lock
+  BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2, UserPlus, LogOut, Lock,
+  Eye, XCircle
 } from 'lucide-react';
+import { Eye, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ── Auth helpers (JWT propio, localStorage) ──
@@ -236,6 +238,46 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
     catch { toast.error('Error'); }
   };
 
+  // ── Verificacion de usuarios ──
+  const [detailUser, setDetailUser] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  const openUserDetail = (user: any) => {
+    setDetailUser(user);
+    setRejectReason('');
+    setVerifyLoading(false);
+  };
+
+  const rejectUser = async (id: string) => {
+    if (!rejectReason.trim()) { toast.error('Escribe el motivo del rechazo'); return; }
+    setVerifyLoading(true);
+    try {
+      await adminFetch('/users/' + id + '/reject', { method: 'PUT', body: JSON.stringify({ reason: rejectReason }) });
+      toast.success('Verificacion rechazada');
+      setDetailUser(null);
+      fetchTab('Usuarios');
+    } catch { toast.error('Error al rechazar'); }
+    finally { setVerifyLoading(false); }
+  };
+
+  const verifyUserDetail = async (id: string) => {
+    setVerifyLoading(true);
+    try {
+      const res = await adminFetch('/users/' + id + '/verify', { method: 'PUT' });
+      if (res.data?.autoValidation) {
+        const auto = res.data.autoValidation;
+        if (auto.valid) toast.success('Verificado. Cedula validada con Registro Civil ✅');
+        else toast.error(`Verificado manualmente. ⚠️ Auto-validacion: ${auto.reason || 'Cedula no valida'}`);
+      } else {
+        toast.success('Usuario verificado');
+      }
+      setDetailUser(null);
+      fetchTab('Usuarios');
+    } catch { toast.error('Error al verificar'); }
+    finally { setVerifyLoading(false); }
+  };
+
   const resolveDispute = async (id: string) => {
     const r = disputeResolution[id];
     if (!r?.text) return toast.error('Escribe resolución');
@@ -355,7 +397,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
             ) : (
               <div className="space-y-2">
                 {users.map((u: any) => (
-                  <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+                  <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-slate-700 transition-colors" onClick={() => openUserDetail(u)}>
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                       {u.name?.[0]}{u.lastName?.[0]}
                     </div>
@@ -367,9 +409,12 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                       {u.identityVerified ? (
                         <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-lg">Verificado</span>
                       ) : (
-                        <button onClick={() => verifyUser(u.id)} className="text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded-lg">Verificar</button>
+                        <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">Pendiente</span>
                       )}
-                      <button onClick={() => deleteUser(u.id, u.name + ' ' + u.lastName)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14} /></button>
+                      {u.verificationNotes && (
+                        <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-lg" title={u.verificationNotes}>Obs.</span>
+                      )}
+                      <ChevronRight size={16} className="text-slate-600" />
                     </div>
                   </div>
                 ))}
@@ -547,6 +592,155 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
           </div>
         )}
       </div>
+
+      {/* ═══ Modal: Detalle de Usuario + Verificacion ═══ */}
+      {detailUser && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setDetailUser(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-slate-900 border-b border-slate-800 rounded-t-2xl p-5 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">
+                {detailUser.name} {detailUser.lastName}
+                {detailUser.identityVerified && <BadgeCheck size={18} className="inline ml-2 text-green-400" />}
+              </h3>
+              <button onClick={() => setDetailUser(null)} className="text-slate-400 hover:text-white p-1"><XCircle size={20} /></button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Datos del perfil */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-slate-500">Email</span><p className="text-white">{detailUser.email}</p></div>
+                <div><span className="text-slate-500">Telefono</span><p className="text-white">{detailUser.phone || '-'}</p></div>
+                <div><span className="text-slate-500">Documento</span><p className="text-white">{detailUser.documentType}: {detailUser.documentId || '-'}</p></div>
+                <div><span className="text-slate-500">Rol</span><p className="text-white">{detailUser.role}</p></div>
+                <div><span className="text-slate-500">Wallet</span><p className="text-white">${Number(detailUser.walletBalance || 0).toFixed(2)}</p></div>
+                <div><span className="text-slate-500">Viajes</span><p className="text-white">{detailUser.totalTrips || 0}</p></div>
+                <div className="col-span-2"><span className="text-slate-500">Verificado</span>
+                  <p className={detailUser.identityVerified ? 'text-green-400' : 'text-amber-400'}>
+                    {detailUser.identityVerified ? `Si - ${new Date(detailUser.verifiedAt).toLocaleDateString()}` : 'Pendiente'}
+                  </p>
+                </div>
+                {detailUser.verificationNotes && (
+                  <div className="col-span-2 bg-slate-800/50 rounded-xl p-3">
+                    <span className="text-slate-500 text-xs">Notas de verificacion</span>
+                    <p className="text-slate-300 text-sm mt-1">{detailUser.verificationNotes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Imagenes de documentos */}
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-3">Documentos de identidad</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Selfie</p>
+                    <div className="aspect-[3/4] bg-slate-800 rounded-xl overflow-hidden border border-slate-700">
+                      {detailUser.selfieUrl ? (
+                        <a href={detailUser.selfieUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={detailUser.selfieUrl} alt="Selfie" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">Sin selfie</div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Doc. Frente</p>
+                    <div className="aspect-[3/4] bg-slate-800 rounded-xl overflow-hidden border border-slate-700">
+                      {detailUser.documentFrontUrl ? (
+                        <a href={detailUser.documentFrontUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={detailUser.documentFrontUrl} alt="Doc frente" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">Sin doc</div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Doc. Reverso</p>
+                    <div className="aspect-[3/4] bg-slate-800 rounded-xl overflow-hidden border border-slate-700">
+                      {detailUser.documentBackUrl ? (
+                        <a href={detailUser.documentBackUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={detailUser.documentBackUrl} alt="Doc reverso" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">Sin doc</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">Click en la imagen para ver completa</p>
+              </div>
+
+              {/* Acciones de verificacion */}
+              <div className="border-t border-slate-800 pt-4 space-y-3">
+                {!detailUser.identityVerified && (
+                  <>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Motivo de rechazo (se notifica al usuario)</label>
+                      <textarea
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        placeholder="Ej: La foto de la cedula esta borrosa. La selfie no coincide con el documento."
+                        rows={2}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => rejectUser(detailUser.id)}
+                        disabled={verifyLoading || !rejectReason.trim()}
+                        className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                      >
+                        <XCircle size={16} />
+                        {verifyLoading ? '...' : 'Rechazar verificacion'}
+                      </button>
+                      <button
+                        onClick={() => verifyUserDetail(detailUser.id)}
+                        disabled={verifyLoading}
+                        className="flex-1 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle size={16} />
+                        {verifyLoading ? '...' : 'Aprobar verificacion'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {detailUser.identityVerified && (
+                  <>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Motivo para revocar verificacion</label>
+                      <textarea
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        placeholder="Ej: Documentos fraudulentos detectados."
+                        rows={2}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                      />
+                    </div>
+                    <button
+                      onClick={() => rejectUser(detailUser.id)}
+                      disabled={verifyLoading || !rejectReason.trim()}
+                      className="w-full py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                    >
+                      <XCircle size={16} />
+                      Revocar verificacion
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => { deleteUser(detailUser.id, detailUser.name + ' ' + detailUser.lastName); setDetailUser(null); }}
+                  className="w-full py-2 border border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={14} />
+                  Eliminar usuario
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

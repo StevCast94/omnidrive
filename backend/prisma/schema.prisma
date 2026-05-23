@@ -27,11 +27,13 @@ model User {
   avatarUrl String?
 
   // Verificación
-  identityVerified Boolean   @default(false)
-  selfieUrl        String?
-  documentFrontUrl String?
-  documentBackUrl  String?
-  verifiedAt       DateTime?
+  identityVerified  Boolean   @default(false)
+  selfieUrl         String?
+  documentFrontUrl  String?
+  documentBackUrl   String?
+  verifiedAt        DateTime?
+  verificationNotes String?   // Rejection reason or admin notes
+  verifiedBy        String?   @db.Uuid  // Admin who verified/rejected
 
   // Wallet
   walletBalance Decimal @default(0) @db.Decimal(10, 2)

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import jwt from 'jsonwebtoken';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { refundPayment } from '../services/wallet';
-import { verifyIdentity } from '../services/verification';
+import { verifyIdentity, IdentityResult } from '../services/verification';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'omnidrive_admin_jwt_2026';
 
@@ -119,25 +119,83 @@ adminRouter.get('/users', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// PUT /api/admin/users/:id/verify
+// PUT /api/admin/users/:id/verify — Verificar identidad de usuario
 adminRouter.put('/users/:id/verify', async (req: AuthRequest, res: Response) => {
   try {
-    const user = await prisma.user.update({
-      where: { id: req.params.id as string },
-      data: { identityVerified: true, verifiedAt: new Date() },
-      select: { id: true, name: true, email: true, identityVerified: true, verifiedAt: true },
+    const userId = req.params.id as string;
+
+    // Auto-validacion basica: verificar cedula con WebServices.ec
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, documentId: true, documentType: true, documentFrontUrl: true, documentBackUrl: true, selfieUrl: true },
+    });
+    if (!user) return res.status(404).json({ data: null, error: 'Usuario no encontrado' });
+
+    let autoValidation: IdentityResult | null = null;
+    if (user.documentType === 'cedula' && user.documentId && user.documentId.length === 10) {
+      try {
+        autoValidation = await verifyIdentity(user.documentId);
+      } catch (e: any) {
+        autoValidation = null;
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        identityVerified: true,
+        verifiedAt: new Date(),
+        verifiedBy: req.user!.id,
+        verificationNotes: autoValidation
+          ? (autoValidation.success
+              ? 'Auto-validacion OK. Datos coinciden con Registro Civil.'
+              : `Auto-validacion fallo. ${autoValidation.error || 'Cedula no valida'}. Verificar manualmente.`)
+          : 'Verificado manualmente por admin.',
+      },
     });
 
     await prisma.notification.create({
       data: {
-        userId: req.params.id as string,
+        userId,
         type: 'identity_verified',
         title: '✅ Identidad verificada',
         body: 'Tu identidad fue verificada. ¡Ya puedes publicar vehículos!',
       },
     });
 
-    return res.json({ data: user, error: null });
+    return res.json({ data: { ...updated, autoValidation }, error: null });
+  } catch (e: any) {
+    return res.status(500).json({ data: null, error: e.message });
+  }
+});
+
+// PUT /api/admin/users/:id/reject — Rechazar verificacion con motivo
+adminRouter.put('/users/:id/reject', async (req: AuthRequest, res: Response) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) {
+      return res.status(400).json({ data: null, error: 'reason (motivo de rechazo) es requerido' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.params.id as string },
+      data: {
+        identityVerified: false,
+        verificationNotes: reason,
+        verifiedBy: req.user!.id,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: req.params.id as string,
+        type: 'identity_rejected',
+        title: '❌ Verificación rechazada',
+        body: `Motivo: ${reason}. Corrige tus documentos y reenvía desde tu perfil.`,
+      },
+    });
+
+    return res.json({ data: updated, error: null });
   } catch (e: any) {
     return res.status(500).json({ data: null, error: e.message });
   }
