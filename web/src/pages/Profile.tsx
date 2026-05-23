@@ -32,10 +32,12 @@ export default function Profile() {
     brand: '', model: '', year: '', plate: '', color: '', vin: '',
     category: 'car', seats: '5', transmission: 'automatic', fuelType: 'gasoline',
     pricePerHour: '', pricePerDay: '', deposit: '', locationName: '',
-    withDriver: false, insurance: false, features: [] as string[],
+    withDriver: false, insurance: false, flexibleCheckin: false, features: [] as string[],
   });
   const [saving, setSaving] = useState(false);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [vehicleFormPhotos, setVehicleFormPhotos] = useState<File[]>([]);
+  const [editingVehicle, setEditingVehicle] = useState<any>(null);
   const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
@@ -70,14 +72,69 @@ export default function Profile() {
   const createVehicle = async () => {
     setSaving(true);
     try {
-      await vehiclesApi.create(vehicleForm);
-      toast.success('¡Vehículo publicado!');
+      const formData = { ...vehicleForm, features: JSON.stringify(vehicleForm.features) };
+      if (editingVehicle) {
+        await vehiclesApi.update(editingVehicle.id, formData);
+        // Subir fotos adicionales
+        if (vehicleFormPhotos.length > 0) {
+          const fd = new FormData();
+          vehicleFormPhotos.forEach(f => fd.append('photos', f));
+          await vehiclesApi.uploadPhotos(editingVehicle.id, fd);
+        }
+        toast.success('¡Vehículo actualizado!');
+      } else {
+        const res = await vehiclesApi.create(formData);
+        const vehicleId = res.data.data.id;
+        if (vehicleFormPhotos.length > 0) {
+          const fd = new FormData();
+          vehicleFormPhotos.forEach(f => fd.append('photos', f));
+          await vehiclesApi.uploadPhotos(vehicleId, fd);
+        }
+        toast.success('¡Vehículo publicado!');
+      }
       setShowVehicleForm(false);
+      setEditingVehicle(null);
+      setVehicleFormPhotos([]);
       const r = await vehiclesApi.list();
       setMyVehicles(r.data.data.filter((v: any) => v.ownerId === user?.id));
     } catch (e: any) {
-      toast.error(e.response?.data?.error ?? 'Error al publicar');
+      toast.error(e.response?.data?.error ?? 'Error');
     } finally { setSaving(false); }
+  };
+
+  const editVehicle = (v: any) => {
+    setVehicleForm({
+      brand: v.brand || '', model: v.model || '', year: String(v.year || ''), plate: v.plate || '',
+      color: v.color || '', vin: v.vin || '', category: v.category || 'car',
+      seats: String(v.seats || '5'), transmission: v.transmission || 'automatic',
+      fuelType: v.fuelType || 'gasoline', pricePerHour: String(v.pricePerHour || ''),
+      pricePerDay: String(v.pricePerDay || ''), deposit: String(v.deposit || ''),
+      locationName: v.locationName || '', withDriver: v.withDriver || false,
+      insurance: v.insurance || false, flexibleCheckin: v.flexibleCheckin || false,
+      features: v.features || [],
+    });
+    setVehicleFormPhotos([]);
+    setEditingVehicle(v);
+    setShowVehicleForm(true);
+  };
+
+  const toggleAvailability = async (v: any) => {
+    try {
+      await vehiclesApi.setAvailability(v.id, !v.available);
+      toast.success(v.available ? 'Vehículo no disponible' : 'Vehículo disponible');
+      const r = await vehiclesApi.list();
+      setMyVehicles(r.data.data.filter((x: any) => x.ownerId === user?.id));
+    } catch { toast.error('Error'); }
+  };
+
+  const deleteVehicle = async (v: any) => {
+    if (!confirm(`¿Eliminar ${v.brand} ${v.model} ${v.year}?`)) return;
+    try {
+      await vehiclesApi.delete(v.id);
+      toast.success('Vehículo eliminado');
+      const r = await vehiclesApi.list();
+      setMyVehicles(r.data.data.filter((x: any) => x.ownerId === user?.id));
+    } catch { toast.error('Error'); }
   };
 
   const vSet = (k: string, v: any) => setVehicleForm(f => ({ ...f, [k]: v }));
@@ -227,8 +284,8 @@ export default function Profile() {
                 </div>
               )}
               {myVehicles.map(v => (
-                <div key={v.id} className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                  <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden flex-shrink-0">
+                <div key={v.id} className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 cursor-pointer hover:border-slate-700 transition-colors" onClick={() => editVehicle(v)}>
+                  <div className="w-16 h-16 rounded-xl bg-slate-800 overflow-hidden flex-shrink-0">
                     {v.photos?.[0] ? <img src={v.photos[0]} className="w-full h-full object-cover" alt="" />
                       : <div className="w-full h-full flex items-center justify-center"><Car size={20} className="text-slate-600" /></div>}
                   </div>
@@ -236,13 +293,21 @@ export default function Profile() {
                     <p className="font-semibold text-white">{v.brand} {v.model} {v.year}</p>
                     <p className="text-xs text-slate-500">{v.plate} · {v.category}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${v.available ? 'text-green-400 border-green-500/20 bg-green-500/10' : 'text-slate-500 border-slate-700 bg-slate-800'}`}>
+                      <button onClick={e => { e.stopPropagation(); toggleAvailability(v); }}
+                        className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${v.available ? 'text-green-400 border-green-500/20 bg-green-500/10 hover:bg-green-500/20' : 'text-slate-400 border-slate-700 bg-slate-800 hover:bg-slate-700'}`}>
                         {v.available ? 'Disponible' : 'No disponible'}
-                      </span>
+                      </button>
                       <span className="text-xs text-slate-400">${Number(v.pricePerDay).toFixed(0)}/día</span>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-600 flex-shrink-0" />
+                  <div className="flex flex-col gap-1.5">
+                    <button onClick={e => { e.stopPropagation(); editVehicle(v); }} className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg hover:bg-indigo-500/20">
+                      Editar
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); deleteVehicle(v); }} className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-lg hover:bg-red-500/20">
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
               ))}
               <button onClick={() => {
@@ -256,7 +321,7 @@ export default function Profile() {
           ) : (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white">Nuevo vehículo</h3>
+                <h3 className="font-semibold text-white">{editingVehicle ? 'Editar vehículo' : 'Nuevo vehículo'}</h3>
                 <button onClick={() => setShowVehicleForm(false)} className="text-slate-500 hover:text-white text-sm">Cancelar</button>
               </div>
 
@@ -316,6 +381,34 @@ export default function Profile() {
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
 
+              {/* FOTOS */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-2">Fotos del vehículo (mín. 4: frente, atrás, laterales)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[0, 1, 2, 3].map(i => (
+                    <label key={i} className="aspect-[4/3] bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-colors">
+                      {vehicleFormPhotos[i] ? (
+                        <div className="relative w-full h-full">
+                          <img src={URL.createObjectURL(vehicleFormPhotos[i])} className="w-full h-full object-cover rounded-xl" alt="" />
+                          <button type="button" onClick={() => { const c = [...vehicleFormPhotos]; c.splice(i, 1); setVehicleFormPhotos(c); }}
+                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 text-slate-500">
+                          <Camera size={20} />
+                          <span className="text-xs">Foto {i + 1}</span>
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) { const c = [...vehicleFormPhotos]; c[i] = f; setVehicleFormPhotos(c); } }} />
+                    </label>
+                  ))}
+                </div>
+                {editingVehicle && (
+                  <p className="text-xs text-slate-500 mt-1">(Las fotos existentes se conservan, solo se agregan nuevas)</p>
+                )}
+              </div>
+
               {/* Features */}
               <div>
                 <label className="block text-xs text-slate-400 mb-2">Características</label>
@@ -335,18 +428,32 @@ export default function Profile() {
 
               {/* Toggles */}
               <div className="space-y-2">
-                {[['Ofrecer con chofer', 'withDriver'], ['Tiene seguro (SOAT/privado)', 'insurance']].map(([l, k]) => (
-                  <label key={k} className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
-                    <input type="checkbox" checked={(vehicleForm as any)[k]} onChange={e => vSet(k, e.target.checked)} className="accent-indigo-500 w-4 h-4" />
-                    <span className="text-sm text-slate-300">{l}</span>
-                  </label>
-                ))}
+                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
+                  <input type="checkbox" checked={vehicleForm.flexibleCheckin} onChange={e => vSet('flexibleCheckin', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                  <div>
+                    <span className="text-sm text-slate-300">Horario flexible / A libre acuerdo</span>
+                    <p className="text-xs text-slate-500">Check-in y check-out se coordinan entre las partes</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
+                  <input type="checkbox" checked={vehicleForm.withDriver} onChange={e => vSet('withDriver', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                  <span className="text-sm text-slate-300">Ofrecer con chofer</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
+                  <input type="checkbox" checked={vehicleForm.insurance} onChange={e => vSet('insurance', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                  <span className="text-sm text-slate-300">Tiene seguro (SOAT/privado)</span>
+                </label>
               </div>
 
-              <button onClick={createVehicle} disabled={saving || !vehicleForm.brand || !vehicleForm.plate || !vehicleForm.pricePerDay}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors">
-                {saving ? 'Publicando...' : 'Publicar vehículo'}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => { setShowVehicleForm(false); setEditingVehicle(null); setVehicleFormPhotos([]); }} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={createVehicle} disabled={saving || !vehicleForm.brand || !vehicleForm.plate || !vehicleForm.pricePerDay}
+                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors">
+                  {saving ? 'Guardando...' : editingVehicle ? 'Guardar cambios' : 'Publicar vehículo'}
+                </button>
+              </div>
             </div>
           )}
         </div>
