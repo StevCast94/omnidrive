@@ -127,6 +127,7 @@ vehiclesRouter.post('/', authenticate, requireVerified, async (req: AuthRequest,
     transmission, fuelType, pricePerHour, pricePerDay, pricePerKm,
     deposit, locationLat, locationLng, locationName, withDriver,
     driverPrice, insurance, features, restrictions,
+    flexibleCheckin, checkInTime, checkOutTime,
   } = req.body;
 
   const required = [brand, model, year, plate, color, vin, category, seats, transmission, fuelType, pricePerHour, pricePerDay];
@@ -152,6 +153,9 @@ vehiclesRouter.post('/', authenticate, requireVerified, async (req: AuthRequest,
         insurance: Boolean(insurance),
         features: features || [],
         restrictions: restrictions || undefined,
+        flexibleCheckin: flexibleCheckin !== undefined ? Boolean(flexibleCheckin) : true,
+        checkInTime: flexibleCheckin ? undefined : checkInTime || null,
+        checkOutTime: flexibleCheckin ? undefined : checkOutTime || null,
       },
     });
     return res.status(201).json({ data: vehicle, error: null });

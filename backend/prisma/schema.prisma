@@ -128,7 +128,9 @@ model Vehicle {
   // Features
   withDriver  Boolean  @default(false)
   driverPrice Decimal? @db.Decimal(10, 2)
-  flexibleCheckin Boolean @default(false)
+  flexibleCheckin Boolean @default(true)
+  checkInTime  String? // HH:mm cuando flexibleCheckin=false
+  checkOutTime String? // HH:mm cuando flexibleCheckin=false
 
   // Estado
   mileage         Int       @default(0)

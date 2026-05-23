@@ -116,7 +116,7 @@ exports.vehiclesRouter.get('/:id', async (req, res) => {
 });
 // POST /api/vehicles
 exports.vehiclesRouter.post('/', auth_1.authenticate, auth_1.requireVerified, async (req, res) => {
-    const { brand, model, year, plate, color, vin, category, seats, doors, transmission, fuelType, pricePerHour, pricePerDay, pricePerKm, deposit, locationLat, locationLng, locationName, withDriver, driverPrice, insurance, features, restrictions, } = req.body;
+    const { brand, model, year, plate, color, vin, category, seats, doors, transmission, fuelType, pricePerHour, pricePerDay, pricePerKm, deposit, locationLat, locationLng, locationName, withDriver, driverPrice, insurance, features, restrictions, flexibleCheckin, checkInTime, checkOutTime, } = req.body;
     const required = [brand, model, year, plate, color, vin, category, seats, transmission, fuelType, pricePerHour, pricePerDay];
     if (required.some(v => v === undefined || v === null))
         return res.status(400).json({ data: null, error: 'Missing required vehicle fields' });
@@ -139,6 +139,9 @@ exports.vehiclesRouter.post('/', auth_1.authenticate, auth_1.requireVerified, as
                 insurance: Boolean(insurance),
                 features: features || [],
                 restrictions: restrictions || undefined,
+                flexibleCheckin: flexibleCheckin !== undefined ? Boolean(flexibleCheckin) : true,
+                checkInTime: flexibleCheckin ? undefined : checkInTime || null,
+                checkOutTime: flexibleCheckin ? undefined : checkOutTime || null,
             },
         });
         return res.status(201).json({ data: vehicle, error: null });

@@ -33,8 +33,11 @@ export default function Profile() {
     brand: '', model: '', year: '', plate: '', color: '', vin: '',
     category: 'car', seats: '5', transmission: 'automatic', fuelType: 'gasoline',
     pricePerHour: '', pricePerDay: '', deposit: '', locationName: '',
-    withDriver: false, insurance: false, flexibleCheckin: false, features: [] as string[],
+    withDriver: false, insurance: false, flexibleCheckin: true,
+    checkInTime: '', checkOutTime: '',
+    features: [] as string[],
   });
+  const [customFeature, setCustomFeature] = useState('');
   const [saving, setSaving] = useState(false);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [vehicleFormPhotos, setVehicleFormPhotos] = useState<File[]>([]);
@@ -113,6 +116,9 @@ export default function Profile() {
       locationName: v.locationName || '', withDriver: v.withDriver || false,
       insurance: v.insurance || false, flexibleCheckin: v.flexibleCheckin || false,
       features: v.features || [],
+      flexibleCheckin: v.flexibleCheckin !== undefined ? v.flexibleCheckin : true,
+      checkInTime: v.checkInTime || '',
+      checkOutTime: v.checkOutTime || '',
     });
     setVehicleFormPhotos([]);
     setEditingVehicle(v);
@@ -424,18 +430,86 @@ export default function Profile() {
                       </button>
                     );
                   })}
+                  {/* Custom features already added */}
+                  {vehicleForm.features.filter(f => !FEATURES.includes(f)).map(f => (
+                    <button key={f} type="button"
+                      onClick={() => vSet('features', vehicleForm.features.filter(x => x !== f))}
+                      className="px-3 py-1.5 rounded-xl text-xs font-medium border bg-indigo-600 border-indigo-500 text-white flex items-center gap-1">
+                      {f}
+                      <span className="text-indigo-300">×</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Add custom feature */}
+                <div className="flex gap-2 mt-3">
+                  <input
+                    type="text"
+                    value={customFeature}
+                    onChange={e => setCustomFeature(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && customFeature.trim()) {
+                        e.preventDefault();
+                        const feat = customFeature.trim();
+                        if (!vehicleForm.features.includes(feat)) {
+                          vSet('features', [...vehicleForm.features, feat]);
+                        }
+                        setCustomFeature('');
+                      }
+                    }}
+                    placeholder="Ej: sensor de parqueo, cámara 360°..."
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const feat = customFeature.trim();
+                      if (!feat || vehicleForm.features.includes(feat)) return;
+                      vSet('features', [...vehicleForm.features, feat]);
+                      setCustomFeature('');
+                    }}
+                    disabled={!customFeature.trim()}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 rounded-xl text-xs font-medium text-white transition-colors"
+                  >
+                    + Añadir
+                  </button>
                 </div>
               </div>
 
               {/* Toggles */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
-                  <input type="checkbox" checked={vehicleForm.flexibleCheckin} onChange={e => vSet('flexibleCheckin', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
-                  <div>
-                    <span className="text-sm text-slate-300">Horario flexible / A libre acuerdo</span>
-                    <p className="text-xs text-slate-500">Check-in y check-out se coordinan entre las partes</p>
-                  </div>
-                </label>
+              <div className="space-y-3">
+                {/* Horario flexible */}
+                <div className="bg-slate-800 rounded-xl p-4 space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={vehicleForm.flexibleCheckin} onChange={e => vSet('flexibleCheckin', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                    <div>
+                      <span className="text-sm text-slate-300">Horario flexible / A libre acuerdo</span>
+                      <p className="text-xs text-slate-500">Check-in y check-out se coordinan entre las partes en los pasos previos a la entrega</p>
+                    </div>
+                  </label>
+                  {!vehicleForm.flexibleCheckin && (
+                    <div className="grid grid-cols-2 gap-3 pl-7">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Hora de check-in</label>
+                        <input
+                          type="time"
+                          value={vehicleForm.checkInTime}
+                          onChange={e => vSet('checkInTime', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Hora de check-out</label>
+                        <input
+                          type="time"
+                          value={vehicleForm.checkOutTime}
+                          onChange={e => vSet('checkOutTime', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
                   <input type="checkbox" checked={vehicleForm.withDriver} onChange={e => vSet('withDriver', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
                   <span className="text-sm text-slate-300">Ofrecer con chofer</span>
