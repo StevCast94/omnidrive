@@ -471,7 +471,7 @@ export default function Profile() {
               <div>
                 <p className="font-semibold text-red-400">❌ Verificación rechazada</p>
                 <p className="text-sm text-slate-400 mt-1"><strong>Motivo:</strong> {user.verificationNotes}</p>
-                <p className="text-xs text-slate-500 mt-2">Corrige los datos y vuelve a subir tus documentos siguiendo las recomendaciones.</p>
+                <p className="text-xs text-slate-500 mt-2">Corrige los datos según la observación y vuelve a subir tus documentos.</p>
                 <button onClick={() => setShowVerification(true)}
                   className="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors">
                   Reintentar verificación
@@ -481,27 +481,34 @@ export default function Profile() {
           )}
 
           <div className={`rounded-2xl p-5 border flex items-start gap-4 ${
-            user?.identityVerified
+            user?.verificationNotes && !user?.identityVerified
+              ? 'bg-red-500/5 border-red-500/20'
+              : user?.identityVerified
               ? 'bg-green-500/5 border-green-500/20'
               : user?.selfieUrl
               ? 'bg-blue-500/5 border-blue-500/20'
               : 'bg-yellow-500/5 border-yellow-500/20'
           }`}>
             <Shield size={22} className={`mt-0.5 ${
-              user?.identityVerified ? 'text-green-400'
+              user?.verificationNotes && !user?.identityVerified ? 'text-red-400'
+              : user?.identityVerified ? 'text-green-400'
               : user?.selfieUrl ? 'text-blue-400'
               : 'text-yellow-400'
             }`} />
             <div>
               <p className="font-semibold text-white">
-                {user?.identityVerified
+                {user?.verificationNotes && !user?.identityVerified
+                  ? '❌ Verificación rechazada'
+                  : user?.identityVerified
                   ? '✅ Identidad verificada'
                   : user?.selfieUrl
                   ? '📄 Documentos recibidos'
                   : '⏳ Verificación pendiente'}
               </p>
               <p className="text-sm text-slate-400 mt-1">
-                {user?.identityVerified
+                {user?.verificationNotes && !user?.identityVerified
+                  ? 'Tu verificación fue rechazada. Revisa el motivo arriba y vuelve a subir tus documentos.'
+                  : user?.identityVerified
                   ? 'Tu identidad fue verificada exitosamente. Ya puedes publicar vehículos y alquilar con confianza.'
                   : user?.selfieUrl
                   ? 'Tus documentos han sido recibidos. Nuestro equipo los revisará y te notificaremos cuando esté listo.'

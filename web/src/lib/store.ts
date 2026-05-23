@@ -10,9 +10,15 @@ export interface User {
   name: string;
   lastName: string;
   gender?: string;
+  birthDate?: string;
   documentType?: string;
   documentId?: string;
   identityVerified: boolean;
+  verificationNotes?: string;
+  selfieUrl?: string;
+  documentFrontUrl?: string;
+  documentBackUrl?: string;
+  verifiedAt?: string;
   walletBalance: number;
   subscriptionTier: 'free' | 'premium' | 'elite';
   driverScore: number;
