@@ -408,6 +408,8 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                     <div className="flex items-center gap-2">
                       {u.identityVerified ? (
                         <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-lg">Verificado</span>
+                      ) : u.verificationNotes ? (
+                        <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-lg" title={u.verificationNotes}>Rechazado</span>
                       ) : (
                         <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">Pendiente</span>
                       )}
@@ -617,8 +619,8 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                 <div><span className="text-slate-500">Wallet</span><p className="text-white">${Number(detailUser.walletBalance || 0).toFixed(2)}</p></div>
                 <div><span className="text-slate-500">Viajes</span><p className="text-white">{detailUser.totalTrips || 0}</p></div>
                 <div className="col-span-2"><span className="text-slate-500">Verificado</span>
-                  <p className={detailUser.identityVerified ? 'text-green-400' : 'text-amber-400'}>
-                    {detailUser.identityVerified ? `Si - ${new Date(detailUser.verifiedAt).toLocaleDateString()}` : 'Pendiente'}
+                  <p className={detailUser.identityVerified ? 'text-green-400' : detailUser.verificationNotes ? 'text-red-400' : 'text-amber-400'}>
+                    {detailUser.identityVerified ? `Si - ${new Date(detailUser.verifiedAt).toLocaleDateString()}` : detailUser.verificationNotes ? 'Rechazado' : 'Pendiente'}
                   </p>
                 </div>
                 {detailUser.verificationNotes && (
