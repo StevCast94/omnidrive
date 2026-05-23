@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from '@/lib/router-exports';
-import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp, User, Shield, AlertTriangle, Clock, ScanFace } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi } from '@/lib/api';
+import { useAuthStore } from '@/lib/store';
+import VerificationModal from '@/components/VerificationModal';
 
 export default function BookingFlow() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -12,6 +14,7 @@ export default function BookingFlow() {
   const startAt = sp.get('startAt') ?? '';
   const endAt = sp.get('endAt') ?? '';
 
+  const { user, updateUser } = useAuthStore();
   const [step, setStep] = useState(0);
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +22,14 @@ export default function BookingFlow() {
   const [booking, setBooking] = useState<any>(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const fmt = (n: number) => `$${n.toFixed(2)}`;
+
+  // ── Verification gate ──
+  const isVerified = user?.identityVerified === true;
+  const isPending = !!(!user?.identityVerified && user?.selfieUrl && !user?.verificationNotes);
+  const isRejected = !!(!user?.identityVerified && user?.verificationNotes);
+  const needsVerification = !isVerified;
 
   useEffect(() => {
     vehiclesApi.get(vehicleId!)
@@ -192,14 +202,54 @@ export default function BookingFlow() {
         )}
       </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || !disclaimerAccepted}
-        className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-      >
-        {submitting ? 'Enviando...' : 'Enviar solicitud al propietario'}
-        {!submitting && <ChevronRight size={16} />}
-      </button>
+      {/* ── Verification Gate OR Submit ── */}
+      {!isVerified ? (
+        <div className={`rounded-2xl p-5 border flex items-start gap-4 ${
+          isRejected ? 'bg-red-500/5 border-red-500/20' :
+          isPending ? 'bg-blue-500/5 border-blue-500/20' :
+          'bg-yellow-500/5 border-yellow-500/20'
+        }`}>
+          {isRejected ? <AlertTriangle size={24} className="text-red-400 flex-shrink-0 mt-0.5" />
+          : isPending ? <Clock size={24} className="text-blue-400 flex-shrink-0 mt-0.5" />
+          : <Shield size={24} className="text-yellow-400 flex-shrink-0 mt-0.5" />}
+          <div className="flex-1">
+            <p className="font-semibold text-white text-sm">
+              {isRejected ? 'Verificación rechazada'
+              : isPending ? 'Verificación en revisión'
+              : 'Verifica tu identidad para alquilar'}
+            </p>
+            <p className="text-xs text-slate-400 mt-1 mb-3">
+              {isRejected ? 'Tu verificación fue rechazada. Revisa el motivo y vuelve a intentarlo.'
+              : isPending ? 'Tus documentos están siendo revisados. Te notificaremos cuando esté listo.'
+              : 'Debes verificar tu identidad antes de poder enviar solicitudes de alquiler.'}
+            </p>
+            {isRejected && user?.verificationNotes && (
+              <p className="text-xs text-red-300 bg-red-500/10 rounded-lg p-2 mb-3">
+                <strong>Motivo:</strong> {user.verificationNotes}
+              </p>
+            )}
+            {!isPending && (
+              <button
+                type="button"
+                onClick={() => setShowVerification(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <ScanFace size={16} />
+                {isRejected ? 'Reintentar verificación' : 'Verificar identidad'}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || !disclaimerAccepted}
+          className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          {submitting ? 'Enviando...' : 'Enviar solicitud al propietario'}
+          {!submitting && <ChevronRight size={16} />}
+        </button>
+      )}
     </div>
   );
 
@@ -308,6 +358,23 @@ export default function BookingFlow() {
     <div className="max-w-lg mx-auto px-4 py-8">
       {step === 0 && <StepDetails />}
       {step === 1 && <StepConfirmed />}
+
+      {/* Verification modal */}
+      <VerificationModal
+        isOpen={showVerification}
+        onClose={() => setShowVerification(false)}
+        onVerified={(data) => {
+          updateUser({
+            identityVerified: data.identityVerified,
+            selfieUrl: data.selfieUrl,
+            documentFrontUrl: data.documentFrontUrl,
+            documentBackUrl: data.documentBackUrl,
+            verificationNotes: data.verificationNotes,
+            verifiedAt: data.verifiedAt,
+          });
+          setShowVerification(false);
+        }}
+      />
     </div>
   );
 }
