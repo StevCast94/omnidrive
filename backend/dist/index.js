@@ -35,7 +35,7 @@ app.use((0, helmet_1.default)({
         directives: {
             defaultSrc: ["'self'"],
             baseUri: ["'self'"],
-            connectSrc: ["'self'", "https://rkwbixidpaqweavghfea.supabase.co", "wss://rkwbixidpaqweavghfea.supabase.co"],
+            connectSrc: ["'self'", "https://rkwbixidpaqweavghfea.supabase.co", "wss://rkwbixidpaqweavghfea.supabase.co", "https://lh3.googleusercontent.com"],
             fontSrc: ["'self'", "https:", "data:"],
             formAction: ["'self'"],
             frameAncestors: ["'self'"],
