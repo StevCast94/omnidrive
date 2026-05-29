@@ -15,11 +15,11 @@ model User {
   authId       String   @unique @db.Uuid   // Supabase Auth UID
   email        String   @unique
   username     String?  @unique              // Login de administrador (solo admins)
-  phone        String   @unique
+  phone        String?  @unique
   name         String
   lastName     String
   documentType String   // cedula, pasaporte
-  documentId   String   @unique
+  documentId   String?  @unique
   birthDate    DateTime?
   gender       String?
 

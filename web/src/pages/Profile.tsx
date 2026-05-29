@@ -26,6 +26,7 @@ export default function Profile() {
     lastName: user?.lastName ?? '',
     phone: user?.phone ?? '',
     gender: user?.gender ?? '',
+    birthDate: user?.birthDate ? user.birthDate.split('T')[0] : '',
     documentType: user?.documentType ?? 'cedula',
     documentId: user?.documentId ?? '',
   });
@@ -114,9 +115,9 @@ export default function Profile() {
       fuelType: v.fuelType || 'gasoline', pricePerHour: String(v.pricePerHour || ''),
       pricePerDay: String(v.pricePerDay || ''), deposit: String(v.deposit || ''),
       locationName: v.locationName || '', withDriver: v.withDriver || false,
-      insurance: v.insurance || false, flexibleCheckin: v.flexibleCheckin || false,
+      insurance: v.insurance || false,
       features: v.features || [],
-      flexibleCheckin: v.flexibleCheckin !== undefined ? v.flexibleCheckin : true,
+      flexibleCheckin: v.flexibleCheckin !== undefined ? v.flexibleCheckin : false,
       checkInTime: v.checkInTime || '',
       checkOutTime: v.checkOutTime || '',
     });
@@ -255,6 +256,15 @@ export default function Profile() {
               <option value="femenino">Femenino</option>
               <option value="otro">Otro</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5">Fecha de nacimiento</label>
+            <input
+              type="date"
+              value={form.birthDate ?? ''}
+              onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

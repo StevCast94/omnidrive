@@ -158,23 +158,21 @@ authRouter.post('/oauth-profile', async (req: Request, res: Response) => {
     const nameParts = fullName.split(' ');
     const name = nameParts[0] || email.split('@')[0] || 'Usuario';
     const lastName = nameParts.slice(1).join(' ') || '';
-    const phone = authUser.phone || userMeta.phone || '0000000000';
-    const picture = userMeta.picture || userMeta.avatar_url || '';
+    const phone = authUser.phone || userMeta.phone || null;
+    const picture = userMeta.picture || userMeta.avatar_url || null;
 
     // Log para debug
-    console.log('[oauth-profile] Creating user:', { name, lastName, email, phone: phone.substring(0,10), authId: authUser.id });
+    console.log('[oauth-profile] Creating user:', { name, lastName, email, phone, authId: authUser.id });
 
-    const userId = authUser.id.replace(/-/g, '').substring(0, 20);
     const user = await prisma.user.create({
       data: {
         authId: authUser.id,
         email,
-        phone: phone.length >= 10 ? phone : ('0000000000'),
+        phone,
         name,
         lastName,
         documentType: 'cedula',
-        documentId: 'oauth-' + userId,
-        avatarUrl: picture || null, // foto de perfil de Google
+        avatarUrl: picture, // foto de perfil de Google (null si no hay)
       },
       select: {
         id: true, authId: true, email: true, phone: true,
@@ -363,17 +361,18 @@ authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const { name, lastName, phone, gender, birthDate, documentType, documentId } = req.body;
   try {
     console.log('[PUT /me] body:', JSON.stringify(req.body));
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (lastName !== undefined) data.lastName = lastName;
+    if (phone !== undefined) data.phone = phone || null;
+    if (gender !== undefined) data.gender = gender;
+    if (documentType !== undefined) data.documentType = documentType;
+    if (documentId !== undefined) data.documentId = documentId || null;
+    if (birthDate !== undefined) data.birthDate = birthDate ? new Date(birthDate) : null;
+
     const user = await prisma.user.update({
       where: { id: req.user!.id },
-      data: {
-        ...(name         && { name }),
-        ...(lastName     && { lastName }),
-        ...(phone        && { phone }),
-        ...(gender       && { gender }),
-        ...(documentType && { documentType }),
-        ...(documentId   && { documentId }),
-        ...(birthDate    && { birthDate: new Date(birthDate) }),
-      },
+      data,
       select: {
         id: true, email: true, phone: true, name: true,
         lastName: true, documentType: true, documentId: true,
@@ -383,6 +382,11 @@ authRouter.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
     });
     return res.json({ data: user, error: null });
   } catch (e: any) {
+    console.error('[PUT /me] Error:', e.message);
+    if (e.code === 'P2002') {
+      const target = e.meta?.target?.join(', ') || 'campo único';
+      return res.status(409).json({ data: null, error: `Ya existe otro usuario con ese ${target}` });
+    }
     return res.status(500).json({ data: null, error: e.message });
   }
 });
