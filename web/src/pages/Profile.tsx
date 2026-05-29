@@ -26,7 +26,7 @@ export default function Profile() {
     lastName: user?.lastName ?? '',
     phone: user?.phone ?? '',
     gender: user?.gender ?? '',
-    birthDate: user?.birthDate ? user.birthDate.split('T')[0] : '',
+    birthDate: '',
     documentType: user?.documentType ?? 'cedula',
     documentId: user?.documentId ?? '',
   });
@@ -44,6 +44,40 @@ export default function Profile() {
   const [vehicleFormPhotos, setVehicleFormPhotos] = useState<File[]>([]);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
   const [showVerification, setShowVerification] = useState(false);
+
+  // Birth date: 3 selects (año → mes → día condicionado)
+  const userBirth = user?.birthDate ? new Date(user.birthDate) : null;
+  const [birthDay, setBirthDay] = useState({
+    year: userBirth ? String(userBirth.getFullYear()) : '',
+    month: userBirth ? String(userBirth.getMonth() + 1).padStart(2, '0') : '',
+    day: userBirth ? String(userBirth.getDate()).padStart(2, '0') : '',
+  });
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const selectedYear = parseInt(birthDay.year) || 0;
+  const selectedMonth = parseInt(birthDay.month) || 0;
+  const daysInMonth = selectedYear && selectedMonth
+    ? new Date(selectedYear, selectedMonth, 0).getDate()
+    : 31;
+  const currentDay = parseInt(birthDay.day) || 0;
+  const validDay = currentDay > daysInMonth ? '' : birthDay.day;
+  const setBirthDate = (y: string | undefined, m: string | undefined, d: string | undefined) => {
+    const ny = y !== undefined ? y : birthDay.year;
+    const nm = m !== undefined ? m : birthDay.month;
+    const nd = d !== undefined ? d : birthDay.day;
+    setBirthDay({ year: ny, month: nm, day: nd });
+    const yi = parseInt(ny) || 0;
+    const mi = parseInt(nm) || 0;
+    const maxD = yi && mi ? new Date(yi, mi, 0).getDate() : 31;
+    const di = parseInt(nd) || 0;
+    const finalDay = di > maxD ? '' : nd;
+    if (ny && nm && finalDay) {
+      const date = new Date(yi, mi - 1, parseInt(finalDay));
+      if (!isNaN(date.getTime())) {
+        setForm(f => ({ ...f, birthDate: date.toISOString().split('T')[0] }));
+      }
+    }
+  };
 
   useEffect(() => {
     const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
@@ -259,12 +293,39 @@ export default function Profile() {
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Fecha de nacimiento</label>
-            <input
-              type="date"
-              value={form.birthDate ?? ''}
-              onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={birthDay.year}
+                onChange={e => setBirthDate(e.target.value, undefined, undefined)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+              >
+                <option value="">Año</option>
+                {years.map(y => (<option key={y} value={y}>{y}</option>))}
+              </select>
+              <select
+                value={birthDay.month}
+                onChange={e => setBirthDate(undefined, e.target.value, undefined)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+              >
+                <option value="">Mes</option>
+                {[
+                  { v: '01', l: 'Ene' }, { v: '02', l: 'Feb' }, { v: '03', l: 'Mar' },
+                  { v: '04', l: 'Abr' }, { v: '05', l: 'May' }, { v: '06', l: 'Jun' },
+                  { v: '07', l: 'Jul' }, { v: '08', l: 'Ago' }, { v: '09', l: 'Sep' },
+                  { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dic' },
+                ].map(m => (<option key={m.v} value={m.v}>{m.l}</option>))}
+              </select>
+              <select
+                value={validDay}
+                onChange={e => setBirthDate(undefined, undefined, e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+              >
+                <option value="">Día</option>
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

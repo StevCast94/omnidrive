@@ -15,6 +15,7 @@ const countryCodes: CountryCode[] = [
   { code: 'AR', prefix: '+54',  name: 'Argentina', flag: '🇦🇷' },
   { code: 'CL', prefix: '+56',  name: 'Chile', flag: '🇨🇱' },
   { code: 'US', prefix: '+1',   name: 'Estados Unidos', flag: '🇺🇸' },
+  { code: 'DO', prefix: '+1',   name: 'República Dominicana', flag: '🇩🇴' },
   { code: 'ES', prefix: '+34',  name: 'España', flag: '🇪🇸' },
 ];
 
