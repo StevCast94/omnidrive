@@ -28,7 +28,6 @@ export default function BookingDetail() {
   const [actionLoading, setActionLoading] = useState('');
   const [showReview, setShowReview] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
-  const [pin, setPin] = useState('');
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [disputeText, setDisputeText] = useState('');
   const [trackingPoints, setTrackingPoints] = useState<any[]>([]);
@@ -177,7 +176,9 @@ export default function BookingDetail() {
           ['ID', booking.id.slice(0, 8).toUpperCase()],
           ['Inicio', new Date(booking.startAt).toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' })],
           ['Fin', new Date(booking.endAt).toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' })],
-          ['Seguro', booking.hasInsurance ? 'Seguro de plataforma' : 'Sin seguro (cláusula firmada)'],
+          ['Seguro', booking.vehicle?.insurance
+            ? '✅ Incluye seguro (SOAT/privado)'
+            : '⚠️ Sin seguro verificado'],
           ['Chofer', booking.withDriver ? 'Sí' : 'No'],
           ['Depósito', `$${Number(booking.deposit).toFixed(2)}`],
           ['Estado pago', booking.paymentStatus],
@@ -257,17 +258,11 @@ export default function BookingDetail() {
               className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
               <Camera size={16} /> Tomar fotos de entrega
             </button>
-            {/* PIN start */}
-            <div className="flex gap-2">
-              <input value={pin} onChange={e => setPin(e.target.value)} maxLength={4}
-                placeholder="PIN del arrendatario"
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center tracking-widest font-mono" />
-              <button disabled={!!actionLoading || pin.length !== 4}
-                onClick={() => action('start', () => bookingsApi.start(id!, pin))}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
-                {actionLoading === 'start' ? '...' : <><Play size={14} /> Iniciar</>}
-              </button>
-            </div>
+            <button disabled={!!actionLoading}
+              onClick={() => action('start', () => bookingsApi.start(id!))}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+              {actionLoading === 'start' ? '...' : <><Play size={14} /> Iniciar viaje</>}
+            </button>
           </div>
         )}
 
@@ -287,12 +282,9 @@ export default function BookingDetail() {
 
         {/* TENANT actions */}
         {isTenant && booking.status === 'confirmed' && (
-          <div className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-4 text-center space-y-2">
-            <p className="text-sm text-slate-400">PIN de inicio de viaje</p>
-            <p className="text-3xl font-bold font-mono text-indigo-400 tracking-widest">
-              {booking.insuranceDetails?.pin ?? '----'}
-            </p>
-            <p className="text-xs text-slate-500">Muéstraselo al propietario para iniciar el viaje</p>
+          <div className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-4 text-center">
+            <p className="text-sm text-slate-400">El dueño debe iniciar el viaje</p>
+            <p className="text-xs text-slate-500 mt-1">Una vez que el propietario tome las fotos de entrega, iniciará tu viaje</p>
           </div>
         )}
 

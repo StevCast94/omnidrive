@@ -215,7 +215,6 @@ exports.bookingsRouter.put('/:id/cancel', auth_1.authenticate, async (req, res) 
 });
 // PUT /api/bookings/:id/start
 exports.bookingsRouter.put('/:id/start', auth_1.authenticate, async (req, res) => {
-    const { pin } = req.body;
     try {
         const booking = await prisma_1.prisma.booking.findUnique({
             where: { id: req.params.id },
@@ -223,12 +222,10 @@ exports.bookingsRouter.put('/:id/start', auth_1.authenticate, async (req, res) =
         });
         if (!booking)
             return res.status(404).json({ data: null, error: 'Booking not found' });
+        if (booking.vehicle.ownerId !== req.user.id)
+            return res.status(403).json({ data: null, error: 'Solo el dueño puede iniciar el viaje' });
         if (booking.status !== 'confirmed')
             return res.status(400).json({ data: null, error: 'Booking must be confirmed to start' });
-        // Validate PIN (stored in insuranceDetails.pin for simplicity)
-        const stored = booking.insuranceDetails?.pin;
-        if (stored && pin !== stored)
-            return res.status(400).json({ data: null, error: 'Invalid PIN' });
         const updated = await prisma_1.prisma.booking.update({
             where: { id: req.params.id },
             data: { status: 'active', trackingEnabled: true },

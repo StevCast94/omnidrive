@@ -593,9 +593,10 @@ export default function Profile() {
                   <input type="checkbox" checked={vehicleForm.withDriver} onChange={e => vSet('withDriver', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
                   <span className="text-sm text-slate-300">Ofrecer con chofer</span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl">
+                <label className="flex items-center gap-3 cursor-pointer py-2.5 px-4 bg-slate-800 rounded-xl border border-yellow-500/20">
                   <input type="checkbox" checked={vehicleForm.insurance} onChange={e => vSet('insurance', e.target.checked)} className="accent-indigo-500 w-4 h-4" />
-                  <span className="text-sm text-slate-300">Tiene seguro (SOAT/privado)</span>
+                  <span className="text-sm text-slate-300">Tiene seguro (SOAT/privado) <span className="text-yellow-400 font-medium">— Obligatorio</span></span>
+                  <span className="text-xs text-yellow-500/70 ml-auto">Requerido</span>
                 </label>
               </div>
 
