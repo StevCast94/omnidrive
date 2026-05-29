@@ -388,9 +388,19 @@ export default function BookingDetail() {
           id: booking.vehicle.id,
           brand: booking.vehicle.brand,
           model: booking.vehicle.model,
-          ownerId: booking.vehicle.ownerId,
-          ownerPhone: booking.vehicle.owner?.phone,
-          ownerName: booking.vehicle.owner ? `${booking.vehicle.owner.name} ${booking.vehicle.owner.lastName}` : undefined,
+        }}
+        targetUser={isOwner ? {
+          id: booking.tenant?.id || booking.tenantId,
+          name: booking.tenant?.name && booking.tenant?.lastName
+            ? `${booking.tenant.name} ${booking.tenant.lastName}`
+            : (booking.tenant?.name || 'el inquilino'),
+          phone: booking.tenant?.phone,
+        } : {
+          id: booking.vehicle.owner?.id || booking.vehicle.ownerId,
+          name: booking.vehicle.owner
+            ? `${booking.vehicle.owner.name} ${booking.vehicle.owner.lastName}`
+            : 'el dueño',
+          phone: booking.vehicle.owner?.phone,
         }}
       />
     </div>

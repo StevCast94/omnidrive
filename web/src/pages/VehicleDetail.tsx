@@ -399,9 +399,11 @@ export default function VehicleDetail() {
           id: vehicle.id,
           brand: vehicle.brand,
           model: vehicle.model,
-          ownerId: vehicle.ownerId,
-          ownerPhone: vehicle.owner?.phone,
-          ownerName: vehicle.owner ? `${vehicle.owner.name} ${vehicle.owner.lastName}` : undefined,
+        }}
+        targetUser={{
+          id: vehicle.ownerId,
+          name: vehicle.owner ? `${vehicle.owner.name} ${vehicle.owner.lastName}` : undefined,
+          phone: vehicle.owner?.phone,
         }}
       />
     </div>

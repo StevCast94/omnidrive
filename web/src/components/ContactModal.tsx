@@ -16,13 +16,15 @@ interface ContactModalProps {
     id: string;
     brand: string;
     model: string;
-    ownerId: string;
-    ownerPhone?: string;
-    ownerName?: string;
+  };
+  targetUser: {
+    id: string;
+    name?: string;
+    phone?: string;
   };
 }
 
-export default function ContactModal({ open, onClose, bookingId, vehicle }: ContactModalProps) {
+export default function ContactModal({ open, onClose, bookingId, vehicle, targetUser }: ContactModalProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [convId, setConvId] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
       setNewText('');
       loadProfile();
     }
-  }, [open, bookingId, vehicle.ownerId]);
+  }, [open, bookingId, targetUser.id]);
 
   useEffect(() => {
     if (tab === 'chat' && convId) {
@@ -58,8 +60,8 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
   const loadProfile = async () => {
     try {
       const [profRes, revRes] = await Promise.all([
-        usersApi.getPublic(vehicle.ownerId),
-        usersApi.reviews(vehicle.ownerId),
+        usersApi.getPublic(targetUser.id),
+        usersApi.reviews(targetUser.id),
       ]);
       setProfile(profRes.data);
       setReviews(Array.isArray(revRes.data) ? revRes.data : []);
@@ -100,8 +102,8 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
     setSending(false);
   };
 
-  const whatsappLink = vehicle.ownerPhone
-    ? `https://wa.me/${vehicle.ownerPhone.replace(/[^0-9]/g, '')}?text=Hola!%20Soy%20${user?.name}%20de%20OmniDrive,%20tengo%20una%20reserva%20contigo`
+  const whatsappLink = targetUser.phone
+    ? `https://wa.me/${targetUser.phone.replace(/[^0-9]/g, '')}?text=Hola!%20Soy%20${user?.name}%20de%20OmniDrive,%20tengo%20una%20reserva%20contigo`
     : null;
 
   if (!open) return null;
@@ -117,7 +119,7 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div>
             <h3 className="text-white font-semibold text-sm">
-              {bookingId ? `Contactar a ${vehicle.ownerName || 'el dueño'}` : `Dueño: ${vehicle.ownerName || '—'}`}
+              {bookingId ? `Contactar a ${targetUser.name || 'el usuario'}` : `${targetUser.name || 'Usuario'}`}
             </h3>
             <p className="text-slate-400 text-xs">{vehicle.brand} {vehicle.model}</p>
           </div>
@@ -144,9 +146,9 @@ export default function ContactModal({ open, onClose, bookingId, vehicle }: Cont
           </div>
         )}
 
-        {user?.id === vehicle.ownerId ? (
+        {user?.id === targetUser.id ? (
           <div className="p-8 text-center">
-            <p className="text-slate-400 text-sm">Eres el dueño de este vehículo</p>
+            <p className="text-slate-400 text-sm">Eres tú — no puedes contactarte a ti mismo</p>
           </div>
         ) : tab === 'perfil' || (!bookingId && tab === 'perfil') ? (
           /* Perfil del dueño */
