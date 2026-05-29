@@ -152,7 +152,8 @@ const routes: Route[] = [
   { path: '/vehicles', element: <Layout><VehicleList /></Layout> },
   { path: '/vehicles/:id', element: <Layout><VehicleDetail /></Layout> },
   { path: '/book/:vehicleId', element: <Layout><PrivateRoute><BookingFlow /></PrivateRoute></Layout> },
-  { path: '/messages', element: <Layout><PrivateRoute><Messages /></PrivateRoute></Layout> },
+  // Chat deshabilitado — pendiente implementación
+  // { path: '/messages', element: <Layout><PrivateRoute><Messages /></PrivateRoute></Layout> },
   { path: '/dashboard', element: <Layout><PrivateRoute><Dashboard /></PrivateRoute></Layout> },
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
   { path: '/wallet', element: <Layout><PrivateRoute><Wallet /></PrivateRoute></Layout> },

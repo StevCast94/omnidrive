@@ -52,7 +52,8 @@ export default function Navbar() {
             <NavLink to="/vehicles" current={path} label="Vehículos" />
             {user && (
               <>
-                <NavLink to="/messages" current={path} label="Mensajes" />
+                {/* Chat deshabilitado — pendiente implementación */}
+          {false && <NavLink to="/messages" current={path} label="Mensajes" />}
                 <NavLink to="/dashboard" current={path} label="Dashboard" />
                 <NavLink to="/profile" current={path} label="Perfil" />
                 {user.role === 'admin' && <NavLink to="/admin" current={path} label="Admin" />}
@@ -109,7 +110,8 @@ export default function Navbar() {
           <MobileNavLink to="/vehicles" current={path} label="Vehículos" onClick={() => setOpen(false)} />
           {user && (
             <>
-              <MobileNavLink to="/messages" current={path} label="Mensajes" onClick={() => setOpen(false)} />
+              {/* Chat deshabilitado — pendiente implementación */}
+              {false && <MobileNavLink to="/messages" current={path} label="Mensajes" onClick={() => setOpen(false)} />}
               <MobileNavLink to="/dashboard" current={path} label="Dashboard" onClick={() => setOpen(false)} />
               <MobileNavLink to="/profile" current={path} label="Perfil" onClick={() => setOpen(false)} />
               {user.role === 'admin' && <MobileNavLink to="/admin" current={path} label="Admin" onClick={() => setOpen(false)} />}
