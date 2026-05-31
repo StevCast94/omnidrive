@@ -85,6 +85,11 @@ app.use('/api/upload', uploadRouter);
 // 🌐 Serve frontend static files (production: Railway unified deploy)
 const publicDir = path.join(__dirname, '..', 'public');
 
+// 🏠 Landing page — root and /do for multi-country
+app.get(['/', '/do'], (_req, res) => {
+  res.sendFile(path.join(publicDir, 'landing-omnidrive.html'));
+});
+
 // Assets con hash de Vite: cache inmutable por 1 año
 app.use('/assets', express.static(path.join(publicDir, 'assets'), {
   maxAge: '365d',
@@ -104,8 +109,8 @@ app.use(express.static(publicDir, {
   },
 }));
 
-// 🔄 SPA fallback — non-API GET requests → index.html (React Router handles routing)
-app.get(/^(?!\/api\/).*/, (_req, res) => {
+// 🔄 SPA fallback — non-API, non-landing GET requests → index.html
+app.get(/^(?!\/api\/|\/do$).*/, (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
