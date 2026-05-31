@@ -83,7 +83,7 @@ app.use('/api/seed', seedRouter);
 app.use('/api/upload', uploadRouter);
 
 // 🌐 Serve frontend static files (production: Railway unified deploy)
-const publicDir = path.join(__dirname, '..', '..', 'public');
+const publicDir = path.join(__dirname, '..', 'public');
 
 // 🏠 Landing page — root and /do for multi-country
 app.get(['/', '/do'], (_req, res) => {
