@@ -12,7 +12,6 @@ import VehicleDetail from '@/pages/VehicleDetail';
 import BookingFlow from '@/pages/BookingFlow';
 import Dashboard from '@/pages/Dashboard';
 import BookingDetail from '@/pages/BookingDetail';
-import Wallet from '@/pages/Wallet';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 import AuthCallback from '@/pages/AuthCallback';
@@ -154,7 +153,7 @@ const routes: Route[] = [
 
   { path: '/dashboard', element: <Layout><PrivateRoute><Dashboard /></PrivateRoute></Layout> },
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
-  { path: '/wallet', element: <Layout><PrivateRoute><Wallet /></PrivateRoute></Layout> },
+
   { path: '/profile', element: <Layout><PrivateRoute><Profile /></PrivateRoute></Layout> },
   { path: '/admin', element: <Admin /> },
   { path: '*', element: <Layout><NavigateHome /></Layout> },

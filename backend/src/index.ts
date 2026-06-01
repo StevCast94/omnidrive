@@ -8,14 +8,11 @@ import { authRouter }          from './routes/auth';
 import { vehiclesRouter }      from './routes/vehicles';
 import { usersRouter }         from './routes/users';
 import { bookingsRouter }      from './routes/bookings';
-import { paymentsRouter }      from './routes/payments';
-import { subscriptionsRouter } from './routes/subscriptions';
 import { trackingRouter }      from './routes/tracking';
 import { reviewsRouter }       from './routes/reviews';
 import { adminRouter }         from './routes/admin';
 import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
-import { stripeRouter }        from './routes/stripe';
 import { seedRouter }          from './routes/seed';
 import { uploadRouter }        from './routes/upload';
 import { setProvider }         from './services/verification';
@@ -23,10 +20,6 @@ import { WebServicesEcProvider } from './services/providers/webservices-ec';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Stripe webhook MUST come before express.json()
-// Stripe sends a raw Buffer; json() would break signature check
-app.use('/api/stripe', express.raw({ type: 'application/json' }), stripeRouter);
 
 // Security headers
 app.use(helmet({
@@ -62,8 +55,6 @@ app.use('/api/auth',          authRouter);
 app.use('/api/users',         usersRouter);
 app.use('/api/vehicles',      vehiclesRouter);
 app.use('/api/bookings',      bookingsRouter);
-app.use('/api/payments',      paymentsRouter);
-app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/tracking',      trackingRouter);
 app.use('/api/reviews',       reviewsRouter);
 app.use('/api/admin',         adminRouter);

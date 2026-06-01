@@ -616,7 +616,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                 <div><span className="text-slate-500">Genero</span><p className="text-white capitalize">{detailUser.gender || '-'}</p></div>
                 <div><span className="text-slate-500">Cumpleaños</span><p className="text-white">{detailUser.birthDate ? new Date(detailUser.birthDate).toLocaleDateString() : '-'}</p></div>
                 <div><span className="text-slate-500">Rol</span><p className="text-white">{detailUser.role}</p></div>
-                <div><span className="text-slate-500">Wallet</span><p className="text-white">${Number(detailUser.walletBalance || 0).toFixed(2)}</p></div>
+
                 <div><span className="text-slate-500">Viajes</span><p className="text-white">{detailUser.totalTrips || 0}</p></div>
                 <div className="col-span-2"><span className="text-slate-500">Verificado</span>
                   <p className={detailUser.identityVerified ? 'text-green-400' : detailUser.verificationNotes ? 'text-red-400' : 'text-amber-400'}>

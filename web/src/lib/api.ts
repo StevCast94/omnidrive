@@ -82,14 +82,8 @@ export const bookings = {
   dispute: (id: string, description: string) => api.post(`/bookings/${id}/dispute`, { description }),
 };
 
-export const payments = {
-  wallet: () => api.get('/payments/wallet'),
-  deposit: (d: any) => api.post('/payments/deposit', d),
-  withdraw: (d: any) => api.post('/payments/withdraw', d),
-  hold: (bookingId: string) => api.post(`/payments/hold/${bookingId}`),
-  release: (bookingId: string) => api.post(`/payments/release/${bookingId}`),
-  refund: (bookingId: string, amount?: number) => api.post(`/payments/refund/${bookingId}`, { amount }),
-};
+// Payments movido a feature/stripe-connect — activar cuando Stripe Connect este listo
+// export const payments = { ... }
 
 export const tracking = {
   report: (bookingId: string, d: any) => api.post(`/tracking/${bookingId}`, d),
@@ -101,24 +95,16 @@ export const reviewsApi = {
   byUser: (userId: string) => api.get(`/reviews/${userId}`),
 };
 
-export const subscriptions = {
-  plans: () => api.get('/subscriptions'),
-  subscribe: (d: any) => api.post('/subscriptions', d),
-  cancel: () => api.put('/subscriptions/cancel'),
-};
+// Subscriptions movido a feature/stripe-connect
+// export const subscriptions = { ... }
 
 export const users = {
   getPublic: (id: string) => api.get(`/users/${id}`),
   reviews: (id: string) => api.get(`/users/${id}/reviews`),
 };
 
-export const messages = {
-  conversations: () => api.get('/messages'),
-  messages: (convId: string) => api.get(`/messages/${convId}/messages`),
-  start: (vehicleId: string, bookingId?: string) => api.post('/messages/start', { vehicleId, bookingId }),
-  send: (convId: string, text: string) => api.post(`/messages/${convId}/send`, { text }),
-  markRead: (convId: string) => api.post(`/messages/${convId}/read`),
-};
+// Messages movido a feature/messaging
+// export const messages = { ... }
 
 export const adminApi = {
   bannedIdentities: (p?: any) => api.get('/admin/banned-identities', { params: p }),
