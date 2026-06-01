@@ -3,4 +3,7 @@ web/dist/
 .env
 *.log
 .DS_Store
-backend/public/
+# backend/public/ tracks committed static assets (favicon, manifest, sw, icons)
+# Vite build output (dist/*) is copied into backend/public/ by railway.json buildCommand
+# Individual files in this dir are committed; generated files are ignored via web/dist/
+# backend/public/
