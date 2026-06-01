@@ -11,7 +11,6 @@ import VehicleList from '@/pages/VehicleList';
 import VehicleDetail from '@/pages/VehicleDetail';
 import BookingFlow from '@/pages/BookingFlow';
 import Dashboard from '@/pages/Dashboard';
-import Messages from '@/pages/Messages';
 import BookingDetail from '@/pages/BookingDetail';
 import Wallet from '@/pages/Wallet';
 import Profile from '@/pages/Profile';
@@ -47,7 +46,7 @@ function normalizeUrlOnMount() {
   if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
     return; // ya está en hash router
   }
-  // Sin hash — convertir path actual a hash
+  // Sin hash - convertir path actual a hash
   const path = window.location.pathname;
   const search = window.location.search;
   const route = path.replace(/^\//, '') || '/';
@@ -76,7 +75,7 @@ function RouterProvider({ routes }: { routes: Route[] }) {
   useEffect(() => {
     // Normalizar la URL después del primer render
     normalizeUrlOnMount();
-    
+
     const onHash = () => setPath(parseHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -107,7 +106,7 @@ function RouterProvider({ routes }: { routes: Route[] }) {
     if (fallback) matched = { element: fallback.element, params: {} };
   }
   if (!matched) {
-    matched = { element: <div className="p-8 text-center text-red-400">404 — Página no encontrada</div>, params: {} };
+    matched = { element: <div className="p-8 text-center text-red-400">404 - Página no encontrada</div>, params: {} };
   }
 
   return (
@@ -152,8 +151,7 @@ const routes: Route[] = [
   { path: '/vehicles', element: <Layout><VehicleList /></Layout> },
   { path: '/vehicles/:id', element: <Layout><VehicleDetail /></Layout> },
   { path: '/book/:vehicleId', element: <Layout><PrivateRoute><BookingFlow /></PrivateRoute></Layout> },
-  // Chat deshabilitado — pendiente implementación
-  // { path: '/messages', element: <Layout><PrivateRoute><Messages /></PrivateRoute></Layout> },
+
   { path: '/dashboard', element: <Layout><PrivateRoute><Dashboard /></PrivateRoute></Layout> },
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
   { path: '/wallet', element: <Layout><PrivateRoute><Wallet /></PrivateRoute></Layout> },
