@@ -106,10 +106,27 @@ app.get(/^(?!\/api\/).*/, (_req, res) => {
 // 404 for unmatched API routes
 app.use('/api', (_req, res) => res.status(404).json({ data: null, error: 'Not found' }));
 
-// Global error handler
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+// Global error handler (catches errors from asyncHandler and other middlewares)
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Prisma unique constraint violation
+  if (err?.code === 'P2002') {
+    const field = err.meta?.target?.join?.(', ') || 'campo unico';
+    return res.status(409).json({ data: null, error: `Ya existe otro registro con ese ${field}` });
+  }
+  // Prisma not found
+  if (err?.code === 'P2025') {
+    return res.status(404).json({ data: null, error: 'Registro no encontrado' });
+  }
+  // Multer file size error
+  if (err?.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ data: null, error: 'El archivo excede el tamano maximo permitido (10MB)' });
+  }
+  // JWT errors
+  if (err?.name === 'JsonWebTokenError' || err?.name === 'TokenExpiredError') {
+    return res.status(401).json({ data: null, error: 'Token invalido o expirado' });
+  }
   console.error('[Error]', err);
-  res.status(500).json({ data: null, error: err.message ?? 'Internal server error' });
+  res.status(500).json({ data: null, error: err?.message ?? 'Error interno del servidor' });
 });
 
 // Init verification provider
