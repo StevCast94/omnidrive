@@ -14,7 +14,7 @@ const countryCodes: CountryCode[] = [
   { code: 'MX', prefix: '+52',  name: 'México', flag: '🇲🇽' },
   { code: 'AR', prefix: '+54',  name: 'Argentina', flag: '🇦🇷' },
   { code: 'CL', prefix: '+56',  name: 'Chile', flag: '🇨🇱' },
-  { code: 'US', prefix: '+1',   name: 'Estados Unidos', flag: '🇺🇸' },
+  { code: 'US', prefix: '+1',   name: 'Estados Unidos (+1)', flag: '🇺🇸' }, // +1 tambien cubre Republica Dominicana (809, 829, 849)
   { code: 'ES', prefix: '+34',  name: 'España', flag: '🇪🇸' },
 ];
 
