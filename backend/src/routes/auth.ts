@@ -104,7 +104,7 @@ authRouter.get('/me', authenticate, asyncHandler(async (req: AuthRequest, res: R
       selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
       verificationNotes: true, verifiedAt: true,
       walletBalance: true, subscriptionTier: true, subscriptionEnds: true,
-      rating: true, totalTrips: true: true, role: true,
+      rating: true, totalTrips: true, role: true,
       createdAt: true, documents: true,
     },
   });
