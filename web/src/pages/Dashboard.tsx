@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
-import { Plus, Car, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Plus, Car, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, Star } from 'lucide-react';
 import { bookings as bookingsApi, vehicles as vehiclesApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import VehicleCard from '@/components/VehicleCard';
@@ -29,7 +29,7 @@ function BookingRow({ b, onClick }: { b: any; onClick: () => void }) {
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-white text-sm truncate">{b.vehicle?.brand} {b.vehicle?.model} {b.vehicle?.year}</p>
         <p className="text-xs text-slate-500 mt-0.5">
-          {new Date(b.startAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} –{' '}
+          {new Date(b.startAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} �{' '}
           {new Date(b.endAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
         <p className="text-xs text-slate-400 mt-0.5 font-medium">${Number(b.totalAmount).toFixed(2)}</p>
@@ -70,7 +70,7 @@ export default function Dashboard() {
   const tabs = [
     { id: 'tenant', label: 'Mis alquileres', count: tenantBookings.length },
     { id: 'owner', label: 'Solicitudes recibidas', count: ownerBookings.length },
-    { id: 'vehicles', label: 'Mis vehículos', count: myVehicles.length },
+    { id: 'vehicles', label: 'Mis veh�culos', count: myVehicles.length },
   ] as const;
 
   return (
@@ -79,26 +79,35 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Hola, {user?.name} 👋</p>
+          <p className="text-slate-400 text-sm mt-0.5">Hola, {user?.name} ??</p>
         </div>
         <button onClick={() => navigate('/profile?tab=vehicle')}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors">
-          <Plus size={16} /> Publicar vehículo
+          <Plus size={16} /> Publicar veh�culo
         </button>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 mb-8">
-        {[
-          { label: 'Viajes realizados', val: user?.totalTrips ?? 0 },
-          { label: 'Score conductor', val: user?.driverScore ?? 700 },
-          { label: 'Score conductor', val: user?.driverScore ?? 700 },
-        ].map(s => (
-          <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
-            <p className="text-xl font-bold text-white">{s.val}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
+          <p className="text-xl font-bold text-white">{user?.totalTrips ?? 0}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Viajes realizados</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
+          <div className="flex items-center justify-center gap-0.5 mb-0.5">
+            {user?.rating != null && user.rating > 0 ? (
+              <>
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} size={14} className={s <= Math.round(user.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
+                ))}
+                <span className="text-white font-bold ml-1 text-sm">{user.rating.toFixed(1)}</span>
+              </>
+            ) : (
+              <span className="text-sm text-slate-500">Sin calificaciones</span>
+            )}
           </div>
-        ))}
+          <p className="text-xs text-slate-500">Calificación</p>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -127,7 +136,7 @@ export default function Dashboard() {
           {tab === 'tenant' && (
             <div className="space-y-3">
               {tenantBookings.length === 0 ? (
-                <Empty text="Aún no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar vehículos" />
+                <Empty text="A�n no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar veh�culos" />
               ) : tenantBookings.map(b => (
                 <BookingRow key={b.id} b={b} onClick={() => navigate(`/bookings/${b.id}`)} />
               ))}
@@ -138,7 +147,7 @@ export default function Dashboard() {
           {tab === 'owner' && (
             <div className="space-y-3">
               {ownerBookings.length === 0 ? (
-                <Empty text="No has recibido solicitudes aún" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar un vehículo" />
+                <Empty text="No has recibido solicitudes a�n" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar un veh�culo" />
               ) : ownerBookings.map(b => (
                 <BookingRow key={b.id} b={b} onClick={() => navigate(`/bookings/${b.id}`)} />
               ))}
@@ -149,7 +158,7 @@ export default function Dashboard() {
           {tab === 'vehicles' && (
             <div>
               {myVehicles.length === 0 ? (
-                <Empty text="Aún no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
+                <Empty text="A�n no tienes veh�culos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar veh�culo" />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {myVehicles.map(v => <VehicleCard key={v.id} vehicle={v} onClick={() => navigate('/profile?tab=vehicle')} />)}
@@ -175,3 +184,4 @@ function Empty({ text, action, actionLabel }: { text: string; action: () => void
     </div>
   );
 }
+

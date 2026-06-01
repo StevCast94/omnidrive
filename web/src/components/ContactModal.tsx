@@ -117,13 +117,13 @@ export default function ContactModal({ open, onClose, bookingId, vehicle, target
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
                 <Star size={16} className="text-amber-400 mx-auto mb-1" />
-                <p className="text-white text-lg font-bold">{avgRating}</p>
-                <p className="text-[10px] text-slate-500">Valoración</p>
+                <p className="text-white text-lg font-bold">{profile?.rating != null && profile.rating > 0 ? profile.rating.toFixed(1) : '—'}</p>
+                <p className="text-[10px] text-slate-500">Calificación</p>
               </div>
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
                 <Award size={16} className="text-indigo-400 mx-auto mb-1" />
-                <p className="text-white text-lg font-bold">{profile?.driverScore || '—'}</p>
-                <p className="text-[10px] text-slate-500">Score</p>
+                <p className="text-white text-lg font-bold">{profile?.totalTrips ?? 0}</p>
+                <p className="text-[10px] text-slate-500">Viajes</p>
               </div>
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
                 <Car size={16} className="text-slate-400 mx-auto mb-1" />
@@ -191,3 +191,4 @@ export default function ContactModal({ open, onClose, bookingId, vehicle, target
     </div>
   );
 }
+

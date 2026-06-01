@@ -17,25 +17,40 @@ reviewsRouter.post('/', authenticate, asyncHandler(async (req: AuthRequest, res:
     return res.status(409).json({ data: null, error: 'Ya calificaste esta reserva' });
   }
 
+  // Crear la reseña
   const review = await prisma.review.create({
-    data: {
-      bookingId,
-      authorId: req.user!.id,
-      targetId,
-      vehicleId,
-      rating,
-      comment,
-      categories,
-    },
+    data: { bookingId, authorId: req.user!.id, targetId, vehicleId, rating, comment, categories },
   });
 
-  // Recalcular rating del target
-  const avg = await prisma.review.aggregate({
+  // Recalcular y persistir rating del usuario (target)
+  const userAvg = await prisma.review.aggregate({
     where: { targetId },
     _avg: { rating: true },
   });
+  await prisma.user.update({
+    where: { id: targetId },
+    data: { rating: Math.round((userAvg._avg.rating ?? 0) * 10) / 10 },
+  });
 
-  return res.json({ data: { review, newAverageRating: avg._avg.rating }, error: null });
+  // Recalcular y persistir rating del vehículo
+  if (vehicleId) {
+    const vehicleAvg = await prisma.review.aggregate({
+      where: { vehicleId },
+      _avg: { rating: true },
+    });
+    await prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { rating: Math.round((vehicleAvg._avg.rating ?? 0) * 10) / 10 },
+    });
+  }
+
+  return res.json({
+    data: {
+      review,
+      newUserRating: userAvg._avg.rating ? Math.round(userAvg._avg.rating * 10) / 10 : null,
+    },
+    error: null,
+  });
 }));
 
 // GET /api/reviews/:userId

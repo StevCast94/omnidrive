@@ -54,7 +54,7 @@ authRouter.post('/register', asyncHandler(async (req: Request, res: Response) =>
       name: true, lastName: true, role: true,
       avatarUrl: true, identityVerified: true,
       walletBalance: true, subscriptionTier: true,
-      driverScore: true, createdAt: true,
+      rating: true, createdAt: true,
     },
   });
 
@@ -104,7 +104,7 @@ authRouter.get('/me', authenticate, asyncHandler(async (req: AuthRequest, res: R
       selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
       verificationNotes: true, verifiedAt: true,
       walletBalance: true, subscriptionTier: true, subscriptionEnds: true,
-      driverScore: true, totalTrips: true, totalKm: true, role: true,
+      rating: true, totalTrips: true: true, role: true,
       createdAt: true, documents: true,
     },
   });
@@ -142,7 +142,7 @@ authRouter.post('/oauth-profile', asyncHandler(async (req: Request, res: Respons
       id: true, authId: true, email: true, phone: true,
       name: true, lastName: true, documentType: true, documentId: true,
       avatarUrl: true, role: true, identityVerified: true,
-      walletBalance: true, subscriptionTier: true, driverScore: true, createdAt: true,
+      walletBalance: true, subscriptionTier: true, rating: true, createdAt: true,
     },
   });
 
@@ -304,3 +304,4 @@ authRouter.post('/avatar', authenticate, avatarUpload.single('avatar'), asyncHan
 
   return res.json({ data: { avatarUrl }, error: null });
 }));
+

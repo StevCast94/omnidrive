@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import {
   Star, MapPin, Users, Fuel, Settings, Shield, CheckCircle,
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 const FEATURE_LABELS: Record<string, string> = {
   ac: 'Aire acondicionado', gps: 'GPS', bluetooth: 'Bluetooth',
-  usb: 'Puerto USB', backup_camera: 'Cámara trasera',
+  usb: 'Puerto USB', backup_camera: 'C�mara trasera',
   sunroof: 'Techo solar', leather: 'Asientos de cuero',
 };
 
@@ -26,7 +26,7 @@ export default function VehicleDetail() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
 
-  // Check-in / Check-out — desde el vehículo
+  // Check-in / Check-out � desde el veh�culo
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const checkInHour = vehicle?.checkInTime || '14:00';
@@ -37,7 +37,7 @@ export default function VehicleDetail() {
   useEffect(() => {
     vehiclesApi.get(id!)
       .then(r => setVehicle(r.data.data))
-      .catch(() => toast.error('Vehículo no encontrado'))
+      .catch(() => toast.error('Veh�culo no encontrado'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -89,7 +89,7 @@ export default function VehicleDetail() {
     </div>
   );
   if (!vehicle) return (
-    <div className="text-center py-24 text-slate-500">Vehículo no encontrado</div>
+    <div className="text-center py-24 text-slate-500">Veh�culo no encontrado</div>
   );
 
   const photos = vehicle.photos?.length ? vehicle.photos : [];
@@ -150,7 +150,7 @@ export default function VehicleDetail() {
                   <Star size={16} className="text-yellow-400 fill-yellow-400" />
                   <span className="font-semibold text-white">{vehicle.rating > 0 ? vehicle.rating.toFixed(1) : 'Nuevo'}</span>
                 </div>
-                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} reseñas</p>
+                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} rese�as</p>
               </div>
             </div>
 
@@ -165,7 +165,7 @@ export default function VehicleDetail() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { icon: Users, label: `${vehicle.seats} asientos` },
-              { icon: Settings, label: vehicle.transmission === 'automatic' ? 'Automático' : 'Manual' },
+              { icon: Settings, label: vehicle.transmission === 'automatic' ? 'Autom�tico' : 'Manual' },
               { icon: Fuel, label: vehicle.fuelType },
               { icon: Car, label: `${vehicle.mileage?.toLocaleString()} km` },
             ].map(({ icon: Icon, label }) => (
@@ -179,7 +179,7 @@ export default function VehicleDetail() {
           {/* Features */}
           {vehicle.features?.length > 0 && (
             <div>
-              <h3 className="font-semibold text-white mb-3">Características</h3>
+              <h3 className="font-semibold text-white mb-3">Caracter�sticas</h3>
               <div className="flex flex-wrap gap-2">
                 {vehicle.features.map((f: string) => (
                   <span key={f} className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-300">
@@ -191,13 +191,13 @@ export default function VehicleDetail() {
             </div>
           )}
 
-          {/* Insurance — obligatorio en todos los vehículos */}
+          {/* Insurance � obligatorio en todos los veh�culos */}
           <div className="rounded-xl p-4 border flex items-start gap-3 bg-green-500/5 border-green-500/20">
             <Shield size={18} className="text-green-400 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-white">Seguro obligatorio incluido</p>
               <p className="text-xs text-slate-400 mt-0.5">
-                Este vehículo cuenta con seguro contratado por el propietario. En caso de cualquier inconveniente, la cobertura es responsabilidad del propietario y su aseguradora. OmniDrive actúa únicamente como plataforma de conexión entre arrendatario y propietario.
+                Este veh�culo cuenta con seguro contratado por el propietario. En caso de cualquier inconveniente, la cobertura es responsabilidad del propietario y su aseguradora. OmniDrive act�a �nicamente como plataforma de conexi�n entre arrendatario y propietario.
               </p>
             </div>
           </div>
@@ -217,13 +217,20 @@ export default function VehicleDetail() {
                   )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Score {vehicle.owner?.driverScore} · {vehicle.owner?.totalTrips} viajes
+                  {vehicle.owner?.rating != null && vehicle.owner.rating > 0 ? (
+                    <span className="flex items-center gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} size={10} className={s <= Math.round(vehicle.owner!.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
+                      ))}
+                      {vehicle.owner.rating.toFixed(1)} · {vehicle.owner?.totalTrips} viajes
+                    </span>
+                  ) : 'Nueva en OmniDrive'}
                 </p>
               </div>
               <div className="ml-auto text-right">
                 <p className="text-xs text-slate-500">Miembro desde</p>
                 <p className="text-xs text-slate-400">
-                  {vehicle.owner?.createdAt ? new Date(vehicle.owner.createdAt).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }) : '—'}
+                  {vehicle.owner?.createdAt ? new Date(vehicle.owner.createdAt).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }) : '�'}
                 </p>
               </div>
             </div>
@@ -232,7 +239,7 @@ export default function VehicleDetail() {
           {/* Reviews */}
           {vehicle.reviews?.length > 0 && (
             <div>
-              <h3 className="font-semibold text-white mb-4">Reseñas recientes</h3>
+              <h3 className="font-semibold text-white mb-4">Rese�as recientes</h3>
               <div className="space-y-4">
                 {vehicle.reviews.map((r: any) => (
                   <div key={r.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -258,13 +265,13 @@ export default function VehicleDetail() {
           )}
         </div>
 
-        {/* Right column — Booking widget */}
+        {/* Right column � Booking widget */}
         <div className="lg:col-span-1">
           <div className="sticky top-20 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
             {/* Price */}
             <div>
               <span className="text-3xl font-bold text-white">${Number(vehicle.pricePerDay).toFixed(0)}</span>
-              <span className="text-slate-400 text-sm">/día</span>
+              <span className="text-slate-400 text-sm">/d�a</span>
               {vehicle.pricePerHour && (
                 <p className="text-xs text-slate-500 mt-0.5">${Number(vehicle.pricePerHour).toFixed(0)}/hora</p>
               )}
@@ -272,12 +279,12 @@ export default function VehicleDetail() {
 
             {!isOwner && (
               <>
-                {/* Date pickers — Check-in / Check-out como hoteles */}
+                {/* Date pickers � Check-in / Check-out como hoteles */}
                 <div className="space-y-3">
                   {/* Check-in */}
                   <div>
                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                      🏁 Check-in
+                      ?? Check-in
                       <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
                     </label>
                     <input type="date"
@@ -287,7 +294,7 @@ export default function VehicleDetail() {
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
                       {isFlexible ? (
-                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
+                        <span className="text-green-400">Horario flexible � acuerdas con el due�o</span>
                       ) : (
                         <>Disponible desde las <span className="text-indigo-400 font-medium">{checkInHour}</span></>
                       )}
@@ -297,7 +304,7 @@ export default function VehicleDetail() {
                   {/* Check-out */}
                   <div>
                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                      🏁 Check-out
+                      ?? Check-out
                       <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
                     </label>
                     <input type="date"
@@ -307,7 +314,7 @@ export default function VehicleDetail() {
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
                       {isFlexible ? (
-                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
+                        <span className="text-green-400">Horario flexible � acuerdas con el due�o</span>
                       ) : (
                         <>Debes devolverlo antes de las <span className="text-indigo-400 font-medium">{checkOutHour}</span></>
                       )}
@@ -319,16 +326,16 @@ export default function VehicleDetail() {
                     <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-700/50">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>Inicio</span>
-                        <span className="text-white font-medium">{formatDateLong(startDate)}{!isFlexible ? ` · ${checkInHour}` : ''}</span>
+                        <span className="text-white font-medium">{formatDateLong(startDate)}{!isFlexible ? ` � ${checkInHour}` : ''}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-slate-400 mt-1.5">
                         <span>Fin</span>
-                        <span className="text-white font-medium">{formatDateLong(endDate)}{!isFlexible ? ` · ${checkOutHour}` : ''}</span>
+                        <span className="text-white font-medium">{formatDateLong(endDate)}{!isFlexible ? ` � ${checkOutHour}` : ''}</span>
                       </div>
                       <div className="border-t border-slate-700/50 mt-2 pt-2 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Duración</span>
+                        <span className="text-slate-500">Duraci�n</span>
                         <span className="text-white font-medium">
-                          {nights} día{nights !== 1 ? 's' : ''}
+                          {nights} d�a{nights !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
@@ -339,16 +346,16 @@ export default function VehicleDetail() {
                 {startDate && endDate && nights > 0 && (
                   <div className="bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
                     <div className="flex justify-between text-slate-300">
-                      <span>${Number(vehicle.pricePerDay).toFixed(0)} × {nights} día{nights !== 1 ? 's' : ''}</span>
+                      <span>${Number(vehicle.pricePerDay).toFixed(0)} � {nights} d�a{nights !== 1 ? 's' : ''}</span>
                       <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-white border-t border-slate-700 pt-2">
-                      <span>Total (pagas al dueño)</span>
+                      <span>Total (pagas al due�o)</span>
                       <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
                     </div>
                     {Number(vehicle.deposit) > 0 && (
                       <p className="text-xs text-slate-500">
-                        + ${Number(vehicle.deposit).toFixed(2)} depósito (reembolsable)
+                        + ${Number(vehicle.deposit).toFixed(2)} dep�sito (reembolsable)
                       </p>
                     )}
                   </div>
@@ -358,7 +365,7 @@ export default function VehicleDetail() {
                   onClick={handleBook}
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold transition-colors text-sm"
                 >
-                  {user ? 'Reservar ahora' : 'Iniciar sesión para reservar'}
+                  {user ? 'Reservar ahora' : 'Iniciar sesi�n para reservar'}
                 </button>
 
                 <button
@@ -366,12 +373,12 @@ export default function VehicleDetail() {
                   className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-medium transition-colors text-sm flex items-center justify-center gap-2"
                 >
                   <User size={16} className="text-cyan-400" />
-                  Ver perfil del dueño
+                  Ver perfil del due�o
                 </button>
 
                 {vehicle.withDriver && (
                   <p className="text-xs text-center text-slate-500">
-                    Disponible con chofer (+${Number(vehicle.driverPrice ?? 0).toFixed(0)}/día)
+                    Disponible con chofer (+${Number(vehicle.driverPrice ?? 0).toFixed(0)}/d�a)
                   </p>
                 )}
               </>
@@ -379,12 +386,12 @@ export default function VehicleDetail() {
 
             {isOwner && (
               <div className="text-center py-4">
-                <p className="text-sm text-slate-400 mb-3">Este es tu vehículo</p>
+                <p className="text-sm text-slate-400 mb-3">Este es tu veh�culo</p>
                 <button
                   onClick={() => navigate(`/dashboard`)}
                   className="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition-colors"
                 >
-                  Gestionar vehículo
+                  Gestionar veh�culo
                 </button>
               </div>
             )}
@@ -409,3 +416,5 @@ export default function VehicleDetail() {
     </div>
   );
 }
+
+

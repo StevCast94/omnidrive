@@ -242,9 +242,16 @@ export default function Profile() {
           </div>
           <p className="text-sm text-slate-400">{user?.email}</p>
           <div className="flex items-center gap-3 mt-1">
-            <span className="flex items-center gap-1 text-xs text-slate-500">
-              <Star size={11} /> Score {user?.driverScore}
-            </span>
+            {user?.rating != null && user.rating > 0 ? (
+              <span className="flex items-center gap-0.5 text-xs">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} size={11} className={s <= Math.round(user.rating!) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
+                ))}
+                <span className="text-slate-400 ml-1">{user.rating.toFixed(1)}</span>
+              </span>
+            ) : (
+              <span className="text-xs text-slate-500">Sin calificaciones</span>
+            )}
             <span className="text-xs text-slate-600">·</span>
             <span className="text-xs text-slate-500">{user?.totalTrips} viajes</span>
           </div>
@@ -750,3 +757,4 @@ export default function Profile() {
     </div>
   );
 }
+

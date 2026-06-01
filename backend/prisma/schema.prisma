@@ -42,10 +42,9 @@ model User {
   subscriptionTier String    @default("free") // free, premium, elite
   subscriptionEnds DateTime?
 
-  // Scoring
-  driverScore Int   @default(700)
-  totalTrips  Int   @default(0)
-  totalKm     Float @default(0)
+  // Scoring (estilo Airbnb)
+  rating     Float @default(0)   // Promedio de reseñas recibidas (1-5)
+  totalTrips Int   @default(0)   // Viajes completados (dueño + inquilino)
 
   // Roles
   role String @default("user") // user, verifier, admin, superadmin

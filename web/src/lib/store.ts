@@ -21,7 +21,7 @@ export interface User {
   verifiedAt?: string;
   walletBalance: number;
   subscriptionTier: 'free' | 'premium' | 'elite';
-  driverScore: number;
+  rating: number;
   totalTrips: number;
   role: 'user' | 'admin';
 }
@@ -45,4 +45,5 @@ export const useAuthStore = create<AuthStore>()(
     { name: 'omnidrive-user', partialize: s => ({ user: s.user }) }
   )
 );
+
 

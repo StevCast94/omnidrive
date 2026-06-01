@@ -51,7 +51,7 @@ vehiclesRouter.get('/', asyncHandler(async (req: AuthRequest, res: Response) => 
   let vehicles = await prisma.vehicle.findMany({
     where,
     include: {
-      owner: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true, totalTrips: true } },
+      owner: { select: { id: true, name: true, lastName: true, phone: true, rating: true, totalTrips: true } },
       _count: { select: { reviews: true } },
     },
   });
@@ -87,7 +87,7 @@ vehiclesRouter.get('/:id', asyncHandler(async (req, res: Response) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: req.params.id as string },
     include: {
-      owner: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true, totalTrips: true, identityVerified: true, createdAt: true } },
+      owner: { select: { id: true, name: true, lastName: true, phone: true, rating: true, totalTrips: true, identityVerified: true, createdAt: true } },
       reviews: { include: { author: { select: { id: true, name: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, take: 10 },
     },
   });
@@ -222,3 +222,4 @@ vehiclesRouter.put('/:id/availability', authenticate, asyncHandler(async (req: A
   });
   return res.json({ data: { available: updated.available }, error: null });
 }));
+

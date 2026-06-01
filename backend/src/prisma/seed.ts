@@ -124,7 +124,7 @@ async function upsertOwner(data: OwnerInput) {
       role: 'owner',
       identityVerified: true,
       walletBalance: Math.floor(Math.random() * 500) + 100,
-      driverScore: 900 + Math.floor(Math.random() * 100),
+      rating: 900 + Math.floor(Math.random() * 100),
       subscriptionTier: Math.random() > 0.8 ? 'premium' : 'free',
       authId: randomUUID(),
       documentType: 'cedula',
@@ -161,7 +161,7 @@ async function main() {
         role: 'user',
         identityVerified: false,
         walletBalance: 200,
-        driverScore: 700,
+        rating: 700,
         subscriptionTier: 'free',
         authId: randomUUID(),
         documentType: 'cedula',
@@ -226,3 +226,4 @@ async function main() {
 main()
   .catch(e => { console.error('❌ Seed error:', e); process.exit(1); })
   .finally(() => prisma.$disconnect());
+

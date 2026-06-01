@@ -85,7 +85,7 @@ adminRouter.get('/users', adminAuth, asyncHandler(async (req: AuthRequest, res: 
       skip: (parseInt(page) - 1) * parseInt(limit),
       take: parseInt(limit),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, role: true, identityVerified: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, driverScore: true, totalTrips: true, createdAt: true, birthDate: true, gender: true },
+      select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, role: true, identityVerified: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, rating: true, totalTrips: true, createdAt: true, birthDate: true, gender: true },
     }),
     prisma.user.count({ where }),
   ]);
@@ -96,7 +96,7 @@ adminRouter.get('/users', adminAuth, asyncHandler(async (req: AuthRequest, res: 
 adminRouter.get('/users/:id', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.findUnique({
     where: { id: req.params.id as string },
-    select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, gender: true, birthDate: true, role: true, identityVerified: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, driverScore: true, totalTrips: true, createdAt: true, updatedAt: true },
+    select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, gender: true, birthDate: true, role: true, identityVerified: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, rating: true, totalTrips: true, createdAt: true, updatedAt: true },
   });
   if (!user) return res.status(404).json({ error: 'User not found' });
   return res.json({ data: user, error: null });
@@ -263,3 +263,4 @@ adminRouter.post('/admins', adminAuth, requireSuperAdmin, asyncHandler(async (re
 
   return res.status(201).json({ data: admin, error: null });
 }));
+

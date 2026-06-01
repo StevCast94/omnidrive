@@ -38,7 +38,7 @@ bookingsRouter.get('/', authenticate, asyncHandler(async (req: AuthRequest, res:
     where,
     include: {
       vehicle: { select: { id: true, brand: true, model: true, year: true, photos: true, plate: true, locationName: true } },
-      tenant: { select: { id: true, name: true, lastName: true, driverScore: true } },
+      tenant: { select: { id: true, name: true, lastName: true, rating: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -51,7 +51,7 @@ bookingsRouter.get('/:id', authenticate, asyncHandler(async (req: AuthRequest, r
     where: { id: req.params.id as string },
     include: {
       vehicle: { include: { owner: { select: { id: true, name: true, lastName: true, phone: true } } } },
-      tenant: { select: { id: true, name: true, lastName: true, phone: true, driverScore: true } },
+      tenant: { select: { id: true, name: true, lastName: true, phone: true, rating: true } },
       review: true,
     },
   });
@@ -335,8 +335,13 @@ bookingsRouter.put('/:id/end', authenticate, asyncHandler(async (req: AuthReques
     data: { totalRentals: { increment: 1 } },
   });
 
+  // Incrementar viajes para ambos: dueño e inquilino
   await prisma.user.update({
     where: { id: booking.tenantId },
+    data: { totalTrips: { increment: 1 } },
+  });
+  await prisma.user.update({
+    where: { id: booking.vehicle.ownerId },
     data: { totalTrips: { increment: 1 } },
   });
 
@@ -397,3 +402,4 @@ bookingsRouter.post('/:id/dispute', authenticate, asyncHandler(async (req: AuthR
 
   return res.json({ data: updated, error: null });
 }));
+

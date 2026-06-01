@@ -10,8 +10,8 @@ usersRouter.get('/:id', asyncHandler(async (req: Request, res: Response) => {
     where: { id: req.params.id as string },
     select: {
       id: true, name: true, lastName: true,
-      identityVerified: true, driverScore: true,
-      totalTrips: true, totalKm: true,
+      identityVerified: true, rating: true,
+      totalTrips: true,
       subscriptionTier: true, createdAt: true,
     },
   });
@@ -40,3 +40,4 @@ usersRouter.get('/:id/reviews', asyncHandler(async (req: Request, res: Response)
   });
   return res.json({ data: reviews, error: null });
 }));
+

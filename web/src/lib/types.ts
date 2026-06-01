@@ -30,9 +30,8 @@ export interface User {
   walletBalance: number;
   subscriptionTier: string;
   subscriptionEnds?: string | null;
-  driverScore: number;
+  rating: number;
   totalTrips: number;
-  totalKm: number;
   role: string;
   createdAt: string;
 }
@@ -79,7 +78,7 @@ export interface OwnerSummary {
   name: string;
   lastName: string;
   phone?: string;
-  driverScore: number;
+  rating: number;
   totalTrips: number;
   identityVerified?: boolean;
   createdAt?: string;
@@ -125,7 +124,7 @@ export interface UserSummary {
   name: string;
   lastName: string;
   phone?: string;
-  driverScore?: number;
+  rating?: number;
 }
 
 export interface Review {
@@ -158,3 +157,4 @@ export interface CountryCode {
   name: string;
   flag: string;
 }
+
