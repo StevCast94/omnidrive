@@ -2,7 +2,6 @@ import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
-import { releasePayment, refundPayment } from '../services/wallet';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/asyncHandler';
 
@@ -196,7 +195,16 @@ bookingsRouter.put('/:id/cancel', authenticate, asyncHandler(async (req: AuthReq
   });
 
   if (booking.paymentStatus === 'held') {
-    await refundPayment(booking.id, booking.tenantId, Number(booking.deposit));
+    await prisma.transaction.create({
+      data: {
+        toUserId: booking.tenantId,
+        bookingId: booking.id,
+        type: 'refund',
+        amount: Number(booking.deposit),
+        status: 'completed',
+        description: 'Reembolso por cancelacion de reserva ' + booking.id.slice(0, 8),
+      },
+    });
   }
 
   return res.json({ data: updated, error: null });
@@ -278,7 +286,39 @@ bookingsRouter.put('/:id/end', authenticate, asyncHandler(async (req: AuthReques
     return res.status(400).json({ data: null, error: 'Booking must be active to end' });
   }
 
-  await releasePayment(booking.id, booking.tenantId, booking.vehicle.ownerId, Number(booking.totalAmount), Number(booking.serviceFee));
+  const ownerAmount = Number(booking.totalAmount) - Number(booking.serviceFee);
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: booking.tenantId },
+      data: { walletBalance: { decrement: Number(booking.totalAmount) } },
+    }),
+    prisma.user.update({
+      where: { id: booking.vehicle.ownerId },
+      data: { walletBalance: { increment: ownerAmount } },
+    }),
+    prisma.transaction.create({
+      data: {
+        fromUserId: booking.tenantId,
+        toUserId: booking.vehicle.ownerId,
+        bookingId: booking.id,
+        type: 'payment',
+        amount: ownerAmount,
+        fee: Number(booking.serviceFee),
+        status: 'completed',
+        description: 'Pago por reserva ' + booking.id.slice(0, 8),
+      },
+    }),
+    prisma.transaction.create({
+      data: {
+        fromUserId: booking.tenantId,
+        bookingId: booking.id,
+        type: 'commission',
+        amount: Number(booking.serviceFee),
+        status: 'completed',
+        description: 'Comision plataforma reserva ' + booking.id.slice(0, 8),
+      },
+    }),
+  ]);
 
   const updated = await prisma.booking.update({
     where: { id: req.params.id as string },

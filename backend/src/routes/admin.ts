@@ -3,7 +3,6 @@ import { prisma } from '../lib/prisma';
 import { supabase } from '../lib/supabase';
 import jwt from 'jsonwebtoken';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
-import { refundPayment } from '../services/wallet';
 import { verifyIdentity } from '../services/verification';
 import { asyncHandler } from '../middleware/asyncHandler';
 
