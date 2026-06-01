@@ -49,7 +49,7 @@ async function main() {
       verifiedAt: new Date(),
       role: 'admin',
       walletBalance: 0,
-      driverScore: 1000,
+      rating: 1000,
     },
   });
   console.log('  ✓ Admin:', admin.email);
@@ -70,7 +70,7 @@ async function main() {
       identityVerified: true,
       verifiedAt: new Date(),
       walletBalance: 250.00,
-      driverScore: 820,
+      rating: 820,
       totalTrips: 14,
     },
   });
@@ -93,7 +93,7 @@ async function main() {
       verifiedAt: new Date(),
       walletBalance: 500.00,
       subscriptionTier: 'premium',
-      driverScore: 760,
+      rating: 760,
       totalTrips: 6,
     },
   });
@@ -245,3 +245,4 @@ async function main() {
 main()
   .catch(e => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());
+
