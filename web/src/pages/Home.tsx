@@ -3,7 +3,7 @@ import { useNavigate, Link } from '@/lib/router-exports';
 import {
   Car, Shield, Star, Zap, User, ChevronRight,
   TrendingUp, Clock, Award, Gauge, LayoutGrid, Bike, 
-  Truck, Container, Gem
+  Truck, Container, Gem, MessageCircle, MapPin
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
@@ -34,61 +34,47 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 overflow-hidden">
-      {/* ═══════════ HERO — con efectos de fondo rediseñados ═══════════ */}
+      {/* ═══════════ HERO ═══════════ */}
       <section className="relative overflow-hidden pt-32 pb-24 md:pb-32 lg:pt-48 lg:pb-36 min-h-[80vh] flex items-center">
-        {/* Background Effects — gradientes, grid, blur */}
         <div className="absolute inset-0 z-0">
-          {/* Grid pattern */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-          {/* Gradient glowing orbs */}
           <div className="absolute left-0 right-0 top-0 m-auto h-[310px] w-[310px] rounded-full bg-cyan-500 opacity-20 blur-[100px] animate-pulse" />
           <div className="absolute right-20 bottom-0 h-[250px] w-[250px] rounded-full bg-indigo-500 opacity-20 blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
-          {/* Original radial gradients (keep for compatibility) */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.08)_0%,_transparent_50%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(139,92,246,0.06)_0%,_transparent_50%)]" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
-          {/* Badge */}
-          <Badge variant="cyan" className="mb-6 px-4 py-1.5 text-sm">
+          <Badge variant="cyan" className="mb-6 px-4 py-1.5 text-sm animate-slide-up">
             <Zap size={14} className="mr-1" /> El futuro de la movilidad compartida
           </Badge>
 
-          {/* Headline con gradient text */}
-          <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-4 leading-tight tracking-tight">
-            Conduce cualquier auto,<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
-              en cualquier lugar.
+          <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight animate-slide-up stagger-1">
+            Olvídate de ser dueño.<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500">
+              Conduce lo que quieras,<br />cuando quieras.
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-            Únete a la red P2P más avanzada. Renta el vehículo perfecto de anfitriones locales o genera ingresos con el tuyo.
+
+          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto animate-slide-up stagger-2">
+            Únete a la red P2P más avanzada de Ecuador. Encuentra el vehículo perfecto 
+            de anfitriones locales verificados, o publica el tuyo y empieza a generar ingresos desde hoy.
           </p>
 
-          {/* CTA principal */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              size="lg"
-              onClick={() => navigate('/vehicles')}
-            >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up stagger-3">
+            <Button size="lg" onClick={() => navigate('/vehicles')}>
               <span className="flex items-center gap-2">
                 Explorar Vehículos <ChevronRight size={18} />
               </span>
             </Button>
-            <Button
-              size="lg"
-              variant="secondary"
-              onClick={() => navigate('/register')}
-            >
-              Convertirse en Anfitrión
+            <Button size="lg" variant="secondary" onClick={() => navigate('/register')}>
+              Publicar mi vehículo
             </Button>
           </div>
-
-          {/* Stats sociales — eliminados */}
         </div>
       </section>
 
-      {/* ═══════════ Categorías — rectangulares, full-width ═══════════ */}
+      {/* ═══════════ Categorías ═══════════ */}
       <section className="max-w-7xl mx-auto px-4 -mt-16 relative z-10">
         <div className="flex flex-wrap justify-center gap-1.5">
           {CATEGORIES.map(c => {
@@ -150,16 +136,16 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: SearchIcon, step: '1', title: 'Elige tu vehículo', desc: 'Explora por categoría o encuentra el que más te guste.' },
-              { icon: CalendarIcon, step: '2', title: 'Selecciona las fechas', desc: 'Check-in y check-out como en hotel. Mínimo 1 día.' },
-              { icon: ShieldIcon, step: '3', title: 'Reserva segura', desc: 'Pago protegido en wallet. Verificación de identidad incluida.' },
+              { icon: SearchIcon, step: '1', title: 'Elige tu vehículo', desc: 'Explora por categoría, precio o ubicación. Encuentra el que más te guste.' },
+              { icon: CalendarIcon, step: '2', title: 'Elige las fechas', desc: 'Check-in y check-out flexible como en hotel. Mínimo 1 día, máximo el que quieras.' },
+              { icon: MessageCircle, step: '3', title: 'Conecta con el dueño', desc: 'Coordinación directa por WhatsApp. Sin comisiones, sin intermediarios. Verificación de identidad incluida.' },
             ].map(({ icon: Icon, step, title, desc }) => (
-              <div key={step} className="text-center relative">
+              <div key={step} className="text-center relative group">
                 <div className="relative inline-flex mb-5">
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-xs font-bold z-10 text-white">
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-xs font-bold z-10 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)]">
                     {step}
                   </div>
-                  <div className="p-4 bg-cyan-500/10 rounded-2xl">
+                  <div className="p-4 bg-cyan-500/10 rounded-2xl group-hover:bg-cyan-500/20 transition-colors">
                     <Icon size={28} className="text-cyan-400" />
                   </div>
                 </div>
@@ -177,13 +163,13 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Shield, title: 'Seguridad verificada', desc: 'Todos los usuarios pasan por verificación de identidad con cédula o pasaporte. Sin excepciones.' },
-            { icon: Star, title: 'Sistema de reseñas', desc: 'Calificaciones reales de cada viaje. Arrendatarios y propietarios evaluados mutuamente.' },
-            { icon: Zap, title: 'Pagos P2P instantáneos', desc: 'Wallet interna para transferencias directas. Sin comisiones extra para suscriptores.' },
+            { icon: Star, title: 'Sistema de reseñas', desc: 'Calificaciones reales de cada viaje. Arrendatarios y dueños evaluados mutuamente.' },
+            { icon: MessageCircle, title: 'Contacto directo', desc: 'Conexión vía WhatsApp con el dueño. Sin plataforma de por medio, sin rodeos, sin comisiones.' },
             { icon: Clock, title: 'Flexibilidad total', desc: 'Desde 1 día hasta semanas. Con o sin chofer. Tú pones las reglas.' },
             { icon: TrendingUp, title: 'Para dueños: genera ingresos', desc: 'Tu vehículo parado es dinero perdido. Publícalo gratis y empieza a recibir solicitudes.' },
-            { icon: Award, title: 'Soporte Ecuador', desc: 'Pensada para el mercado ecuatoriano. Precios en USD, soporte en español.' },
+            { icon: Award, title: 'Hecho en Ecuador', desc: 'Pensada para el mercado ecuatoriano. Precios en USD, soporte en español, verificación con cédula.' },
           ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/40 transition-colors">
+            <div key={title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.06)]">
               <div className="inline-flex p-3 bg-cyan-500/10 rounded-2xl mb-4">
                 <Icon size={22} className="text-cyan-400" />
               </div>
@@ -199,25 +185,17 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(6,182,212,0.1)_0%,_transparent_60%)]" />
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            ¿Tienes un vehículo sin usar?
+            ¿Tienes un vehículo parado?
           </h2>
           <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">
-            Miles de personas buscan vehículos para alquilar cada día.
+            Miles de personas buscan vehículos para alquilar cada día en Ecuador.
             Publica el tuyo gratis y empieza a generar ingresos desde hoy.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              onClick={() => navigate('/register')}
-              variant="primary"
-              size="lg"
-            >
+            <Button onClick={() => navigate('/register')} variant="primary" size="lg">
               Publicar mi vehículo
             </Button>
-            <Button
-              onClick={() => navigate('/vehicles')}
-              variant="secondary"
-              size="lg"
-            >
+            <Button onClick={() => navigate('/vehicles')} variant="secondary" size="lg">
               Ver como arrendatario
             </Button>
           </div>
@@ -227,7 +205,10 @@ export default function Home() {
   );
 }
 
-// SVG helper icons for "Cómo funciona" section
-function SearchIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>; }
-function CalendarIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>; }
-function ShieldIcon(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>; }
+function SearchIcon(props: any) {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+}
+
+function CalendarIcon(props: any) {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>;
+}
