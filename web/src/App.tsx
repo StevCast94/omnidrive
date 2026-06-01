@@ -140,6 +140,20 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function VerifierRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
+  if (user.role !== 'verifier') {
+    navigate('/');
+    return null;
+  }
+  return <>{children}</>;
+}
+
 // ===== Routes config =====
 const routes: Route[] = [
   { path: '/login', element: <Login /> },
@@ -155,7 +169,7 @@ const routes: Route[] = [
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
 
   { path: '/profile', element: <Layout><PrivateRoute><Profile /></PrivateRoute></Layout> },
-  { path: '/admin', element: <Admin /> },
+  { path: '/admin', element: <AdminRoute><Admin /></AdminRoute> },
   { path: '*', element: <Layout><NavigateHome /></Layout> },
 ];
 
