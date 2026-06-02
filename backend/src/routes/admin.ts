@@ -5,13 +5,15 @@ import jwt from 'jsonwebtoken';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { verifyIdentity } from '../services/verification';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { env } from '../config/env';
+import { authLimiter } from '../middleware/rateLimit';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'omnidrive_admin_jwt_2026';
+const JWT_SECRET = env.JWT_SECRET;
 
 export const adminRouter = Router();
 
 // ── Admin Login (JWT propio, no Supabase) ──
-adminRouter.post('/auth/login', asyncHandler(async (req, res: Response) => {
+adminRouter.post('/auth/login', authLimiter, asyncHandler(async (req, res: Response) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Usuario y contrasena requeridos' });
 

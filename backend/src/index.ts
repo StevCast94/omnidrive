@@ -17,9 +17,14 @@ import { seedRouter }          from './routes/seed';
 import { uploadRouter }        from './routes/upload';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
+import { env }                 from './config/env';
+import { apiLimiter }          from './middleware/rateLimit';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Railway corre detrás de un proxy: necesario para que rate-limit lea la IP real
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(helmet({
@@ -41,9 +46,12 @@ app.use(helmet({
   },
 }));
 
-app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
+app.use(cors({ origin: env.FRONTEND_URL || true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// Rate limiting general para toda la API
+app.use('/api', apiLimiter);
 
 // Health check
 app.get('/health', (_req, res) =>
@@ -60,8 +68,13 @@ app.use('/api/reviews',       reviewsRouter);
 app.use('/api/admin',         adminRouter);
 app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
-app.use('/api/seed',          seedRouter);
 app.use('/api/upload',        uploadRouter);
+
+// Seed: solo disponible en dev y con SEED_ENABLED=true (nunca en producción)
+if (env.SEED_ENABLED && env.NODE_ENV !== 'production') {
+  app.use('/api/seed', seedRouter);
+  console.warn('[Init] ⚠️  Endpoint /api/seed HABILITADO (SEED_ENABLED=true). No usar en produccion.');
+}
 
 // Serve frontend static files
 const publicDir = path.join(__dirname, '..', 'public');

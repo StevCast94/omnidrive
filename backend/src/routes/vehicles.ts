@@ -4,6 +4,37 @@ import { prisma } from '../lib/prisma';
 import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { z } from 'zod';
+
+// Campos que el dueño puede editar. Lista blanca explícita:
+// NO incluye ownerId, insurance, rating, totalRentals, plate, vin (inmutables/privilegiados).
+const vehicleUpdateSchema = z.object({
+  brand: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  year: z.coerce.number().int().optional(),
+  color: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+  seats: z.coerce.number().int().optional(),
+  doors: z.coerce.number().int().optional(),
+  transmission: z.string().optional(),
+  fuelType: z.string().optional(),
+  pricePerHour: z.coerce.number().optional(),
+  pricePerDay: z.coerce.number().optional(),
+  pricePerKm: z.coerce.number().optional(),
+  deposit: z.coerce.number().optional(),
+  available: z.boolean().optional(),
+  locationLat: z.coerce.number().optional(),
+  locationLng: z.coerce.number().optional(),
+  locationName: z.string().optional(),
+  withDriver: z.boolean().optional(),
+  driverPrice: z.coerce.number().optional(),
+  flexibleCheckin: z.boolean().optional(),
+  checkInTime: z.string().nullable().optional(),
+  checkOutTime: z.string().nullable().optional(),
+  mileage: z.coerce.number().int().optional(),
+  features: z.array(z.string()).optional(),
+  restrictions: z.any().optional(),
+}); // modo "strip" (por defecto): descarta silenciosamente campos no permitidos como ownerId, insurance, rating
 
 export const vehiclesRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -164,20 +195,20 @@ vehiclesRouter.put('/:id', authenticate, asyncHandler(async (req: AuthRequest, r
   await requireVehicleOwner(req, res);
   if (res.headersSent) return;
 
-  const data = { ...req.body };
-  if (data.year) data.year = parseInt(data.year);
-  if (data.seats) data.seats = parseInt(data.seats);
-  if (data.doors) data.doors = parseInt(data.doors);
-  if (data.pricePerHour) data.pricePerHour = parseFloat(data.pricePerHour);
-  if (data.pricePerDay) data.pricePerDay = parseFloat(data.pricePerDay);
-  if (data.pricePerKm) data.pricePerKm = parseFloat(data.pricePerKm);
-  if (data.deposit) data.deposit = parseFloat(data.deposit);
-  if (data.driverPrice) data.driverPrice = parseFloat(data.driverPrice);
-  if (data.features && typeof data.features === 'string') data.features = JSON.parse(data.features);
+  // Permitir features como string JSON (compatibilidad con multipart)
+  const raw = { ...req.body };
+  if (raw.features && typeof raw.features === 'string') {
+    try { raw.features = JSON.parse(raw.features); } catch { /* dejar fallar la validación */ }
+  }
+
+  const parsed = vehicleUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    return res.status(400).json({ data: null, error: 'Campos invalidos o no permitidos', details: parsed.error.flatten().fieldErrors });
+  }
 
   const updated = await prisma.vehicle.update({
     where: { id: req.params.id as string },
-    data,
+    data: parsed.data,
   });
   return res.json({ data: updated, error: null });
 }));

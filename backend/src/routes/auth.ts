@@ -6,6 +6,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import { verifyIdentity, getProvider } from '../services/verification';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { authLimiter } from '../middleware/rateLimit';
 
 function validarCedulaEcuatoriana(cedula: string): boolean {
   if (!/^\d{10}$/.test(cedula)) return false;
@@ -23,7 +24,7 @@ export const authRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // POST /api/auth/register
-authRouter.post('/register', asyncHandler(async (req: Request, res: Response) => {
+authRouter.post('/register', authLimiter, asyncHandler(async (req: Request, res: Response) => {
   const { email, phone, password, name, lastName, documentType, documentId, birthDate } = req.body;
   if (!email || !phone || !password || !name || !lastName || !documentType || !documentId) {
     return res.status(400).json({ data: null, error: 'Missing required fields' });

@@ -1,0 +1,69 @@
+name: Backup BD diario
+
+on:
+  schedule:
+    # 08:00 UTC = 03:00 GMT-5 (Ecuador), baja actividad
+    - cron: '0 8 * * *'
+  workflow_dispatch: {} # permite ejecutarlo manualmente desde la pestaña Actions
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar cliente PostgreSQL 16
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16 jq
+
+      - name: Generar dump comprimido
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          STAMP=$(date +%Y-%m-%d_%H%M)
+          FILE="omnidrive-backup-${STAMP}.sql.gz"
+          echo "FILE=${FILE}" >> "$GITHUB_ENV"
+          echo "PUBLIC_ID=omnidrive-backup-${STAMP}" >> "$GITHUB_ENV"
+          pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip -9 > "$FILE"
+          ls -lh "$FILE"
+
+      - name: Subir a Cloudinary (omnidrive/backups)
+        env:
+          CLOUD: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: |
+          TS=$(date +%s)
+          FOLDER="omnidrive/backups"
+          TO_SIGN="folder=${FOLDER}&public_id=${PUBLIC_ID}&timestamp=${TS}"
+          SIG=$(printf '%s' "${TO_SIGN}${API_SECRET}" | sha1sum | awk '{print $1}')
+          RES=$(curl -s "https://api.cloudinary.com/v1_1/${CLOUD}/raw/upload" \
+            -F "file=@${FILE}" \
+            -F "api_key=${API_KEY}" \
+            -F "timestamp=${TS}" \
+            -F "public_id=${PUBLIC_ID}" \
+            -F "folder=${FOLDER}" \
+            -F "signature=${SIG}")
+          echo "$RES" | jq -e '.secure_url' > /dev/null || { echo "Fallo subida: $RES"; exit 1; }
+          echo "Backup subido: $(echo "$RES" | jq -r '.secure_url')"
+
+      - name: Retención (borrar backups > 14 días)
+        env:
+          CLOUD: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: |
+          CUTOFF=$(date -u -d '14 days ago' +%s)
+          LIST=$(curl -s -u "${API_KEY}:${API_SECRET}" \
+            "https://api.cloudinary.com/v1_1/${CLOUD}/resources/raw?type=upload&prefix=omnidrive/backups&max_results=500")
+          OLD=$(echo "$LIST" | jq -r --argjson cutoff "$CUTOFF" \
+            '.resources[] | select((.created_at | fromdateiso8601) < $cutoff) | .public_id')
+          if [ -z "$OLD" ]; then echo "Nada que purgar."; exit 0; fi
+          for PID in $OLD; do
+            echo "Borrando antiguo: $PID"
+            curl -s -X DELETE -u "${API_KEY}:${API_SECRET}" \
+              --data-urlencode "public_ids[]=${PID}" \
+              "https://api.cloudinary.com/v1_1/${CLOUD}/resources/raw/upload" > /dev/null
+          done
+          echo "Retención completada."
