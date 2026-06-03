@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -66,8 +66,8 @@ bookingsRouter.get('/:id', authenticate, asyncHandler(async (req: AuthRequest, r
   return res.json({ data: booking, error: null });
 }));
 
-// POST /api/bookings
-bookingsRouter.post('/', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
+// POST /api/bookings — solo usuarios verificados pueden reservar
+bookingsRouter.post('/', authenticate, requireVerified, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { vehicleId, startAt, endAt, withDriver, hasInsurance, insuranceDetails, liabilityWaiver } = req.body;
 
   if (!vehicleId || !startAt || !endAt) {
@@ -284,6 +284,12 @@ bookingsRouter.put('/:id/end', authenticate, asyncHandler(async (req: AuthReques
   }
   if (booking.status !== 'active') {
     return res.status(400).json({ data: null, error: 'Booking must be active to end' });
+  }
+
+  // Verificar saldo suficiente del inquilino
+  const tenant = await prisma.user.findUnique({ where: { id: booking.tenantId }, select: { walletBalance: true } });
+  if (!tenant || Number(tenant.walletBalance) < Number(booking.totalAmount)) {
+    return res.status(400).json({ data: null, error: 'Saldo insuficiente del inquilino. El pago debe completarse antes de finalizar la reserva.' });
   }
 
   const ownerAmount = Number(booking.totalAmount) - Number(booking.serviceFee);

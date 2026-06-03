@@ -14,5 +14,15 @@ export default defineConfig({
   ],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: { proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } } },
-  build: { sourcemap: true },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-mapbox': ['mapbox-gl'],
+        },
+      },
+    },
+  },
 });
