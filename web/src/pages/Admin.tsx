@@ -71,9 +71,15 @@ function AdminLogin({ onLogin }: { onLogin: (admin: any) => void }) {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
-      if (data.token && data.admin) {
-        saveAuth(data.token, data.admin);
-        onLogin(data.admin);
+      if (data.token || data.data?.token) {
+        const token = data.token || data.data.token;
+        const admin = data.admin || data.data?.user;
+        if (token && admin) {
+          saveAuth(token, admin);
+          onLogin(admin);
+        } else {
+          setError('Respuesta inválida del servidor');
+        }
       } else {
         setError('Respuesta inválida del servidor');
       }
