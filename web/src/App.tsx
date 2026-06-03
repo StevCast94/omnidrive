@@ -169,7 +169,7 @@ const routes: Route[] = [
   { path: '/bookings/:id', element: <Layout><PrivateRoute><BookingDetail /></PrivateRoute></Layout> },
 
   { path: '/profile', element: <Layout><PrivateRoute><Profile /></PrivateRoute></Layout> },
-  { path: '/admin', element: <AdminRoute><Admin /></AdminRoute> },
+  { path: '/admin', element: <Admin /> },
   { path: '*', element: <Layout><NavigateHome /></Layout> },
 ];
 

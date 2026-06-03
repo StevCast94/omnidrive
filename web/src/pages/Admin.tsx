@@ -10,7 +10,6 @@ import {
   BadgeCheck, ChevronRight, RefreshCw, CheckCircle, Search, Ban, Shield, Trash2, UserPlus, LogOut, Lock,
   Eye, XCircle
 } from 'lucide-react';
-import { Eye, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ── Auth helpers (JWT propio, localStorage) ──
