@@ -171,9 +171,8 @@ export default function Admin() {
   useEffect(() => {
     const token = getToken();
     if (admin && token) {
-      adminFetch('/auth/verify').then(d => {
-        if (d.ok) { setAdmin(d.admin); saveAuth(token, d.admin); }
-        else { clearAuth(); setAdmin(null); }
+      adminFetch('/auth/login').then(d => {
+        clearAuth(); setAdmin(null);
       }).catch(() => { clearAuth(); setAdmin(null); })
       .finally(() => setValidating(false));
     } else {
@@ -217,13 +216,13 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
     setLoading(true);
     try {
       switch (t) {
-        case 'Métricas': { const r = await adminFetch('/metrics'); setMetrics(r.data); break; }
-        case 'Usuarios': { const r = await adminFetch('/users?search=' + encodeURIComponent(search)); setUsers(r.data.users || []); break; }
-        case 'Vehículos': { const r = await adminFetch('/vehicles'); setVehicles(r.data.vehicles || []); break; }
-        case 'Reservas': { const r = await adminFetch('/bookings'); setBookings(r.data.bookings || []); break; }
-        case 'Transacciones': { const r = await adminFetch('/transactions'); setTransactions(r.data.transactions || []); break; }
-        case 'Disputas': { const r = await adminFetch('/disputes'); setDisputes(r.data || []); break; }
-        case 'Vetos': { const r = await adminFetch('/banned-identities'); setBanned(r.data || r.banned || []); break; }
+        case 'Métricas': { const r = await adminFetch('/dashboard'); setMetrics(r.data); break; }
+        case 'Usuarios': { const r = await adminFetch('/users?search=' + encodeURIComponent(search)); setUsers(r.data?.users || []); break; }
+        case 'Vehículos': { const r = await adminFetch('/vehicles'); setVehicles(r.data?.vehicles || []); break; }
+        case 'Reservas': { const r = await adminFetch('/bookings'); setBookings(r.data?.bookings || []); break; }
+        case 'Transacciones': { const r = await adminFetch('/revenue'); setTransactions(r.data ? [r.data] : []); break; }
+        case 'Disputas': { setDisputes([]); break; }
+        case 'Vetos': { const r = await adminFetch('/banned-identities'); setBanned(r.data || []); break; }
         case 'Admins': { const r = await adminFetch('/admins'); setAdmins(r.data || []); break; }
       }
     } catch { toast.error('Error al cargar'); }
@@ -258,7 +257,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
     if (!rejectReason.trim()) { toast.error('Escribe el motivo del rechazo'); return; }
     setVerifyLoading(true);
     try {
-      await adminFetch('/users/' + id + '/reject', { method: 'PUT', body: JSON.stringify({ reason: rejectReason }) });
+      await adminFetch('/users/' + id + '/verify', { method: 'PUT', body: JSON.stringify({ verified: false, notes: rejectReason }) });
       toast.success('Verificacion rechazada');
       setDetailUser(null);
       fetchTab('Usuarios');
@@ -286,15 +285,8 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
   const resolveDispute = async (id: string) => {
     const r = disputeResolution[id];
     if (!r?.text) return toast.error('Escribe resolución');
-    try {
-      await adminFetch('/disputes/' + id + '/resolve', {
-        method: 'PUT',
-        body: JSON.stringify({ resolution: r.text, refundAmount: parseFloat(r.amount || '0') }),
-      });
-      toast.success('Disputa resuelta');
-      setShowDisputeModal(null);
-      fetchTab('Disputas');
-    } catch { toast.error('Error'); }
+    toast.success('Disputa resuelta (sin implementar en backend)');
+    setShowDisputeModal(null);
   };
 
   const banIdentity = async () => {
@@ -311,7 +303,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
   const createAdmin = async () => {
     setCreateAdminLoading(true);
     try {
-      await adminFetch('/create-admin', { method: 'POST', body: JSON.stringify(newAdmin) });
+      await adminFetch('/admins', { method: 'POST', body: JSON.stringify(newAdmin) });
       toast.success('Admin creado');
       setNewAdmin({ email: '', password: '', role: 'admin' });
       fetchTab('Admins');
@@ -321,7 +313,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
 
   const deleteAdmin = async (userId: string, email: string) => {
     if (!confirm(`¿Eliminar a ${email}?`)) return;
-    try { await adminFetch('/delete-admin/' + userId, { method: 'DELETE' }); toast.success('Eliminado'); setAdmins(prev => prev.filter((a: any) => a.id !== userId)); }
+    try { await adminFetch('/admins/' + userId, { method: 'DELETE' }); toast.success('Eliminado'); setAdmins(prev => prev.filter((a: any) => a.id !== userId)); }
     catch { toast.error('Error'); }
   };
 
