@@ -55,21 +55,38 @@ function requireSuperAdmin(req: AuthRequest, res: Response, next: any) {
 
 // ── Dashboard stats ──
 adminRouter.get('/dashboard', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
   const [
-    totalUsers, totalVehicles, totalBookings, pendingVerifications,
-    activeBookings, revenue, recentUsers, recentBookings,
+    totalUsers, verifiedUsers, totalVehicles, totalBookings, pendingVerifications,
+    activeBookings, disputedBookings, revenueTotal, revenueToday, revenueMonth,
+    recentUsers, recentBookings,
   ] = await Promise.all([
     prisma.user.count(),
+    prisma.user.count({ where: { identityVerified: true } }),
     prisma.vehicle.count(),
     prisma.booking.count(),
     prisma.user.count({ where: { identityVerified: false, selfieUrl: { not: null } } }),
     prisma.booking.count({ where: { status: 'active' } }),
+    prisma.booking.count({ where: { status: 'disputed' } }),
     prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: 'payment', status: 'completed' } }),
+    prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: 'payment', status: 'completed', createdAt: { gte: today } } }),
+    prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: 'payment', status: 'completed', createdAt: { gte: monthStart } } }),
     prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, name: true, lastName: true, email: true, role: true, identityVerified: true, createdAt: true } }),
     prisma.booking.findMany({ orderBy: { createdAt: 'desc' }, take: 10, include: { vehicle: { select: { brand: true, model: true } }, tenant: { select: { name: true, lastName: true } } } }),
   ]);
 
-  return res.json({ data: { totalUsers, totalVehicles, totalBookings, pendingVerifications, activeBookings, revenue: revenue._sum.amount ?? 0, recentUsers, recentBookings }, error: null });
+  const occupancyRate = totalVehicles > 0 ? Math.round((activeBookings / totalVehicles) * 100) : 0;
+
+  return res.json({ data: {
+    totalUsers, verifiedUsers, totalVehicles, totalBookings, pendingVerifications,
+    activeBookings, openDisputes: disputedBookings, occupancyRate,
+    revenue: revenueTotal._sum.amount ?? 0,
+    revenueToday: revenueToday._sum.amount ?? 0,
+    revenueMonth: revenueMonth._sum.amount ?? 0,
+    recentUsers, recentBookings,
+  }, error: null });
 }));
 
 // ── Users CRUD ──
@@ -87,7 +104,7 @@ adminRouter.get('/users', adminAuth, asyncHandler(async (req: AuthRequest, res: 
       skip: (parseInt(page) - 1) * parseInt(limit),
       take: parseInt(limit),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, role: true, identityVerified: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, rating: true, totalTrips: true, createdAt: true, birthDate: true, gender: true },
+      select: { id: true, email: true, name: true, lastName: true, phone: true, documentType: true, documentId: true, role: true, identityVerified: true, verificationNotes: true, avatarUrl: true, walletBalance: true, subscriptionTier: true, rating: true, totalTrips: true, createdAt: true, birthDate: true, gender: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true },
     }),
     prisma.user.count({ where }),
   ]);
