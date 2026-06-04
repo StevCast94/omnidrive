@@ -1,4 +1,4 @@
-﻿// ===== web/src/components/VehicleCard.tsx =====
+// ===== web/src/components/VehicleCard.tsx =====
 import { Link } from '@/lib/router-exports';
 import { Star, MapPin, Users, Car } from 'lucide-react';
 import { Card } from './ui/Card';
@@ -156,7 +156,7 @@ function CardContent({ v, compact }: { v: any; compact: boolean }) {
             <span className="text-xs text-slate-300 font-medium">
               {v.rating > 0 ? v.rating.toFixed(1) : 'Nuevo'}
             </span>
-            {v._countú.reviews > 0 && (
+            {(v._count?.reviews ?? 0) > 0 && (
               <span className="text-xs text-slate-600">
                 ({v._count.reviews})
               </span>
