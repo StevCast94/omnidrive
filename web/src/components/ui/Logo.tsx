@@ -1,8 +1,8 @@
-// src/components/ui/Logo.tsx
+﻿// src/components/ui/Logo.tsx
 import React from 'react';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'icon' | 'full' | 'horizontal';
+  variantú: 'icon' | 'full' | 'horizontal';
   /** Si true, el isotipo gira sutilmente en hover (orbital) */
   animated?: boolean;
 }

@@ -1,6 +1,7 @@
-// ===== web/src/components/Layout.tsx =====
+﻿// ===== web/src/components/Layout.tsx =====
 import Navbar from './Navbar';
 import PushBanner from './PushBanner';
+import InstallBanner from './InstallBanner';
 import { useAuthStore } from '@/lib/store';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       {user && <PushBanner />}
+      <InstallBanner />
     </div>
   );
 }

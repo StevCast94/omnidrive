@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════════════════════════
+﻿// ══════════════════════════════════════════════════════════════════
 // Admin.tsx — Panel de administración de OmniDrive
 // Login independiente con username + password (JWT propio)
 // NO usa Supabase Auth ni useAuthStore
@@ -171,8 +171,8 @@ export default function Admin() {
   useEffect(() => {
     const token = getToken();
     if (admin && token) {
-      adminFetch('/auth/login').then(d => {
-        clearAuth(); setAdmin(null);
+      adminFetch('/auth/verify').then(d => {
+        if (!d.ok) { clearAuth(); setAdmin(null); }
       }).catch(() => { clearAuth(); setAdmin(null); })
       .finally(() => setValidating(false));
     } else {
@@ -232,7 +232,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
   useEffect(() => { fetchTab(tab); }, [tab]);
 
   const verifyUser = async (id: string) => {
-    try { await adminFetch('/users/' + id + '/verify', { method: 'PUT' }); toast.success('Verificado'); fetchTab('Usuarios'); }
+    try { await adminFetch('/users/' + id + '/verify', { method: 'PUT', body: JSON.stringify({ verified: true }) }); toast.success('Verificado'); fetchTab('Usuarios'); }
     catch { toast.error('Error'); }
   };
 
@@ -459,7 +459,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-white">{b.vehicle?.brand} {b.vehicle?.model}</p>
-                      <p className="text-xs text-slate-500">{b.renter?.name} → {b.tenant?.name}</p>
+                      <p className="text-xs text-slate-500">{b.renter?.name} → {b.tenantú.name}</p>
                       <p className="text-xs text-slate-500">{new Date(b.startAt).toLocaleDateString()} - {new Date(b.endAt).toLocaleDateString()}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-lg ${STATUS_COLORS[b.status] || 'text-slate-400 bg-slate-800'}`}>

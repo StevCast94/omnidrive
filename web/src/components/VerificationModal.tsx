@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { X, Shield, CheckCircle, AlertTriangle, Loader2, Camera, Upload, CreditCard, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi } from '@/lib/api';
@@ -83,7 +83,7 @@ export default function VerificationModal({ isOpen, onClose, onVerified }: Props
     } catch {
       // Fallback: usar input file
       setCameraMode(null);
-      fileInputRef.current?.click();
+      fileInputRef.currentú.click();
     }
   };
 

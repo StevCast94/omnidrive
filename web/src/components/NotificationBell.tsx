@@ -24,7 +24,7 @@ export default function NotificationBell() {
 
   // Close on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const handler = (e: MouseEvent) => { if (!ref.currentú.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);

@@ -1,4 +1,4 @@
-// ===== web/src/components/ContactModal.tsx =====
+﻿// ===== web/src/components/ContactModal.tsx =====
 // Chat deshabilitado — pendiente implementación futura
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@/lib/router-exports';

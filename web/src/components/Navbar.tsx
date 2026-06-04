@@ -1,4 +1,4 @@
-// ===== web/src/components/Navbar.tsx =====
+﻿// ===== web/src/components/Navbar.tsx =====
 import { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User as UserIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';

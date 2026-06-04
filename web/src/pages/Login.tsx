@@ -1,4 +1,4 @@
-// ===== web/src/pages/Login.tsx =====
+﻿// ===== web/src/pages/Login.tsx =====
 import { useState, useRef } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';

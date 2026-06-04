@@ -1,4 +1,4 @@
-// src/components/AnimatedCounter.tsx
+﻿// src/components/AnimatedCounter.tsx
 import { useEffect, useRef, useState } from 'react';
 
 interface AnimatedCounterProps {

@@ -1,4 +1,4 @@
-// Router exports — reemplazo de react-router-dom
+﻿// Router exports — reemplazo de react-router-dom
 // Importa desde @/lib/router (context standalone, sin dependencias circulares)
 export { useRouter, useNavigate, useNavigateDirect, useParams } from '@/lib/router';
 

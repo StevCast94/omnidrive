@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFace, CheckCircle, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi } from '@/lib/api';

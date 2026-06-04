@@ -1,4 +1,4 @@
-// ===== web/src/pages/AuthCallback.tsx =====
+﻿// ===== web/src/pages/AuthCallback.tsx =====
 import { useEffect, useRef } from 'react';
 import { useNavigate, useNavigateDirect } from '@/lib/router-exports';
 import { supabase } from '@/lib/supabase';

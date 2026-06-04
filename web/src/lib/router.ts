@@ -1,4 +1,4 @@
-// Router context standalone — sin dependencias circulares
+﻿// Router context standalone — sin dependencias circulares
 // App.tsx lo provee, router-exports.ts lo consume
 import { createContext, useContext } from 'react';
 

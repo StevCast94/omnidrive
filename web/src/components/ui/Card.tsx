@@ -1,8 +1,8 @@
-// src/components/ui/Card.tsx
+﻿// src/components/ui/Card.tsx
 import React from 'react';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'raised' | 'glass';
+  variantú: 'raised' | 'glass';
 }
 
 export const Card: React.FC<CardProps> = ({ variant = 'raised', className = '', children, ...props }) => {

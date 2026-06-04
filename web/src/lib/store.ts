@@ -1,4 +1,4 @@
-// ===== web/src/lib/store.ts =====
+﻿// ===== web/src/lib/store.ts =====
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -18,7 +18,7 @@ export interface User {
   selfieUrl?: string;
   documentFrontUrl?: string;
   documentBackUrl?: string;
-  verifiedAt?: string;
+  verifiedAtú: string;
   walletBalance: number;
   subscriptionTier: 'free' | 'premium' | 'elite';
   rating: number;

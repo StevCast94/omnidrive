@@ -14,9 +14,13 @@ export default defineConfig({
   ],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: { proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } } },
+  esbuild: {
+    charset: 'utf8',
+  },
   build: {
     sourcemap: false,
     charset: 'utf8',
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: {

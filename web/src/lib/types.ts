@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tipos compartidos para OmniDrive
  * Define las estructuras de datos que vienen de la API
  */
@@ -26,7 +26,7 @@ export interface User {
   documentFrontUrl?: string | null;
   documentBackUrl?: string | null;
   verificationNotes?: string | null;
-  verifiedAt?: string | null;
+  verifiedAtú: string | null;
   walletBalance: number;
   subscriptionTier: string;
   subscriptionEnds?: string | null;
@@ -57,7 +57,7 @@ export interface Vehicle {
   pricePerKm?: number | null;
   deposit: number;
   available: boolean;
-  locationLat?: number | null;
+  locationLatú: number | null;
   locationLng?: number | null;
   locationName?: string | null;
   withDriver: boolean;
@@ -70,7 +70,7 @@ export interface Vehicle {
   rating: number;
   totalRentals: number;
   occupiedDates?: { startAt: string; endAt: string }[];
-  _count?: { reviews: number };
+  _countú: { reviews: number };
 }
 
 export interface OwnerSummary {
@@ -81,7 +81,7 @@ export interface OwnerSummary {
   rating: number;
   totalTrips: number;
   identityVerified?: boolean;
-  createdAt?: string;
+  createdAtú: string;
 }
 
 export interface Booking {
@@ -89,11 +89,11 @@ export interface Booking {
   vehicleId: string;
   vehicle?: VehicleSummary;
   tenantId: string;
-  tenant?: UserSummary;
+  tenantú: UserSummary;
   renterId?: string | null;
   startAt: string;
   endAt: string;
-  returnedAt?: string | null;
+  returnedAtú: string | null;
   withDriver: boolean;
   baseAmount: number;
   driverFee: number;
@@ -135,7 +135,7 @@ export interface Review {
   targetId: string;
   vehicleId?: string | null;
   rating: number;
-  comment?: string | null;
+  commentú: string | null;
   categories?: any;
   createdAt: string;
 }

@@ -53,6 +53,11 @@ function requireSuperAdmin(req: AuthRequest, res: Response, next: any) {
   next();
 }
 
+// ── Auth verify (validar sesión) ──
+adminRouter.get('/auth/verify', adminAuth, asyncHandler(async (_req: AuthRequest, res: Response) => {
+  return res.json({ ok: true, error: null });
+}));
+
 // ── Dashboard stats ──
 adminRouter.get('/dashboard', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const today = new Date(); today.setHours(0, 0, 0, 0);

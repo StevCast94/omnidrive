@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from '@/lib/router-exports';
 import {
   Car, Shield, Star, Zap, ChevronRight, Search,
@@ -95,23 +95,6 @@ export default function Home() {
             <Button size="lg" variant="secondary" onClick={() => navigate('/register')}>
               Publicar el mío
             </Button>
-          </div>
-
-          {/* Mini buscador */}
-          <div className="mt-7 max-w-xl mx-auto animate-slide-up stagger-3">
-            <div className="flex items-center gap-2 p-2 bg-slate-900/70 backdrop-blur-md border border-slate-800 rounded-2xl focus-within:border-cyan-500/50 transition-colors">
-              <Search size={18} className="ml-3 text-slate-500 shrink-0" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="¿Qué vehículo buscas? Ej: SUV, camioneta, Quito…"
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none py-2"
-              />
-              <Button size="sm" onClick={handleSearch} className="shrink-0">
-                Buscar
-              </Button>
-            </div>
           </div>
 
           {/* Barra de confianza */}

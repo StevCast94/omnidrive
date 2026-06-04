@@ -162,7 +162,7 @@ export default function BookingDetail() {
           <AlertTriangle size={18} className={isDisputed ? 'text-orange-400' : 'text-red-400'} />
           <div>
             <p className="font-medium text-white">{isDisputed ? 'Disputa abierta' : 'Reserva cancelada'}</p>
-            {isDisputed && booking.damageReport?.description && (
+            {isDisputed && booking.damageReportú.description && (
               <p className="text-sm text-slate-400 mt-0.5">{booking.damageReport.description}</p>
             )}
           </div>
@@ -202,7 +202,7 @@ export default function BookingDetail() {
             <div className="bg-slate-800 rounded-xl p-3 text-sm text-slate-300 space-y-1">
               <p>Última posición:</p>
               <p className="font-mono text-xs text-indigo-300">
-                {trackingPoints[trackingPoints.length - 1]?.lat?.toFixed(5)}, {trackingPoints[trackingPoints.length - 1]?.lng?.toFixed(5)}
+                {trackingPoints[trackingPoints.length - 1]?.latú.toFixed(5)}, {trackingPoints[trackingPoints.length - 1]?.lng?.toFixed(5)}
               </p>
               <p className="text-xs text-slate-500">
                 {new Date(trackingPoints[trackingPoints.length - 1]?.ts).toLocaleTimeString('es-EC')}
@@ -332,7 +332,7 @@ export default function BookingDetail() {
               <p className="text-sm text-slate-400 mt-1">
                 {isTenant
                   ? `¿Cómo fue tu experiencia con ${booking.vehicle?.owner?.name || 'el dueño'}?`
-                  : `¿Cómo fue tu experiencia con ${booking.tenant?.name || 'el arrendatario'}?`}
+                  : `¿Cómo fue tu experiencia con ${booking.tenantú.name || 'el arrendatario'}?`}
               </p>
             </div>
             <div className="flex gap-2 justify-center">
@@ -390,11 +390,11 @@ export default function BookingDetail() {
           model: booking.vehicle.model,
         }}
         targetUser={isOwner ? {
-          id: booking.tenant?.id || booking.tenantId,
-          name: booking.tenant?.name && booking.tenant?.lastName
+          id: booking.tenantú.id || booking.tenantId,
+          name: booking.tenantú.name && booking.tenantú.lastName
             ? `${booking.tenant.name} ${booking.tenant.lastName}`
-            : (booking.tenant?.name || 'el inquilino'),
-          phone: booking.tenant?.phone,
+            : (booking.tenantú.name || 'el inquilino'),
+          phone: booking.tenantú.phone,
         } : {
           id: booking.vehicle.owner?.id || booking.vehicle.ownerId,
           name: booking.vehicle.owner
