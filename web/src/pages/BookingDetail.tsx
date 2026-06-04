@@ -240,7 +240,7 @@ export default function BookingDetail() {
         {isOwner && booking.status === 'pending' && (
           <div className="grid grid-cols-2 gap-3">
             <button disabled={!!actionLoading}
-              onClick={() => action('confirm', () => bookingsApi.confirm(id!, { ownerAcceptsWaiver: !booking.hasInsurance }))}
+              onClick={() => action('confirm', () => bookingsApi.confirm(id!, { ownerAcceptsWaiver: true }))}
               className="py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
               {actionLoading === 'confirm' ? '...' : <><Check size={16} /> Confirmar</>}
             </button>

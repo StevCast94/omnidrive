@@ -153,6 +153,18 @@ adminRouter.put('/users/:id/verify', adminAuth, asyncHandler(async (req: AuthReq
     data: { identityVerified: verified, selfieUrl: verified ? undefined : null, documentFrontUrl: verified ? undefined : null, documentBackUrl: verified ? undefined : null, verificationNotes: notes || null, verifiedBy: req.user!.id, verifiedAt: verified ? new Date() : undefined },
     select: { id: true, name: true, lastName: true, identityVerified: true, verificationNotes: true, verifiedAt: true },
   });
+
+  if (verified) {
+    await prisma.notification.create({
+      data: {
+        userId: req.params.id as string,
+        type: 'identity_verified',
+        title: '¡Identidad verificada!',
+        body: 'Tu documento fue aprobado. Ya puedes publicar vehículos y reservar.',
+      },
+    });
+  }
+
   return res.json({ data: updated, error: null });
 }));
 

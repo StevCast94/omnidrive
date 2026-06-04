@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Plus, Car, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, Star } from 'lucide-react';
 import { bookings as bookingsApi, vehicles as vehiclesApi } from '@/lib/api';
@@ -29,7 +29,7 @@ function BookingRow({ b, onClick }: { b: any; onClick: () => void }) {
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-white text-sm truncate">{b.vehicle?.brand} {b.vehicle?.model} {b.vehicle?.year}</p>
         <p className="text-xs text-slate-500 mt-0.5">
-          {new Date(b.startAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} �{' '}
+          {new Date(b.startAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} -{' '}
           {new Date(b.endAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
         <p className="text-xs text-slate-400 mt-0.5 font-medium">${Number(b.totalAmount).toFixed(2)}</p>
@@ -136,7 +136,7 @@ export default function Dashboard() {
           {tab === 'tenant' && (
             <div className="space-y-3">
               {tenantBookings.length === 0 ? (
-                <Empty text="A�n no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar vehículos" />
+                <Empty text="A-n no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar vehículos" />
               ) : tenantBookings.map(b => (
                 <BookingRow key={b.id} b={b} onClick={() => navigate(`/bookings/${b.id}`)} />
               ))}
@@ -147,7 +147,7 @@ export default function Dashboard() {
           {tab === 'owner' && (
             <div className="space-y-3">
               {ownerBookings.length === 0 ? (
-                <Empty text="No has recibido solicitudes a�n" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar un vehículo" />
+                <Empty text="No has recibido solicitudes a-n" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar un vehículo" />
               ) : ownerBookings.map(b => (
                 <BookingRow key={b.id} b={b} onClick={() => navigate(`/bookings/${b.id}`)} />
               ))}
@@ -158,7 +158,7 @@ export default function Dashboard() {
           {tab === 'vehicles' && (
             <div>
               {myVehicles.length === 0 ? (
-                <Empty text="A�n no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
+                <Empty text="A-n no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {myVehicles.map(v => <VehicleCard key={v.id} vehicle={v} onClick={() => navigate('/profile?tab=vehicle')} />)}

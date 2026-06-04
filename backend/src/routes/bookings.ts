@@ -231,10 +231,10 @@ bookingsRouter.put('/:id/start', authenticate, asyncHandler(async (req: AuthRequ
 
   await prisma.notification.create({
     data: {
-      userId: booking.vehicle.ownerId,
+      userId: booking.tenantId,
       type: 'booking_active',
       title: 'Viaje iniciado',
-      body: `El arrendatario inicio el viaje de tu ${booking.vehicle.brand} ${booking.vehicle.model}`,
+      body: `El dueño inició el viaje de tu ${booking.vehicle.brand} ${booking.vehicle.model}`,
       data: { bookingId: booking.id },
     },
   });
