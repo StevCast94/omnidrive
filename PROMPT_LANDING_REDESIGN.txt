@@ -1,0 +1,128 @@
+# 🚗 OMNIDRIVE — PROMPT: REDISEÑO LANDING PAGE
+
+## ⚠️ ROL DE CLAUDE EN ESTA RESPUESTA
+
+**Modo CONSULTOR CREATIVO.** No estás programando todavía. Tu trabajo ahora es:
+
+1. Leer el landing actual de OmniDrive
+2. Proponer **3-4 opciones de rediseño** del hero + secciones principales
+3. Cada opción debe incluir: copy propuesto, estructura visual, tipo de animaciones/imágenes
+4. Recomendar cuál elegir y por qué
+
+Cuando elijamos una opción, se te pasará el código para que la implementes.
+
+---
+
+## 🎯 CONTEXTO
+
+OmniDrive es una plataforma P2P de renta de vehículos en Ecuador.
+
+**Stack del proyecto:**
+- Frontend: React 19 + Vite + Tailwind v4 + HashRouter custom
+- Backend: Express + Prisma + Railway PostgreSQL
+- URL: https://omnidrive.lat
+- 9 vehículos activos, sistema de verificación de identidad, reseñas, booking flow
+
+**El landing actual está en:** `C:\Users\Admin\Desktop\omnidrive-new\web\src\pages\Home.tsx`
+
+**Problema:** El hero actual tiene un texto genérico y no transmite la visión real del proyecto. Carece de impacto visual, animaciones llamativas, y confianza.
+
+---
+
+## 🎯 LA VISIÓN REAL DE OMNIDRIVE
+
+No somos "otro marketplace de alquiler de autos". Somos una plataforma que busca:
+
+1. **Revolucionar la movilidad** — Democratizar el acceso a vehículos sin necesidad de ser dueño
+2. **Optimización de recursos** — Un auto parado 22h al día es un activo desperdiciado. Lo convertimos en generador de ingresos
+3. **Convertir pasivos en activos** — Todo vehículo tiene el potencial de pagarse solo
+4. **La cooperación como pilar** — No es dueño vs arrendatario. Es una comunidad donde todos ganan: el dueño genera ingresos, el arrendatario accede a movilidad sin deuda
+5. **Confianza verificada** — No somos anónimos. Verificación de identidad real, reseñas, transparencia
+
+---
+
+## 📐 LO QUE QUEREMOS
+
+Un landing que:
+
+1. **Impacte visualmente** — Animaciones sutiles pero modernas (CSS/Tailwind, no librerías pesadas). Imágenes que aludan a movilidad, libertad, comunidad
+2. **Genere confianza** — Desde el primer segundo, el visitante debe sentir que esto es serio, seguro, diferente
+3. **Comunique la visión** — No solo "alquila un auto". El mensaje debe ser: "Esto es un movimiento. Únete."
+4. **Convierta** — Call-to-actions claros para arrendatarios Y dueños (dos públicos distintos)
+
+---
+
+## 🎨 LO QUE QUEREMOS QUE PROPONGAS
+
+Danos **3-4 opciones distintas** para el hero + estructura del landing. Cada opción debe incluir:
+
+### Para cada opción:
+1. **Copy del hero** (headline + subheadline + CTAs)
+2. **Concepto visual** (colores, estilo de imágenes/ilustraciones, tipo de animaciones)
+3. **Estructura de secciones** (qué secciones mantener, cuáles cambiar, orden)
+4. **Elementos de confianza** (cómo transmitir seguridad, verificación, comunidad)
+5. **Boceto textual** de cómo se vería (ASCII o descripción detallada)
+
+### Al final:
+- **Tu recomendación:** ¿Cuál elegirías y por qué?
+- **Qué eliminarías** del landing actual (hay secciones que sobran o no aportan)
+- **Qué images/animaciones específicas** necesitaríamos crear
+
+---
+
+## 📂 REFERENCIA — Landing Actual (`web/src/pages/Home.tsx`)
+
+```
+Estructura actual:
+
+1. HERO:
+   - Fondo con grid pattern + blur circles animados (cyan + indigo)
+   - Badge: "El futuro de la movilidad compartida"
+   - Headline: "Olvídate de ser dueño. Conduce lo que quieras, cuando quieras."
+   - Subheadline: "Únete a la red P2P más avanzada de Ecuador..."
+   - 2 CTAs: "Explorar Vehículos" + "Publicar mi vehículo"
+
+2. CATEGORÍAS: 7 botones de categoría (Todos, Autos, SUV, Motos, etc.)
+
+3. VEHÍCULOS DESTACADOS: Grid de 6 cards con los mejor calificados
+
+4. CÓMO FUNCIONA: 3 pasos (Elige, Fechas, Conecta)
+
+5. ¿POR QUÉ OMNIDRIVE?: Grid 3x2 con beneficios (Seguridad, Reseñas, Contacto, Flexibilidad, Ingresos, Ecuador)
+
+6. CTA FINAL: "¿Tienes un vehículo parado?" + Publicar/Explorar
+```
+
+**Problemas detectados:**
+- El hero tiene los caracteres con tildes corruptos (ya arreglado el build pero este texto específico es débil)
+- El copy "Olvídate de ser dueño" es negativo — empieza diciendo lo que NO queremos
+- "red P2P" suena técnico para usuarios ecuatorianos comunes
+- Sin imágenes reales de vehículos en el hero — solo gradientes abstractos
+- Las secciones son muy texto, poca emoción
+- No hay elementos que transmitan comunidad/cooperación
+- No hay contador de confianza (X usuarios verificados, Y vehículos, Z viajes)
+
+---
+
+## ⚠️ REGLAS TÉCNICAS
+
+- **Todo en Tailwind v4** — utility classes, sin CSS modules
+- **Animaciones con CSS/Tailwind** + framer-motion si es necesario
+- **Sin librerías externas de animación pesadas** (nada de Three.js, GSAP, etc.)
+- **Responsive mobile-first**
+- **Paleta actual:** slate-950 (fondo), cyan-500 + indigo-500 (acentos), blanco
+- Las imágenes deben servirse desde Cloudinary (`db3t73yas`) o usar SVGs inline
+- El código actual está en `web/src/pages/Home.tsx` — los componentes compartidos están en `web/src/components/`
+
+---
+
+## 📋 ENTREGABLE
+
+De ti esperamos **un solo mensaje** con:
+
+1. Breve diagnóstico de qué no funciona en el landing actual (sé brutal)
+2. **3-4 opciones de rediseño** con todos los elementos listados arriba
+3. **Tu recomendación final** justificada
+4. ¿Qué secciones del landing actual eliminarías o fusionarías?
+
+Cuando elijamos una opción, te paso el código actual y lo implementas.

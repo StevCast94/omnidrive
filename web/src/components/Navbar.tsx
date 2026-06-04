@@ -43,7 +43,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <button onClick={() => navigate('/')} className="flex-shrink-0">
-            <Logo variant="horizontal" className={scrolled ? 'scale-90 transition-transform' : 'transition-transform'} />
+            <Logo variant="horizontal" animated className={scrolled ? 'scale-90 transition-transform' : 'transition-transform'} />
           </button>
 
           {/* Desktop links */}

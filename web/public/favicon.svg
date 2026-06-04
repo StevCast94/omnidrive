@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#0F172A"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="#3B82F6" font-family="sans-serif" font-weight="bold">O</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="omni-grad" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="55%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="#0F172A"/>
+  <g transform="translate(50 50) scale(0.7) translate(-50 -50)">
+    <path d="M63 14 A 38 38 0 0 1 86 63" stroke="url(#omni-grad)" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <path d="M37 86 A 38 38 0 0 1 14 37" stroke="url(#omni-grad)" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <circle cx="23" cy="23" r="6.5" fill="url(#omni-grad)"/>
+    <circle cx="77" cy="77" r="6.5" fill="url(#omni-grad)"/>
+    <path d="M41 35 L59 50 L41 65" stroke="url(#omni-grad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>
