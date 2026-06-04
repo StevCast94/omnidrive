@@ -44,29 +44,45 @@ export default function Home() {
       <section className="relative overflow-hidden pt-32 pb-20 md:pb-28 lg:pt-44 lg:pb-32 min-h-[88vh] flex items-center">
         {/* Fondo */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-          <div className="absolute left-0 right-0 top-0 m-auto h-[340px] w-[340px] rounded-full bg-cyan-500 opacity-20 blur-[110px] animate-pulse" />
-          <div className="absolute right-16 bottom-10 h-[280px] w-[280px] rounded-full bg-indigo-500 opacity-20 blur-[110px] animate-pulse" style={{ animationDelay: '2s' }} />
-          <div className="absolute left-10 bottom-32 h-[200px] w-[200px] rounded-full bg-cyan-400 opacity-10 blur-[90px] animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.10)_0%,_transparent_55%)]" />
+          {/* Foto: movilidad + libertad + ruta abierta */}
+          <img
+            src="/hero-photo.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-center scale-105 animate-[float_18s_ease-in-out_infinite]"
+          />
+          {/* Capas para integrar la foto al tema slate y dar legibilidad */}
+          <div className="absolute inset-0 bg-slate-950/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-950/30 to-slate-950" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-transparent to-slate-950/50" />
+          {/* Tinte de marca cyan/indigo */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(6,182,212,0.18)_0%,_transparent_45%)] mix-blend-screen" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(99,102,241,0.18)_0%,_transparent_45%)] mix-blend-screen" />
+          {/* Grid sutil y blurs de acento */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808010_1px,transparent_1px),linear-gradient(to_bottom,#80808010_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="absolute left-0 right-0 top-0 m-auto h-[320px] w-[320px] rounded-full bg-cyan-500 opacity-15 blur-[120px] animate-pulse" />
+          <div className="absolute right-16 bottom-10 h-[260px] w-[260px] rounded-full bg-indigo-500 opacity-15 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-950 to-transparent" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
-          <Badge variant="cyan" className="mb-6 px-4 py-1.5 text-sm animate-slide-up">
-            <span className="mr-1.5">🇪🇨</span> La comunidad de movilidad de Ecuador
-          </Badge>
+          <div className="mb-7 animate-slide-up">
+            <span className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 text-base md:text-lg font-semibold text-white shadow-[0_0_30px_rgba(6,182,212,0.12)]">
+              <span className="text-xl md:text-2xl leading-none">🇪🇨</span>
+              <span>La comunidad de movilidad de <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Ecuador</span></span>
+            </span>
+          </div>
 
-          <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-6 leading-[1.05] tracking-tight animate-slide-up stagger-1">
-            Muévete sin deudas.<br />
+          <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-6 leading-[1.05] tracking-tight animate-slide-up stagger-1 [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
+            Conduce lo que quieras,<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500">
-              Gana sin venderlo.
+              cuando quieras.
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-400 mb-9 max-w-2xl mx-auto animate-slide-up stagger-2">
-            La plataforma donde los vehículos parados se vuelven ingresos, y moverte
-            ya no significa endeudarte. Personas verificadas, contacto directo, hecho en Ecuador.
+          <p className="text-lg md:text-xl text-slate-300 mb-9 max-w-2xl mx-auto animate-slide-up stagger-2 [text-shadow:0_1px_12px_rgba(0,0,0,0.5)]">
+            Encuentra y alquila el vehículo perfecto de anfitriones locales verificados.
+            Sin trámites eternos, con contacto directo y precios en USD.
           </p>
 
           {/* CTAs */}
