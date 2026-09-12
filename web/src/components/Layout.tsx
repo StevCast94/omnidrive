@@ -1,17 +1,38 @@
-﻿// ===== web/src/components/Layout.tsx =====
+// ===== web/src/components/Layout.tsx =====
 import Navbar from './Navbar';
 import PushBanner from './PushBanner';
 import InstallBanner from './InstallBanner';
+import AvisoPais from './AvisoPais';
 import { useAuthStore } from '@/lib/store';
+import { usePais } from '@/lib/money';
+import { Link } from '@/lib/router-exports';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
+  const pais = usePais(s => s.pais);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
       <Navbar />
-      <main className="pt-16">
+      <AvisoPais />
+
+      <main className="pt-16 flex-1">
         {children}
       </main>
+
+      {/* Saber en qué país estás y poder cambiarlo tiene que estar siempre a
+          mano: cada país es una base y unas cuentas distintas. */}
+      <footer className="border-t border-slate-900 mt-12">
+        <div className="max-w-6xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="text-slate-500">
+            <span aria-hidden="true">{pais.flag}</span> OmniDrive {pais.name}
+          </span>
+          <Link to="/paises" className="text-slate-400 hover:text-white transition-colors">
+            Cambiar de país
+          </Link>
+        </div>
+      </footer>
+
       {user && <PushBanner />}
       <InstallBanner />
     </div>

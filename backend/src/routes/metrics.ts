@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { adminAuth } from '../middleware/adminAuth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { env } from '../config/env';
-import { getCountry } from '../config/country';
+import { getCountry, todosLosPaises } from '../config/country';
 
 const pais = getCountry(env.COUNTRY_CODE);
 
@@ -31,7 +31,19 @@ metricsRouter.get('/config', (_req: Request, res: Response) => {
       pilotArea: pais.pilotArea,
       dataProtectionLaw: pais.dataProtectionLaw,
       // Para que el front sepa si pintar el boton de Google.
+      siteUrl: pais.siteUrl,
       googleEnabled: Boolean(env.GOOGLE_CLIENT_ID),
+      // Los demas paises donde opera OmniDrive, para el selector. Solo lo
+      // publico: bandera, nombre, zona horaria y donde vive cada sitio.
+      paises: todosLosPaises().map(p => ({
+        code: p.code,
+        name: p.name,
+        flag: p.flag,
+        currency: p.currency,
+        timezone: p.timezone,
+        pilotArea: p.pilotArea,
+        siteUrl: p.siteUrl,
+      })),
     },
     error: null,
   });

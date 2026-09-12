@@ -43,6 +43,13 @@ export interface CountryConfig {
   pilotArea: string;
   /** Ciudades sugeridas al publicar un vehiculo. */
   cities: string[];
+
+  /**
+   * Donde vive el sitio de este pais. Lo usa el selector de pais y la lista
+   * de origenes permitidos por CORS. Se puede sobrescribir con SITE_URL_<CODIGO>
+   * sin tocar el codigo, que es lo que hara falta cuando RD tenga dominio propio.
+   */
+  siteUrl: string;
 }
 
 const EC: CountryConfig = {
@@ -70,6 +77,7 @@ const EC: CountryConfig = {
 
   dataProtectionLaw: 'Ley Orgánica de Protección de Datos Personales (LOPDP)',
 
+  siteUrl: process.env.SITE_URL_EC || 'https://omnidrive.lat',
   pilotArea: 'Santa Elena / Ruta del Spondylus',
   cities: ['Santa Elena', 'Salinas', 'La Libertad', 'Montañita', 'Manglaralto', 'Guayaquil', 'Quito'],
 };
@@ -104,11 +112,22 @@ const DO: CountryConfig = {
 
   dataProtectionLaw: 'Ley 172-13 de Protección de Datos Personales',
 
+  siteUrl: process.env.SITE_URL_DO || 'https://omnidrive-do-production.up.railway.app',
   pilotArea: 'Bávaro – Punta Cana',
   cities: ['Punta Cana', 'Bávaro', 'Higüey', 'Santo Domingo', 'Santiago', 'Samaná', 'Las Terrenas', 'Puerto Plata'],
 };
 
 const COUNTRIES: Record<CountryCode, CountryConfig> = { EC, DO };
+
+/** Todos los paises donde opera OmniDrive. Lo consume el selector de pais. */
+export function todosLosPaises(): CountryConfig[] {
+  return Object.values(COUNTRIES);
+}
+
+/** Origenes permitidos por CORS: los sitios de todos los paises. */
+export function origenesPermitidos(): string[] {
+  return todosLosPaises().map(p => p.siteUrl);
+}
 
 export function getCountry(code: string): CountryConfig {
   const found = COUNTRIES[code as CountryCode];

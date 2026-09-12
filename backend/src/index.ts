@@ -18,6 +18,7 @@ import { metricsRouter }       from './routes/metrics';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { env }                 from './config/env';
+import { origenesPermitidos }  from './config/country';
 import { apiLimiter }          from './middleware/rateLimit';
 
 const app = express();
@@ -47,7 +48,13 @@ app.use(helmet({
   },
 }));
 
-app.use(cors({ origin: env.FRONTEND_URL || true, credentials: true }));
+// El SPA se sirve desde el mismo origen que la API, asi que CORS solo importa
+// para el selector de pais, que lee las metricas publicas del otro pais.
+const ORIGENES = origenesPermitidos();
+app.use(cors({
+  origin: (origen, cb) => cb(null, !origen || ORIGENES.includes(origen)),
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
