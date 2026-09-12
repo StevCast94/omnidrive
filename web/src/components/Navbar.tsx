@@ -57,6 +57,7 @@ export default function Navbar() {
             {user && (
               <>
                 <NavLink to="/dashboard" current={path} label="Dashboard" />
+                <NavLink to="/billetera" current={path} label="Billetera" />
                 <NavLink to="/profile" current={path} label="Perfil" />
                 {user.role === 'admin' && <NavLink to="/admin" current={path} label="Admin" />}
               </>
@@ -113,6 +114,7 @@ export default function Navbar() {
           {user && (
             <>
               <MobileNavLink to="/dashboard" current={path} label="Dashboard" onClick={() => setOpen(false)} />
+              <MobileNavLink to="/billetera" current={path} label="Billetera" onClick={() => setOpen(false)} />
               <MobileNavLink to="/profile" current={path} label="Perfil" onClick={() => setOpen(false)} />
               {user.role === 'admin' && <MobileNavLink to="/admin" current={path} label="Admin" onClick={() => setOpen(false)} />}
             </>

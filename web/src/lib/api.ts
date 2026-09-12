@@ -100,9 +100,6 @@ export const bookings = {
   dispute: (id: string, description: string) => api.post(`/bookings/${id}/dispute`, { description }),
 };
 
-// Payments movido a feature/stripe-connect — activar cuando Stripe Connect este listo
-// export const payments = { ... }
-
 export const tracking = {
   report: (bookingId: string, d: any) => api.post(`/tracking/${bookingId}`, d),
   get: (bookingId: string) => api.get(`/tracking/${bookingId}`),
@@ -115,6 +112,15 @@ export const reviewsApi = {
 
 // Subscriptions movido a feature/stripe-connect
 // export const subscriptions = { ... }
+
+export const payments = {
+  saldo: () => api.get('/payments/saldo'),
+  movimientos: (limite?: number) => api.get('/payments/movimientos', { params: { limite } }),
+  instrucciones: () => api.get('/payments/instrucciones'),
+  recargar: (fd: FormData) => api.post('/payments/recargas', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  retirar: (d: { monto: string; banco: string; numeroCuenta: string; titular: string }) =>
+    api.post('/payments/retiros', d),
+};
 
 export const metrics = {
   config: () => api.get('/metrics/config'),
@@ -136,6 +142,9 @@ export const adminApi = {
   unbanIdentity: (id: string) => api.delete(`/admin/banned-identities/${id}`),
   verifyCedula: (documentId: string) => api.post('/admin/verify-cedula', { documentId }),
   deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
+  pagosPendientes: () => api.get('/admin/pagos/pendientes'),
+  confirmarPago: (id: string) => api.post(`/admin/pagos/${id}/confirmar`),
+  rechazarPago: (id: string, motivo: string) => api.post(`/admin/pagos/${id}/rechazar`, { motivo }),
 };
 
 
