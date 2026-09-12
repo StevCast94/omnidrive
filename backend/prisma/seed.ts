@@ -29,6 +29,18 @@ async function createAuthUser(email: string, password: string, phone: string) {
   return data.user.id; // Supabase UUID
 }
 
+
+// El seed crea admin@omnidrive.ec con una contrasena conocida y publica en el
+// repositorio. En junio se desactivo el endpoint HTTP que lo ejecutaba, pero
+// seguia corriendo al arrancar el contenedor en cada deploy: un backdoor de
+// admin en produccion. Ahora se niega a ejecutarse alli.
+if (process.env.NODE_ENV === 'production' && process.env.SEED_ENABLED !== 'true') {
+  // Salir con 0, no con 1: si el arranque encadena el seed con el servidor,
+  // un exit(1) tumbaria el contenedor entero.
+  console.warn('[Seed] Omitido en produccion. Usa SEED_ENABLED=true solo si sabes lo que haces.');
+  process.exit(0);
+}
+
 async function main() {
   console.log('🌱 Seeding OmniDrive...');
 
