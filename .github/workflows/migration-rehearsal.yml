@@ -74,9 +74,11 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --no-audit --no-fund
-          # La BD viene de db push: no tiene historial. Se marca la baseline
-          # como ya aplicada y se despliega solo lo nuevo.
-          npx prisma migrate resolve --applied 0_init
+          # La baseline puede venir ya registrada en el clon (produccion la
+          # tiene). Solo se marca si falta.
+          if ! PGPASSWORD=ensayo psql -h localhost -U postgres -d ensayo -tAc                "SELECT 1 FROM public._prisma_migrations WHERE migration_name='0_init'" | grep -q 1; then
+            npx prisma migrate resolve --applied 0_init
+          fi
           npx prisma migrate deploy
 
       - name: Comprobar la estructura resultante
