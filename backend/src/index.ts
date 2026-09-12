@@ -21,6 +21,10 @@ import { env }                 from './config/env';
 import { origenesPermitidos }  from './config/country';
 import { apiLimiter }          from './middleware/rateLimit';
 
+// Sitios de todos los paises: los usan CORS y la CSP, porque el selector de
+// pais lee las metricas publicas del otro pais.
+const ORIGENES = origenesPermitidos();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -33,7 +37,10 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       baseUri: ["'self'"],
-      connectSrc: ["'self'", "https://accounts.google.com/gsi/", "https://*.googleusercontent.com", "https://res.cloudinary.com"],
+      // ...ORIGENES: el selector de pais lee las metricas publicas del otro
+      // pais. Permitirlo en CORS no basta; el navegador tambien lo bloquea
+      // por CSP si no esta aqui.
+      connectSrc: ["'self'", ...ORIGENES, "https://accounts.google.com/gsi/", "https://*.googleusercontent.com", "https://res.cloudinary.com"],
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
@@ -48,9 +55,6 @@ app.use(helmet({
   },
 }));
 
-// El SPA se sirve desde el mismo origen que la API, asi que CORS solo importa
-// para el selector de pais, que lee las metricas publicas del otro pais.
-const ORIGENES = origenesPermitidos();
 app.use(cors({
   origin: (origen, cb) => cb(null, !origen || ORIGENES.includes(origen)),
   credentials: true,

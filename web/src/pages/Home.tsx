@@ -5,7 +5,7 @@ import {
   TrendingUp, Clock, MessageCircle, LayoutGrid, Bike,
   Truck, Container, Gem, Gauge, KeyRound, Wallet, BadgeCheck,
 } from 'lucide-react';
-import { vehicles as vehiclesApi } from '@/lib/api';
+import { vehicles as vehiclesApi, metrics } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +26,13 @@ export default function Home() {
   const [featured, setFeatured] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [cifras, setCifras] = useState<{ vehicles_active: number; verified_pct: number; rating_avg: number | null } | null>(null);
+
+  useEffect(() => {
+    metrics.publicas()
+      .then(r => setCifras(r.data.data))
+      .catch(() => setCifras(null));
+  }, []);
 
   useEffect(() => {
     vehiclesApi.list({ sort: 'rating_desc' })
@@ -97,12 +104,21 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Barra de confianza */}
-          <div className="mt-12 grid grid-cols-3 gap-4 max-w-2xl mx-auto animate-slide-up stagger-3">
-            <TrustStat value={<AnimatedCounter to={9} suffix="+" />} label="Vehículos activos" icon={Car} />
-            <TrustStat value={<AnimatedCounter to={100} suffix="%" />} label="Identidad verificada" icon={BadgeCheck} />
-            <TrustStat value={<AnimatedCounter to={4.9} decimals={1} />} label="Calificación promedio" icon={Star} />
-          </div>
+          {/* Barra de confianza — cifras reales de este país */}
+          {cifras && (cifras.vehicles_active > 0 || cifras.rating_avg !== null) && (
+            <div className="mt-12 grid gap-4 max-w-2xl mx-auto animate-slide-up stagger-3"
+                 style={{ gridTemplateColumns: `repeat(${[cifras.vehicles_active > 0, cifras.vehicles_active > 0, cifras.rating_avg !== null].filter(Boolean).length}, minmax(0, 1fr))` }}>
+              {cifras.vehicles_active > 0 && (
+                <TrustStat value={<AnimatedCounter to={cifras.vehicles_active} />} label="Vehículos activos" icon={Car} />
+              )}
+              {cifras.vehicles_active > 0 && (
+                <TrustStat value={<AnimatedCounter to={cifras.verified_pct} suffix="%" />} label="Identidad verificada" icon={BadgeCheck} />
+              )}
+              {cifras.rating_avg !== null && (
+                <TrustStat value={<AnimatedCounter to={cifras.rating_avg} decimals={1} />} label="Calificación promedio" icon={Star} />
+              )}
+            </div>
+          )}
         </div>
       </section>
 
