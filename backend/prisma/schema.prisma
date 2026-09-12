@@ -3,25 +3,26 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 // ========== USER MANAGEMENT ==========
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  authId       String   @unique @db.Uuid   // Supabase Auth UID
-  email        String   @unique
-  username     String?  @unique              // Login de administrador (solo admins)
-  phone        String?  @unique
-  name         String
-  lastName     String
-  documentType String   // cedula, pasaporte
-  documentId   String?  @unique
-  birthDate    DateTime?
-  gender       String?
+  id              String    @id @default(uuid()) @db.Uuid
+  authId          String    @unique @db.Uuid // Supabase Auth UID
+  email           String    @unique
+  username        String?   @unique // Login de administrador (solo admins)
+  phone           String?   @unique
+  name            String
+  lastName        String
+  documentType    String // cedula, pasaporte
+  documentCountry String    @default("EC") // pais emisor del documento
+  documentId      String?   @unique
+  birthDate       DateTime?
+  gender          String?
 
   // Avatar / Foto de perfil
   avatarUrl String?
@@ -32,22 +33,27 @@ model User {
   documentFrontUrl  String?
   documentBackUrl   String?
   verifiedAt        DateTime?
-  verificationNotes String?   // Rejection reason or admin notes
-  verifiedBy        String?   @db.Uuid  // Admin who verified/rejected
+  verificationNotes String? // Rejection reason or admin notes
+  verifiedBy        String?   @db.Uuid // Admin who verified/rejected
 
   // Wallet
-  walletBalance Decimal @default(0) @db.Decimal(10, 2)
+  walletBalance  Int    @default(0) // centavos
+  walletCurrency String @default("USD") // USD en EC, DOP en RD
 
   // Suscripción
   subscriptionTier String    @default("free") // free, premium, elite
   subscriptionEnds DateTime?
 
   // Scoring (estilo Airbnb)
-  rating     Float @default(0)   // Promedio de reseñas recibidas (1-5)
-  totalTrips Int   @default(0)   // Viajes completados (dueño + inquilino)
+  rating     Float @default(0) // Promedio de reseñas recibidas (1-5)
+  totalTrips Int   @default(0) // Viajes completados (dueño + inquilino)
 
   // Roles
   role String @default("user") // user, verifier, admin, superadmin
+
+  // Pais de la cuenta. Las BD estan separadas por pais, pero el dato viaja
+  // en backups, exportaciones y en la consola global de F8.
+  countryCode String @default("EC") // EC, DO
 
   // Relaciones
   vehicles      Vehicle[]
@@ -68,7 +74,7 @@ model User {
 
 model BannedIdentity {
   id         String   @id @default(uuid()) @db.Uuid
-  documentId String   @unique  // cédula vetada
+  documentId String   @unique // cédula vetada
   reason     String
   bannedBy   String?  @db.Uuid // userId que vetó (admin)
   active     Boolean  @default(true)
@@ -80,7 +86,7 @@ model UserDocument {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
   user      User      @relation(fields: [userId], references: [id])
-  type      String    // license, insurance, soat, matricula
+  type      String // license, insurance, soat, matricula
   url       String
   verified  Boolean   @default(false)
   expiresAt DateTime?
@@ -103,6 +109,7 @@ model Vehicle {
   vin   String @unique
 
   // Clasificación
+  countryCode  String @default("EC") // EC, DO
   category     String // car, motorcycle, truck, van, suv, luxury
   seats        Int
   doors        Int?
@@ -113,10 +120,11 @@ model Vehicle {
   photos String[]
 
   // Precios
-  pricePerHour Decimal  @db.Decimal(10, 2)
-  pricePerDay  Decimal  @db.Decimal(10, 2)
-  pricePerKm   Decimal? @db.Decimal(10, 2)
-  deposit      Decimal  @default(0) @db.Decimal(10, 2)
+  pricePerHour Int // centavos
+  pricePerDay  Int // centavos
+  pricePerKm   Int? // centavos
+  deposit      Int    @default(0) // centavos
+  currency     String @default("USD") // moneda de los precios de arriba
 
   // Disponibilidad
   available    Boolean @default(true)
@@ -125,16 +133,16 @@ model Vehicle {
   locationName String?
 
   // Features
-  withDriver  Boolean  @default(false)
-  driverPrice Decimal? @db.Decimal(10, 2)
+  withDriver      Boolean @default(false)
+  driverPrice     Int? // centavos
   flexibleCheckin Boolean @default(true)
-  checkInTime  String? // HH:mm cuando flexibleCheckin=false
-  checkOutTime String? // HH:mm cuando flexibleCheckin=false
+  checkInTime     String? // HH:mm cuando flexibleCheckin=false
+  checkOutTime    String? // HH:mm cuando flexibleCheckin=false
 
   // Estado
-  mileage         Int       @default(0)
-  lastMaintenance DateTime?
-  insurance       Boolean   @default(false)
+  mileage          Int       @default(0)
+  lastMaintenance  DateTime?
+  insurance        Boolean   @default(false)
   insuranceExpires DateTime?
 
   // Stats
@@ -152,6 +160,11 @@ model Vehicle {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([category])
+  @@index([available])
+  @@index([countryCode])
 }
 
 // ========== BOOKING / RENTAL ==========
@@ -175,12 +188,13 @@ model Booking {
   driverId   String? @db.Uuid
 
   // Pricing
-  baseAmount   Decimal @db.Decimal(10, 2)
-  driverFee    Decimal @default(0) @db.Decimal(10, 2)
-  insuranceFee Decimal @default(0) @db.Decimal(10, 2)
-  serviceFee   Decimal @db.Decimal(10, 2)
-  totalAmount  Decimal @db.Decimal(10, 2)
-  deposit      Decimal @db.Decimal(10, 2)
+  baseAmount   Int // centavos
+  driverFee    Int    @default(0) // centavos
+  insuranceFee Int    @default(0) // centavos
+  serviceFee   Int // centavos
+  totalAmount  Int // centavos
+  currency     String @default("USD")
+  deposit      Int // centavos
 
   // Insurance
   hasInsurance     Boolean @default(false)
@@ -188,8 +202,10 @@ model Booking {
   liabilityWaiver  Boolean @default(false)
 
   // Tracking
-  trackingEnabled Boolean @default(false)
-  trackingData    Json?
+  trackingEnabled   Boolean         @default(false)
+  trackingConsentAt DateTime? // consentimiento explicito del inquilino
+  trackingPoints    TrackingPoint[]
+  trackingData      Json?
 
   // Status
   status String @default("pending") // pending, confirmed, active, completed, cancelled, disputed
@@ -206,22 +222,27 @@ model Booking {
   transactionId String?
 
   conversations Conversation[]
-  review         Review?
+  review        Review?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([vehicleId, status])
+  @@index([tenantId])
+  @@index([renterId])
+  @@index([status, startAt])
 }
 
 // ========== REVIEWS ==========
 
 model Review {
-  id        String  @id @default(uuid()) @db.Uuid
-  bookingId String  @unique @db.Uuid
-  booking   Booking @relation(fields: [bookingId], references: [id])
-  authorId  String  @db.Uuid
-  author    User    @relation(fields: [authorId], references: [id])
-  targetId  String  @db.Uuid
-  vehicleId String? @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  bookingId String   @unique @db.Uuid
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  authorId  String   @db.Uuid
+  author    User     @relation(fields: [authorId], references: [id])
+  targetId  String   @db.Uuid
+  vehicleId String?  @db.Uuid
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
 
   rating     Int
@@ -229,41 +250,49 @@ model Review {
   categories Json?
 
   createdAt DateTime @default(now())
+
+  @@index([targetId])
+  @@index([vehicleId])
 }
 
 // ========== WALLET / TRANSACTIONS ==========
 
 model Transaction {
-  id         String   @id @default(uuid()) @db.Uuid
-  fromUserId String?  @db.Uuid
-  toUserId   String?  @db.Uuid
-  user       User?    @relation(fields: [toUserId], references: [id])
-  bookingId  String?  @db.Uuid
-  type       String   // deposit, withdrawal, payment, refund, commission, subscription
-  amount     Decimal  @db.Decimal(10, 2)
-  fee        Decimal  @default(0) @db.Decimal(10, 2)
-  status     String   @default("pending") // pending, completed, failed, reversed
-  description String?
-  referenceId String?
-  metadata   Json?
+  id                    String  @id @default(uuid()) @db.Uuid
+  fromUserId            String? @db.Uuid
+  toUserId              String? @db.Uuid
+  user                  User?   @relation(fields: [toUserId], references: [id])
+  bookingId             String? @db.Uuid
+  type                  String // deposit, withdrawal, payment, refund, commission, subscription
+  amount                Int // centavos
+  currency              String  @default("USD")
+  fee                   Int     @default(0) // centavos
+  status                String  @default("pending") // pending, completed, failed, reversed
+  description           String?
+  referenceId           String?
+  metadata              Json?
   stripePaymentIntentId String?
 
   createdAt DateTime @default(now())
+
+  @@index([toUserId])
+  @@index([bookingId])
 }
 
 // ========== SUBSCRIPTIONS ==========
 
 model Subscription {
-  id        String @id @default(uuid()) @db.Uuid
-  userId    String @unique @db.Uuid
-  user      User   @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
   tier      String // premium, elite
-  price     Decimal @db.Decimal(10, 2)
-  interval  String  // monthly, yearly
-  autoRenew Boolean @default(true)
+  price     Int // centavos
+  currency  String   @default("USD")
+  interval  String // monthly, yearly
+  autoRenew Boolean  @default(true)
   startsAt  DateTime
   endsAt    DateTime
-  status    String @default("active") // active, cancelled, expired
+  status    String   @default("active") // active, cancelled, expired
   benefits  Json
 
   createdAt DateTime @default(now())
@@ -274,16 +303,16 @@ model Subscription {
 // ========== MESSAGING ==========
 
 model Conversation {
-  id        String    @id @default(uuid()) @db.Uuid
-  bookingId String?   @unique @db.Uuid
-  booking   Booking?  @relation(fields: [bookingId], references: [id])
-  vehicleId String?   @db.Uuid
-  vehicle   Vehicle?  @relation(fields: [vehicleId], references: [id])
+  id            String    @id @default(uuid()) @db.Uuid
+  bookingId     String?   @unique @db.Uuid
+  booking       Booking?  @relation(fields: [bookingId], references: [id])
+  vehicleId     String?   @db.Uuid
+  vehicle       Vehicle?  @relation(fields: [vehicleId], references: [id])
   // IDs de los participantes (inquilino y dueño)
-  userIds   String[]
+  userIds       String[]
   lastMessageAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   messages Message[]
 }
@@ -297,18 +326,67 @@ model Message {
   text           String
   read           Boolean      @default(false)
   createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model Notification {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id])
-  type   String
-  title  String
-  body   String?
-  data   Json?
-  read   Boolean @default(false)
+  id       String  @id @default(uuid()) @db.Uuid
+  userId   String  @db.Uuid
+  user     User    @relation(fields: [userId], references: [id])
+  type     String
+  title    String
+  body     String?
+  data     Json?
+  read     Boolean @default(false)
   pushSent Boolean @default(false)
 
   createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// ========== AUDITORIA ==========
+// Quien hizo que sobre usuarios, verificaciones, reservas y dinero.
+// Incluye los accesos a trazas de ubicacion, que son dato personal sensible.
+model AuditLog {
+  id         String  @id @default(uuid()) @db.Uuid
+  actorId    String? @db.Uuid // admin que ejecuta la accion
+  actorEmail String? // se guarda desnormalizado: el actor puede borrarse
+  action     String // user.verify, user.ban, booking.refund, tracking.view...
+  entityType String // User, Booking, Vehicle, TrackingPoint
+  entityId   String? @db.Uuid
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+// ========== RASTREO GPS ==========
+// Sustituye al blob JSON Booking.trackingData, que se reescribia entero en
+// cada punto (escrituras que se pisan) y crecia sin indice ni limite.
+// Retencion: 90 dias. La ubicacion es dato personal sensible bajo la LOPDP
+// ecuatoriana y la Ley 172-13 dominicana.
+model TrackingPoint {
+  id        String  @id @default(uuid()) @db.Uuid
+  bookingId String  @db.Uuid
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  lat        Float
+  lng        Float
+  speed      Float? // km/h
+  heading    Float? // grados, 0-360
+  accuracy   Float? // metros
+  recordedAt DateTime // momento real de la lectura GPS, no el de llegada al servidor
+
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, recordedAt])
 }

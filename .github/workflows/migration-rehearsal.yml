@@ -1,0 +1,122 @@
+name: Ensayo de migracion
+
+# Aplica las migraciones pendientes sobre una COPIA REAL de produccion antes
+# de tocar produccion. Se ejecuta en cada PR/push que cambie el esquema.
+#
+# Existe por un motivo concreto: la migracion que pasa el dinero a centavos
+# hace ROUND(col * 100). Si eso sale mal, cada precio de la plataforma queda
+# multiplicado o dividido por 100 y no hay forma elegante de volver atras.
+
+on:
+  push:
+    paths:
+      - 'backend/prisma/**'
+      - '.github/workflows/migration-rehearsal.yml'
+  pull_request:
+    paths:
+      - 'backend/prisma/**'
+  workflow_dispatch: {}
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+
+    services:
+      copia:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: ensayo
+          POSTGRES_DB: ensayo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      ENSAYO_URL: postgresql://postgres:ensayo@localhost:5432/ensayo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cliente PostgreSQL 18
+        run: |
+          set -euo pipefail
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-18
+          # El runner trae pg_dump 16 en /usr/bin y gana en el PATH.
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+
+      - name: Clonar produccion en la copia desechable
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PGPASSWORD: ensayo
+        run: |
+          set -euo pipefail
+          SRC="${DIRECT_URL:-$DATABASE_URL}"; SRC="${SRC%%\?*}"
+          pg_dump --no-owner --no-privileges "$SRC" > prod.sql
+          psql -h localhost -U postgres -d ensayo -v ON_ERROR_STOP=1 -q -f prod.sql
+          echo "Copia lista."
+
+      - name: Valores ANTES de migrar
+        env: { PGPASSWORD: ensayo }
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d ensayo -tAc \
+            "SELECT 'ANTES pricePerDay=' || string_agg(\"pricePerDay\"::text, ',' ORDER BY \"plate\") FROM public.\"Vehicle\";" | tee antes.txt
+          psql -h localhost -U postgres -d ensayo -tAc \
+            "SELECT coalesce(sum(\"totalAmount\"),0) FROM public.\"Booking\";" > suma_antes.txt
+          cat suma_antes.txt
+
+      - name: Aplicar migraciones
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.ENSAYO_URL }}
+          DIRECT_URL: ${{ env.ENSAYO_URL }}
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          # La BD viene de db push: no tiene historial. Se marca la baseline
+          # como ya aplicada y se despliega solo lo nuevo.
+          npx prisma migrate resolve --applied 0_init
+          npx prisma migrate deploy
+
+      - name: Comprobar la conversion a centavos
+        env: { PGPASSWORD: ensayo }
+        run: |
+          set -euo pipefail
+          q() { psql -h localhost -U postgres -d ensayo -tAc "$1"; }
+
+          TIPO=$(q "SELECT data_type FROM information_schema.columns WHERE table_name='Vehicle' AND column_name='pricePerDay';")
+          echo "pricePerDay ahora es: $TIPO"
+          [ "$TIPO" = "integer" ] || { echo "::error::pricePerDay no quedo en integer"; exit 1; }
+
+          ANTES=$(cat suma_antes.txt | tr -d ' ')
+          DESPUES=$(q "SELECT coalesce(sum(\"totalAmount\"),0) FROM public.\"Booking\";" | tr -d ' ')
+          ESPERADO=$(printf '%.0f' "$(echo "$ANTES * 100" | bc -l)")
+          echo "suma totalAmount:  antes=$ANTES  despues=$DESPUES  esperado=$ESPERADO"
+          [ "$DESPUES" = "$ESPERADO" ] || { echo "::error::La conversion a centavos no cuadra"; exit 1; }
+
+          # Ningun precio puede haberse quedado en 0 por un redondeo mal hecho.
+          CEROS=$(q "SELECT count(*) FROM public.\"Vehicle\" WHERE \"pricePerDay\" = 0;")
+          [ "$CEROS" = "0" ] || { echo "::error::$CEROS vehiculos quedaron con pricePerDay=0"; exit 1; }
+
+          # Los indices que add_indexes.sql nunca llego a crear en produccion.
+          N=$(q "SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND indexname LIKE '%_idx';")
+          echo "indices creados por la migracion: $N"
+          [ "$N" -ge 15 ] || { echo "::error::Faltan indices (solo $N)"; exit 1; }
+
+          # Tablas nuevas
+          for T in AuditLog TrackingPoint; do
+            q "SELECT count(*) FROM public.\"$T\";" >/dev/null || { echo "::error::Falta la tabla $T"; exit 1; }
+          done
+
+          echo "Ensayo correcto: la migracion es segura para produccion."
