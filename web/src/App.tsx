@@ -24,6 +24,7 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const SelectorPais = lazy(() => import('@/pages/SelectorPais'));
 const Billetera = lazy(() => import('@/pages/Billetera'));
 const Legal = lazy(() => import('@/pages/Legal'));
+const NoEncontrada = lazy(() => import('@/pages/NoEncontrada'));
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 
@@ -182,14 +183,9 @@ const routes: Route[] = [
 
   { path: '/profile', element: <Layout><PrivateRoute><Profile /></PrivateRoute></Layout> },
   { path: '/admin', element: <Admin /> },
-  { path: '*', element: <Layout><NavigateHome /></Layout> },
+  { path: '*', element: <Layout><NoEncontrada /></Layout> },
 ];
 
-function NavigateHome() {
-  const navigate = useNavigate();
-  useEffect(() => { navigate('/'); }, []);
-  return null;
-}
 
 /** Lo que se ve mientras llega el trozo de la ruta. Dura milisegundos, pero
  *  con la marca en vez de un spinner cualquiera. */
