@@ -1,8 +1,11 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from '@/lib/router-exports';
-import { SlidersHorizontal, X, Search, Car } from 'lucide-react';
+import { SlidersHorizontal, X, Search, Car, Map as IconoMapa, List, LocateFixed } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
 import VehicleCard from '@/components/VehicleCard';
+import Mapa from '@/components/Mapa';
+import { formatearDinero } from '@/lib/money';
+import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 const CATEGORIES = ['car', 'suv', 'motorcycle', 'van', 'truck', 'luxury'];
@@ -14,10 +17,14 @@ const SORTS = [
 ];
 
 export default function VehicleList() {
+  const navigate = useNavigate();
   const [sp, setSp] = useSearchParams();
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
+  const [cerca, setCerca] = useState<{ lat: number; lng: number } | null>(null);
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
 
   const [filters, setFilters] = useState({
     category: sp.get('category') ?? '',
@@ -39,6 +46,9 @@ export default function VehicleList() {
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (filters.withDriver) params.withDriver = true;
+      // Buscar por cercanía necesita las tres cosas; el backend ya sabe
+      // ordenar por distancia cuando se las das.
+      if (cerca) { params.lat = cerca.lat; params.lng = cerca.lng; params.radius = 50; }
       params.sort = filters.sort;
       const { data: res } = await vehiclesApi.list(params);
       setVehicles(res.data);
@@ -47,11 +57,31 @@ export default function VehicleList() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, cerca]);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const setF = (k: string, v: any) => setFilters(f => ({ ...f, [k]: v }));
+
+  const buscarCerca = () => {
+    if (!navigator.geolocation) return toast.error('Tu dispositivo no puede darnos tu ubicación');
+    setBuscandoUbicacion(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setCerca({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setF('sort', 'distance');
+        setBuscandoUbicacion(false);
+      },
+      () => {
+        toast.error('No pudimos obtener tu ubicación');
+        setBuscandoUbicacion(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
+  // Sólo los que tienen coordenadas pueden salir en el mapa.
+  const conUbicacion = vehicles.filter(v => v.locationLat != null && v.locationLng != null);
 
   const activeFilters = [
     filters.category && `Categoría: ${filters.category}`,
@@ -77,6 +107,35 @@ export default function VehicleList() {
           >
             {SORTS.map(s => <option key={s.val} value={s.val}>{s.label}</option>)}
           </select>
+
+          <button
+            onClick={buscarCerca}
+            disabled={buscandoUbicacion}
+            title="Buscar vehículos cerca de mí"
+            className={clsx(
+              'flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-colors border',
+              cerca
+                ? 'bg-cyan-600 border-cyan-500 text-white'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+            )}
+          >
+            <LocateFixed size={15} />
+            <span className="hidden sm:inline">{cerca ? 'Cerca de ti' : 'Cerca de mí'}</span>
+          </button>
+
+          {/* El mapa sólo tiene sentido si hay algo que poner en él */}
+          <div className="flex rounded-xl border border-slate-700 overflow-hidden">
+            {([['lista', List], ['mapa', IconoMapa]] as const).map(([v, Icono]) => (
+              <button
+                key={v}
+                onClick={() => setVista(v)}
+                aria-label={v === 'lista' ? 'Ver en lista' : 'Ver en mapa'}
+                className={clsx('px-3 py-2 transition-colors', vista === v ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400 hover:text-white')}
+              >
+                <Icono size={15} />
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={clsx(
@@ -148,7 +207,7 @@ export default function VehicleList() {
 
               {/* Price */}
               <div>
-                <h3 className="text-sm font-semibold text-white mb-3">Precio/día (USD)</h3>
+                <h3 className="text-sm font-semibold text-white mb-3">Precio por día</h3>
                 <div className="flex gap-2">
                   <input type="number" placeholder="Min" value={filters.minPrice}
                     onChange={e => setF('minPrice', e.target.value)}
@@ -178,6 +237,40 @@ export default function VehicleList() {
                 <div key={i} className="bg-slate-900 rounded-2xl h-64 animate-pulse border border-slate-800" />
               ))}
             </div>
+          ) : vista === 'mapa' ? (
+            conUbicacion.length > 0 ? (
+              <div className="space-y-3">
+                <Mapa
+                  alto="520px"
+                  zoom={cerca ? 12 : 9}
+                  centro={cerca ?? { lat: conUbicacion[0].locationLat, lng: conUbicacion[0].locationLng }}
+                  puntos={[
+                    ...(cerca ? [{ lat: cerca.lat, lng: cerca.lng, tipo: 'origen' as const, etiqueta: 'Tú' }] : []),
+                    ...conUbicacion.map(v => ({
+                      id: v.id,
+                      lat: v.locationLat,
+                      lng: v.locationLng,
+                      tipo: 'vehiculo' as const,
+                      etiqueta: `${v.brand} ${v.model} — ${formatearDinero(v.pricePerDay, { decimales: false })}/día`,
+                      onClick: () => navigate(`/vehicles/${v.id}`),
+                    })),
+                  ]}
+                />
+                {conUbicacion.length < vehicles.length && (
+                  <p className="text-xs text-slate-500">
+                    {vehicles.length - conUbicacion.length} vehículo
+                    {vehicles.length - conUbicacion.length !== 1 ? 's' : ''} sin ubicación marcada
+                    {vehicles.length - conUbicacion.length !== 1 ? ' no aparecen' : ' no aparece'} en el mapa.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24 text-slate-500">
+                <IconoMapa size={36} className="mb-3 opacity-60" />
+                <p className="text-lg font-medium text-slate-400">Ninguno tiene ubicación marcada</p>
+                <p className="text-sm mt-1">Los verás en la lista igualmente.</p>
+              </div>
+            )
           ) : vehicles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {vehicles.map(v => <VehicleCard key={v.id} vehicle={v} />)}

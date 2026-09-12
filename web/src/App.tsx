@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { haySesion } from '@/lib/session';
 import { metrics } from '@/lib/api';
@@ -6,21 +6,26 @@ import { usePais } from '@/lib/money';
 import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import Layout from '@/components/Layout';
+import { LogoMark } from '@/components/ui/Logo';
 import Home from '@/pages/Home';
+
+// Carga diferida por ruta: el paquete inicial no tiene por que traer el mapa
+// ni el panel de administracion, que no se usan en la primera visita. Importa
+// sobre todo en movil con datos, que es la mayoria del trafico aqui.
+const VehicleList = lazy(() => import('@/pages/VehicleList'));
+const VehicleDetail = lazy(() => import('@/pages/VehicleDetail'));
+const BookingFlow = lazy(() => import('@/pages/BookingFlow'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const BookingDetail = lazy(() => import('@/pages/BookingDetail'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const Admin = lazy(() => import('@/pages/Admin'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const SelectorPais = lazy(() => import('@/pages/SelectorPais'));
+const Billetera = lazy(() => import('@/pages/Billetera'));
+const Legal = lazy(() => import('@/pages/Legal'));
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
-import VehicleList from '@/pages/VehicleList';
-import VehicleDetail from '@/pages/VehicleDetail';
-import BookingFlow from '@/pages/BookingFlow';
-import Dashboard from '@/pages/Dashboard';
-import BookingDetail from '@/pages/BookingDetail';
-import Profile from '@/pages/Profile';
-import Admin from '@/pages/Admin';
-import ResetPassword from '@/pages/ResetPassword';
-import SelectorPais from '@/pages/SelectorPais';
-import Billetera from '@/pages/Billetera';
-import Legal from '@/pages/Legal';
-import ForgotPassword from '@/pages/ForgotPassword';
 
 // ===== Tiny HashRouter (zero dependencies) =====
 import { RouterContext, useNavigate, useRouter } from '@/lib/router';
@@ -191,6 +196,16 @@ function NavigateHome() {
   const navigate = useNavigate();
   useEffect(() => { navigate('/'); }, []);
   return null;
+}
+
+/** Lo que se ve mientras llega el trozo de la ruta. Dura milisegundos, pero
+ *  con la marca en vez de un spinner cualquiera. */
+function PantallaCargando() {
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <LogoMark className="w-16 text-[#00b1ff]" animated />
+    </div>
+  );
 }
 
 export default function App() {

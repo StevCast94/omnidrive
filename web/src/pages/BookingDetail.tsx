@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { bookings as bookingsApi, reviewsApi, tracking } from '@/lib/api';
 import { formatearDinero } from '@/lib/money';
 import RastreoEnVivo from '@/components/RastreoEnVivo';
+import Conversacion from '@/components/Conversacion';
 import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 
@@ -168,6 +169,13 @@ export default function BookingDetail() {
           </div>
         ))}
       </div>
+
+      {/* Mensajes: la conversación vive en la reserva, no en WhatsApp */}
+      {booking.status !== 'cancelled' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <Conversacion bookingId={booking.id} />
+        </div>
+      )}
 
       {/* Rastreo en vivo: lo ven el dueño y el inquilino, cada uno con lo suyo */}
       {booking.status === 'active' && (

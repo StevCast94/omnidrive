@@ -79,10 +79,15 @@ vehiclesRouter.get('/', asyncHandler(async (req: AuthRequest, res: Response) => 
 
   if (category) where.category = { in: category.split(',') };
   if (withDriver === 'true') where.withDriver = true;
+  // Los filtros llegan en la moneda del pais ("50") y la columna esta en
+  // centavos: sin convertir, filtrar por "hasta 100" buscaba vehiculos de
+  // hasta un dolar.
   if (minPrice || maxPrice) {
     where.pricePerDay = {};
-    if (minPrice) where.pricePerDay.gte = parseFloat(minPrice);
-    if (maxPrice) where.pricePerDay.lte = parseFloat(maxPrice);
+    const min = aCentavos(minPrice);
+    const max = aCentavos(maxPrice);
+    if (min !== null) where.pricePerDay.gte = min;
+    if (max !== null) where.pricePerDay.lte = max;
   }
 
   if (startAt && endAt) {

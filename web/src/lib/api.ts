@@ -146,8 +146,13 @@ export const users = {
   reviews: (id: string) => api.get(`/users/${id}/reviews`),
 };
 
-// Messages movido a feature/messaging
-// export const messages = { ... }
+
+export const messages = {
+  conversaciones: () => api.get('/messages'),
+  hilo: (bookingId: string) => api.get(`/messages/${bookingId}`),
+  enviar: (bookingId: string, texto: string) => api.post(`/messages/${bookingId}`, { texto }),
+  sinLeer: () => api.get('/messages/sin-leer/total'),
+};
 
 export const adminApi = {
   bannedIdentities: (p?: any) => api.get('/admin/banned-identities', { params: p }),

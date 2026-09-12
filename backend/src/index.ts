@@ -17,6 +17,7 @@ import { uploadRouter }        from './routes/upload';
 import { metricsRouter }       from './routes/metrics';
 import { paymentsRouter }      from './routes/payments';
 import { legalRouter }         from './routes/legal';
+import { messagesRouter }      from './routes/messages';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { JceDoProvider } from './services/providers/jce-do';
@@ -110,6 +111,7 @@ app.use('/api/upload',        uploadRouter);
 app.use('/api/metrics',      metricsRouter);
 app.use('/api/payments',     paymentsRouter);
 app.use('/api/legal',        legalRouter);
+app.use('/api/messages',     messagesRouter);
 
 
 // Serve frontend static files
