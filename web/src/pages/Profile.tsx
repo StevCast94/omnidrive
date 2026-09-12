@@ -3,6 +3,7 @@ import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFa
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi } from '@/lib/api';
 import { formatearDinero, centavosAInput, usePais } from '@/lib/money';
+import Mapa from '@/components/Mapa';
 import { useAuthStore } from '@/lib/store';
 import { PhoneInput } from '@/components/PhoneInput';
 import VerificationModal from '@/components/VerificationModal';
@@ -36,6 +37,7 @@ export default function Profile() {
     brand: '', model: '', year: '', plate: '', color: '', vin: '',
     category: 'car', seats: '5', transmission: 'automatic', fuelType: 'gasoline',
     pricePerHour: '', pricePerDay: '', deposit: '', locationName: '',
+    locationLat: null as number | null, locationLng: null as number | null,
     withDriver: false, insurance: false, flexibleCheckin: true,
     checkInTime: '', checkOutTime: '',
     features: [] as string[],
@@ -147,7 +149,8 @@ export default function Profile() {
       seats: String(v.seats || '5'), transmission: v.transmission || 'automatic',
       fuelType: v.fuelType || 'gasoline', pricePerHour: String(v.pricePerHour || ''),
       pricePerDay: String(v.pricePerDay || ''), deposit: String(v.deposit || ''),
-      locationName: v.locationName || '', withDriver: v.withDriver || false,
+      locationName: v.locationName || '', locationLat: v.locationLat ?? null, locationLng: v.locationLng ?? null,
+      withDriver: v.withDriver || false,
       insurance: v.insurance || false,
       features: v.features || [],
       flexibleCheckin: v.flexibleCheckin !== undefined ? v.flexibleCheckin : false,
@@ -459,10 +462,44 @@ export default function Profile() {
                 ))}
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <label className="block text-xs text-slate-400 mb-1">Ubicación / sector</label>
-                <input value={vehicleForm.locationName} onChange={e => vSet('locationName', e.target.value)} placeholder="Ej: Norte de Quito, La Carolina"
+                <input value={vehicleForm.locationName} onChange={e => vSet('locationName', e.target.value)}
+                  placeholder={`Ej: ${pais.cities?.[0] ?? 'Tu sector'}`}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+
+                {/* Sin coordenadas el vehículo no sale en el mapa ni en las
+                    búsquedas por cercanía: es la diferencia entre existir y
+                    que alguien te encuentre. */}
+                <Mapa
+                  alto="220px"
+                  zoom={vehicleForm.locationLat ? 14 : 10}
+                  centro={vehicleForm.locationLat != null
+                    ? { lat: vehicleForm.locationLat, lng: vehicleForm.locationLng! }
+                    : undefined}
+                  puntos={vehicleForm.locationLat != null
+                    ? [{ lat: vehicleForm.locationLat, lng: vehicleForm.locationLng!, tipo: 'vehiculo' }]
+                    : []}
+                  onElegirPunto={p => { vSet('locationLat', p.lat as any); vSet('locationLng', p.lng as any); }}
+                />
+
+                <div className="flex items-center justify-between gap-3">
+                  <p className={`text-xs ${vehicleForm.locationLat ? 'text-slate-500' : 'text-amber-400'}`}>
+                    {vehicleForm.locationLat
+                      ? `Marcado en ${vehicleForm.locationLat.toFixed(4)}, ${vehicleForm.locationLng!.toFixed(4)}`
+                      : 'Marca el punto en el mapa para que te encuentren'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigator.geolocation?.getCurrentPosition(
+                      pos => { vSet('locationLat', pos.coords.latitude as any); vSet('locationLng', pos.coords.longitude as any); },
+                      () => toast.error('No pudimos obtener tu ubicación')
+                    )}
+                    className="shrink-0 text-xs text-cyan-400 hover:text-cyan-300"
+                  >
+                    Usar mi ubicación
+                  </button>
+                </div>
               </div>
 
               {/* FOTOS */}

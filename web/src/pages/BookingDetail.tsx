@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import { bookings as bookingsApi, reviewsApi, tracking } from '@/lib/api';
 import { formatearDinero } from '@/lib/money';
+import RastreoEnVivo from '@/components/RastreoEnVivo';
 import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 
@@ -31,8 +32,6 @@ export default function BookingDetail() {
   const [showDispute, setShowDispute] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [disputeText, setDisputeText] = useState('');
-  const [trackingPoints, setTrackingPoints] = useState<any[]>([]);
-  const trackInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchBooking = async () => {
     try {
@@ -44,27 +43,6 @@ export default function BookingDetail() {
 
   useEffect(() => { fetchBooking(); }, [id]);
 
-  // GPS tracking - tenant sends location every 30s during active booking
-  useEffect(() => {
-    if (!booking || booking.status !== 'active' || booking.tenantId !== user?.id) return;
-    const send = () => {
-      navigator.geolocation?.getCurrentPosition(pos => {
-        tracking.report(id!, { lat: pos.coords.latitude, lng: pos.coords.longitude });
-      });
-    };
-    send();
-    trackInterval.current = setInterval(send, 30000);
-    return () => { if (trackInterval.current) clearInterval(trackInterval.current); };
-  }, [booking?.status]);
-
-  // Poll tracking points if owner & active
-  useEffect(() => {
-    if (!booking || booking.status !== 'active') return;
-    const poll = () => tracking.get(id!).then(r => setTrackingPoints(r.data.data.points ?? [])).catch(() => {});
-    poll();
-    const t = setInterval(poll, 15000);
-    return () => clearInterval(t);
-  }, [booking?.status]);
 
   const action = async (label: string, fn: () => Promise<any>) => {
     setActionLoading(label);
@@ -191,27 +169,14 @@ export default function BookingDetail() {
         ))}
       </div>
 
-      {/* Live tracking map (owner view, active booking) */}
-      {isOwner && booking.status === 'active' && (
+      {/* Rastreo en vivo: lo ven el dueño y el inquilino, cada uno con lo suyo */}
+      {booking.status === 'active' && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Navigation size={16} className="text-green-400 animate-pulse" />
-            <h3 className="text-sm font-semibold text-white">Ubicación en tiempo real</h3>
-            <span className="text-xs text-green-400 ml-auto">{trackingPoints.length} puntos</span>
-          </div>
-          {trackingPoints.length > 0 ? (
-            <div className="bg-slate-800 rounded-xl p-3 text-sm text-slate-300 space-y-1">
-              <p>Última posición:</p>
-              <p className="font-mono text-xs text-indigo-300">
-                {trackingPoints[trackingPoints.length - 1]?.lat?.toFixed(5)}, {trackingPoints[trackingPoints.length - 1]?.lng?.toFixed(5)}
-              </p>
-              <p className="text-xs text-slate-500">
-                {new Date(trackingPoints[trackingPoints.length - 1]?.ts).toLocaleTimeString('es-EC')}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">Esperando ubicación del arrendatario...</p>
-          )}
+          <RastreoEnVivo
+            bookingId={booking.id}
+            soyElInquilino={booking.tenantId === user?.id}
+            activa={booking.status === 'active'}
+          />
         </div>
       )}
 

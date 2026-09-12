@@ -24,7 +24,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-mapbox': ['mapbox-gl'],
+          'vendor-mapa': ['maplibre-gl'],
         },
       },
     },

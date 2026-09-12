@@ -102,8 +102,14 @@ export const bookings = {
 };
 
 export const tracking = {
-  report: (bookingId: string, d: any) => api.post(`/tracking/${bookingId}`, d),
   get: (bookingId: string) => api.get(`/tracking/${bookingId}`),
+  // Se envian por lotes: el movil acumula puntos sin cobertura y los manda
+  // juntos al recuperarla.
+  reportarLote: (bookingId: string, puntos: any[]) => api.post(`/tracking/${bookingId}`, { puntos }),
+  consentimiento: (bookingId: string, activar: boolean) =>
+    api.post(`/tracking/${bookingId}/consentimiento`, { activar }),
+  geocerca: (bookingId: string, d: { lat?: number; lng?: number; radioKm?: number; quitar?: boolean }) =>
+    api.put(`/tracking/${bookingId}/geocerca`, d),
 };
 
 export const reviewsApi = {

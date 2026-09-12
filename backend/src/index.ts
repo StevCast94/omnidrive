@@ -48,8 +48,13 @@ app.use(helmet({
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
       frameSrc: ["'self'", "https://accounts.google.com/gsi/"],
-      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", "https://images.unsplash.com"],
+      // Las teselas del mapa vienen de OpenStreetMap. Sin esto el mapa carga
+      // pero se ve en blanco, sin ningun error que lo explique.
+      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", "https://images.unsplash.com", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org"],
       objectSrc: ["'none'"],
+      // MapLibre crea sus workers desde blob:
+      workerSrc: ["'self'", "blob:"],
+      childSrc: ["'self'", "blob:"],
       scriptSrc: ["'self'", "https://accounts.google.com/gsi/client"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "https:", "'unsafe-inline'"],

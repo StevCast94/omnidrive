@@ -15,7 +15,14 @@ export interface AuthRequest extends Request {
  * dejo de funcionar. Ahora la validacion es local.
  */
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  // EventSource no puede enviar cabeceras, asi que el flujo SSE del rastreo
+  // manda el token por query. Se acepta SOLO ahi: en el resto de rutas un
+  // token en la URL acabaria en logs de acceso y en el historial del
+  // navegador, que es justo lo que no queremos.
+  const esFlujoSSE = req.path.endsWith('/vivo');
+  const token = req.headers.authorization?.split(' ')[1]
+    ?? (esFlujoSSE ? (req.query.token as string | undefined) : undefined);
+
   if (!token) return res.status(401).json({ data: null, error: 'No token provided' });
 
   let payload;
