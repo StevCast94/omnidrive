@@ -20,7 +20,7 @@ jobs:
 
     services:
       verify-db:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: verify
           POSTGRES_DB: verify
@@ -32,18 +32,18 @@ jobs:
           --health-retries 10
 
     steps:
-      - name: Instalar cliente PostgreSQL 16
+      - name: Instalar cliente PostgreSQL 18
         run: |
           set -euo pipefail
           sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-16 jq
+          sudo apt-get install -y postgresql-client-18 jq
 
       - name: Generar dump completo (esquema + datos)
         env:
-          # DIRECT_URL es la conexión directa (sin pgbouncer). pg_dump no funciona
-          # contra el pooler en modo transaction. Si no existe, cae a DATABASE_URL.
+          # DIRECT_URL es el host externo de Railway (viaduct.proxy.rlwy.net). El secreto
+          # DATABASE_URL apunta al host interno, inalcanzable desde Actions.
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
