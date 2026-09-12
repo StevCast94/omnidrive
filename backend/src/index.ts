@@ -15,6 +15,7 @@ import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
 import { uploadRouter }        from './routes/upload';
 import { metricsRouter }       from './routes/metrics';
+import { paymentsRouter }      from './routes/payments';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { env }                 from './config/env';
@@ -82,6 +83,7 @@ app.use('/api/push',          pushRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/upload',        uploadRouter);
 app.use('/api/metrics',      metricsRouter);
+app.use('/api/payments',     paymentsRouter);
 
 
 // Serve frontend static files

@@ -31,6 +31,10 @@ export const env = {
   RESEND_API_KEY: optionalEnv('RESEND_API_KEY'),
   MAIL_FROM: optionalEnv('MAIL_FROM', 'OmniDrive <no-reply@omnidrive.lat>'),
 
+  // Datos bancarios para las recargas por transferencia, en JSON. No viven en
+  // el repositorio: cambian por pais y son informacion de la empresa.
+  DATOS_BANCARIOS: optionalEnv('DATOS_BANCARIOS'),
+
   // Runtime
   NODE_ENV: optionalEnv('NODE_ENV', 'development'),
   FRONTEND_URL: optionalEnv('FRONTEND_URL'),

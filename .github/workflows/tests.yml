@@ -1,0 +1,58 @@
+name: Tests
+
+# Los tests de la billetera corren contra un Postgres REAL: lo que hay que
+# probar ahi es justamente el comportamiento de la base bajo concurrencia, y
+# eso una base simulada no lo prueba.
+
+on:
+  push:
+    paths: ['backend/**', '.github/workflows/tests.yml']
+  pull_request:
+    paths: ['backend/**']
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+      DIRECT_URL: postgresql://postgres:test@localhost:5432/test
+      JWT_SECRET: solo-para-tests
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Preparar el esquema
+        run: npx prisma migrate deploy
+
+      - name: Comprobar tipos
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Tests
+        run: npm test

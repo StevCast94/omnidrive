@@ -6,6 +6,7 @@ import multer from 'multer';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { calcularDuracion, calcularReserva } from '../services/pricing';
 import { getCountry } from '../config/country';
+import { retenerPorReserva, liberarPorReserva, reembolsarPorReserva, FondosInsuficientes, EstadoDePagoInvalido } from '../services/wallet';
 import { env } from '../config/env';
 
 export const bookingsRouter = Router();
@@ -183,6 +184,25 @@ bookingsRouter.put('/:id/confirm', authenticate, asyncHandler(async (req: AuthRe
     insuranceDetails = { ...insuranceDetails, ownerAcceptedAt: new Date().toISOString() };
   }
 
+  // El dinero se retiene AL CONFIRMAR, antes de que el anfitrión entregue el
+  // vehículo. Si el inquilino no tiene fondos, la reserva no se confirma: antes
+  // se descubría al finalizar, cuando el coche ya había ido y vuelto.
+  try {
+    await retenerPorReserva(booking.id);
+  } catch (e) {
+    if (e instanceof FondosInsuficientes) {
+      return res.status(402).json({
+        data: { faltan: e.faltan },
+        error: 'El inquilino no tiene saldo suficiente para cubrir el alquiler y el depósito.',
+        code: 'FONDOS_INSUFICIENTES',
+      });
+    }
+    if (e instanceof EstadoDePagoInvalido) {
+      return res.status(409).json({ data: null, error: e.message });
+    }
+    throw e;
+  }
+
   const updated = await prisma.booking.update({
     where: { id: req.params.id as string },
     data: { status: 'confirmed', insuranceDetails },
@@ -216,23 +236,28 @@ bookingsRouter.put('/:id/cancel', authenticate, asyncHandler(async (req: AuthReq
     return res.status(400).json({ data: null, error: 'Cannot cancel an active or completed booking' });
   }
 
-  const updated = await prisma.booking.update({
-    where: { id: req.params.id as string },
-    data: { status: 'cancelled', paymentStatus: booking.paymentStatus === 'held' ? 'refunded' : booking.paymentStatus },
-  });
-
+  // Se devuelve TODO lo retenido (alquiler + depósito). Antes solo se anotaba
+  // el depósito, y el importe del alquiler se quedaba en el limbo.
   if (booking.paymentStatus === 'held') {
-    await prisma.transaction.create({
-      data: {
-        toUserId: booking.tenantId,
-        bookingId: booking.id,
-        type: 'refund',
-        amount: Number(booking.deposit),
-        status: 'completed',
-        description: 'Reembolso por cancelacion de reserva ' + booking.id.slice(0, 8),
-      },
+    await reembolsarPorReserva(booking.id, {
+      motivo: `Cancelación por ${isOwner ? 'el anfitrión' : 'el inquilino'}`,
     });
   }
+
+  const updated = await prisma.booking.update({
+    where: { id: req.params.id as string },
+    data: { status: 'cancelled' },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: isOwner ? booking.tenantId : booking.vehicle.ownerId,
+      type: 'booking_cancelled',
+      title: 'Reserva cancelada',
+      body: `La reserva del ${booking.vehicle.brand} ${booking.vehicle.model} fue cancelada`,
+      data: { bookingId: booking.id },
+    },
+  });
 
   return res.json({ data: updated, error: null });
 }));
@@ -313,45 +338,17 @@ bookingsRouter.put('/:id/end', authenticate, asyncHandler(async (req: AuthReques
     return res.status(400).json({ data: null, error: 'Booking must be active to end' });
   }
 
-  // Verificar saldo suficiente del inquilino
-  const tenant = await prisma.user.findUnique({ where: { id: booking.tenantId }, select: { walletBalance: true } });
-  if (!tenant || Number(tenant.walletBalance) < Number(booking.totalAmount)) {
-    return res.status(400).json({ data: null, error: 'Saldo insuficiente del inquilino. El pago debe completarse antes de finalizar la reserva.' });
+  // El dinero ya estaba retenido desde la confirmación: aquí solo se libera.
+  // Ya no puede fallar por saldo, que era el fallo que dejaba la reserva
+  // atascada en "active" para siempre.
+  try {
+    await liberarPorReserva(booking.id);
+  } catch (e) {
+    if (e instanceof EstadoDePagoInvalido) {
+      return res.status(409).json({ data: null, error: e.message });
+    }
+    throw e;
   }
-
-  const ownerAmount = Number(booking.totalAmount) - Number(booking.serviceFee);
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: booking.tenantId },
-      data: { walletBalance: { decrement: Number(booking.totalAmount) } },
-    }),
-    prisma.user.update({
-      where: { id: booking.vehicle.ownerId },
-      data: { walletBalance: { increment: ownerAmount } },
-    }),
-    prisma.transaction.create({
-      data: {
-        fromUserId: booking.tenantId,
-        toUserId: booking.vehicle.ownerId,
-        bookingId: booking.id,
-        type: 'payment',
-        amount: ownerAmount,
-        fee: Number(booking.serviceFee),
-        status: 'completed',
-        description: 'Pago por reserva ' + booking.id.slice(0, 8),
-      },
-    }),
-    prisma.transaction.create({
-      data: {
-        fromUserId: booking.tenantId,
-        bookingId: booking.id,
-        type: 'commission',
-        amount: Number(booking.serviceFee),
-        status: 'completed',
-        description: 'Comision plataforma reserva ' + booking.id.slice(0, 8),
-      },
-    }),
-  ]);
 
   const updated = await prisma.booking.update({
     where: { id: req.params.id as string },
@@ -359,24 +356,24 @@ bookingsRouter.put('/:id/end', authenticate, asyncHandler(async (req: AuthReques
       status: 'completed',
       returnedAt: new Date(),
       trackingEnabled: false,
-      paymentStatus: 'released',
     },
   });
 
-  await prisma.vehicle.update({
-    where: { id: booking.vehicleId },
-    data: { totalRentals: { increment: 1 } },
-  });
-
-  // Incrementar viajes para ambos: dueño e inquilino
-  await prisma.user.update({
-    where: { id: booking.tenantId },
-    data: { totalTrips: { increment: 1 } },
-  });
-  await prisma.user.update({
-    where: { id: booking.vehicle.ownerId },
-    data: { totalTrips: { increment: 1 } },
-  });
+  // Los tres contadores se mueven juntos o no se mueve ninguno.
+  await prisma.$transaction([
+    prisma.vehicle.update({
+      where: { id: booking.vehicleId },
+      data: { totalRentals: { increment: 1 } },
+    }),
+    prisma.user.update({
+      where: { id: booking.tenantId },
+      data: { totalTrips: { increment: 1 } },
+    }),
+    prisma.user.update({
+      where: { id: booking.vehicle.ownerId },
+      data: { totalTrips: { increment: 1 } },
+    }),
+  ]);
 
   await prisma.notification.createMany({
     data: [

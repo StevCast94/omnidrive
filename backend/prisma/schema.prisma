@@ -45,8 +45,11 @@ model User {
   verificationNotes String? // Rejection reason or admin notes
   verifiedBy        String?   @db.Uuid // Admin who verified/rejected
 
-  // Wallet
-  walletBalance  Int    @default(0) // centavos
+  // Billetera, en centavos. La invariante es: lo que la persona ve como saldo
+  // es walletBalance, y heldBalance es lo retenido por reservas en curso, que
+  // ya no puede gastar pero todavia no es de nadie mas.
+  walletBalance  Int    @default(0) // disponible
+  heldBalance    Int    @default(0) // retenido por reservas confirmadas
   walletCurrency String @default("USD") // USD en EC, DOP en RD
 
   // Suscripción
@@ -287,7 +290,9 @@ model Transaction {
   createdAt DateTime @default(now())
 
   @@index([toUserId])
+  @@index([fromUserId])
   @@index([bookingId])
+  @@index([status, type])
 }
 
 // ========== SUBSCRIPTIONS ==========

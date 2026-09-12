@@ -9,6 +9,8 @@ import { authLimiter } from '../middleware/rateLimit';
 import { adminAuth, requireSuperAdmin } from '../middleware/adminAuth';
 import { hashPassword, verifyPassword, validarPassword } from '../services/auth';
 import { getCountry } from '../config/country';
+import { confirmarRecarga, rechazarRecarga, revertirRetiro } from '../services/wallet';
+import { registrarAuditoria } from '../services/auditoria';
 
 const JWT_SECRET = env.JWT_SECRET;
 
@@ -302,3 +304,86 @@ adminRouter.post('/admins', adminAuth, requireSuperAdmin, asyncHandler(async (re
   return res.status(201).json({ data: admin, error: null });
 }));
 
+
+// ── Billetera: recargas y retiros pendientes ──────────────────────────
+// El dinero entra y sale por transferencia bancaria mientras no haya pasarela.
+// Estas rutas son el punto donde una persona confirma que el movimiento
+// bancario ocurrio de verdad.
+
+adminRouter.get('/pagos/pendientes', adminAuth, asyncHandler(async (_req: AuthRequest, res: Response) => {
+  const pendientes = await prisma.transaction.findMany({
+    where: { status: 'pending', type: { in: ['deposit', 'withdrawal'] } },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      user: { select: { id: true, name: true, lastName: true, email: true, walletBalance: true } },
+    },
+  });
+
+  return res.json({
+    data: pendientes.map(p => ({
+      id: p.id,
+      tipo: p.type === 'deposit' ? 'recarga' : 'retiro',
+      monto: p.amount,
+      moneda: p.currency,
+      descripcion: p.description,
+      referencia: p.referenceId,
+      datos: p.metadata,
+      usuarioId: p.toUserId ?? p.fromUserId,
+      usuario: p.user,
+      fecha: p.createdAt,
+    })),
+    error: null,
+  });
+}));
+
+adminRouter.post('/pagos/:id/confirmar', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const mov = await prisma.transaction.findUnique({ where: { id: req.params.id as string } });
+  if (!mov) return res.status(404).json({ data: null, error: 'Movimiento no encontrado' });
+
+  try {
+    if (mov.type === 'deposit') {
+      const actualizado = await confirmarRecarga(mov.id, req.user!.id);
+      await registrarAuditoria(req, 'wallet.recarga.confirmar', 'Transaction', mov.id, mov, actualizado);
+      return res.json({ data: actualizado, error: null });
+    }
+
+    if (mov.type === 'withdrawal') {
+      // El dinero ya salio del disponible al solicitarlo; confirmar solo cierra
+      // el movimiento una vez hecha la transferencia.
+      const actualizado = await prisma.transaction.update({
+        where: { id: mov.id },
+        data: {
+          status: 'completed',
+          metadata: { ...(mov.metadata as object ?? {}), pagadoPor: req.user!.id, pagadoEn: new Date().toISOString() },
+        },
+      });
+      await registrarAuditoria(req, 'wallet.retiro.pagar', 'Transaction', mov.id, mov, actualizado);
+      return res.json({ data: actualizado, error: null });
+    }
+
+    return res.status(400).json({ data: null, error: 'Ese movimiento no se confirma a mano' });
+  } catch (e: any) {
+    return res.status(409).json({ data: null, error: e.message });
+  }
+}));
+
+adminRouter.post('/pagos/:id/rechazar', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { motivo } = req.body;
+  if (!motivo) return res.status(400).json({ data: null, error: 'Indica el motivo del rechazo' });
+
+  const mov = await prisma.transaction.findUnique({ where: { id: req.params.id as string } });
+  if (!mov) return res.status(404).json({ data: null, error: 'Movimiento no encontrado' });
+
+  try {
+    // Rechazar una recarga no toca ningun saldo (nunca se acredito), pero
+    // rechazar un retiro SI devuelve el dinero: ya habia salido del disponible.
+    const resultado = mov.type === 'deposit'
+      ? await rechazarRecarga(mov.id, req.user!.id, motivo)
+      : await revertirRetiro(mov.id, motivo);
+
+    await registrarAuditoria(req, `wallet.${mov.type === 'deposit' ? 'recarga' : 'retiro'}.rechazar`, 'Transaction', mov.id, mov, { motivo });
+    return res.json({ data: resultado ?? { ok: true }, error: null });
+  } catch (e: any) {
+    return res.status(409).json({ data: null, error: e.message });
+  }
+}));
