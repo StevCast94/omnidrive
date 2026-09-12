@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Car, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { LogoMark } from '@/components/ui/Logo';
 import { guardarSesion } from '@/lib/session';
 import GoogleButton from '@/components/GoogleButton';
 import { auth } from '@/lib/api';
@@ -120,8 +121,8 @@ export default function Register() {
         </button>
         <div className="text-center mb-8">
           <button onClick={() => navigate('/')} className="inline-flex items-center gap-2 text-2xl font-bold text-white mb-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <Car className="text-cyan-400" size={28} />
-            Omni<span className="text-cyan-400">Drive</span>
+            <LogoMark className="w-9 shrink-0 text-[#00b1ff]" animated />
+            Omni<span className="text-[#00b1ff]">Drive</span>
           </button>
           <p className="text-slate-400 text-sm">Crea tu cuenta gratis</p>
         </div>

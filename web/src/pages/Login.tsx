@@ -61,7 +61,7 @@ export default function Login() {
         <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-8 rounded-2xl shadow-lg animate-slide-up">
           {/* Header */}
           <div className="text-center mb-8">
-            <Logo variant="icon" className="mx-auto mb-4" />
+            <Logo variant="icon" animated className="mx-auto mb-4 w-14" />
             <h2 className="text-2xl font-bold text-white">Bienvenido de vuelta</h2>
             <p className="text-slate-400 mt-2 text-sm">Ingresa a tu cuenta de OmniDrive</p>
           </div>

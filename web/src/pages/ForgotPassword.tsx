@@ -2,6 +2,7 @@
 import { useNavigate, Link } from '@/lib/router-exports';
 import { Car, ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { LogoMark } from '@/components/ui/Logo';
 import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 
@@ -71,8 +72,8 @@ export default function ForgotPassword() {
         </button>
         <div className="text-center mb-8">
           <button onClick={() => navigate('/')} className="inline-flex items-center gap-2 text-2xl font-bold text-white mb-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <Car className="text-cyan-400" size={28} />
-            Omni<span className="text-cyan-400">Drive</span>
+            <LogoMark className="w-9 shrink-0 text-[#00b1ff]" animated />
+            Omni<span className="text-[#00b1ff]">Drive</span>
           </button>
           <p className="text-slate-400 text-sm">Recupera tu contraseña</p>
         </div>

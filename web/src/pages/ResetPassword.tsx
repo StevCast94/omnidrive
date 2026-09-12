@@ -62,7 +62,7 @@ export default function ResetPassword() {
 
         <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-8 rounded-2xl shadow-lg">
           <div className="text-center mb-8">
-            <Logo variant="icon" className="mx-auto mb-4" />
+            <Logo variant="icon" animated className="mx-auto mb-4 w-14" />
             <h2 className="text-2xl font-bold text-white">Nueva contraseña</h2>
           </div>
 

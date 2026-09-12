@@ -5,10 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#00b1ff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate icon" href="/favicon-64.png" />
+
+    <!-- Las etiquetas de vista previa las inyecta el servidor con los datos
+         del pais que sirve esta instancia (backend/src/lib/og.ts). Estas son
+         el respaldo para cuando se abre el index.html sin pasar por el. -->
+    <meta property="og:site_name" content="OmniDrive" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="OmniDrive" />
+    <meta property="og:description" content="Alquila el vehículo que necesitas, de anfitriones verificados." />
+    <meta name="description" content="Alquila el vehículo que necesitas, de anfitriones verificados." />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>OmniDrive</title>
   </head>
   <body class="bg-slate-950 text-white">

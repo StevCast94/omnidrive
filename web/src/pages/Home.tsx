@@ -6,6 +6,8 @@ import {
   Truck, Container, Gem, Gauge, KeyRound, Wallet, BadgeCheck,
 } from 'lucide-react';
 import { vehicles as vehiclesApi, metrics } from '@/lib/api';
+import { usePais } from '@/lib/money';
+import { LogoMark } from '@/components/ui/Logo';
 import VehicleCard from '@/components/VehicleCard';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +28,7 @@ export default function Home() {
   const [featured, setFeatured] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const pais = usePais(s => s.pais);
   const [cifras, setCifras] = useState<{ vehicles_active: number; verified_pct: number; rating_avg: number | null } | null>(null);
 
   useEffect(() => {
@@ -75,8 +78,10 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
           <div className="mb-7 animate-slide-up">
             <span className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 text-base md:text-lg font-semibold text-white shadow-[0_0_30px_rgba(6,182,212,0.12)]">
-              <span className="text-xl md:text-2xl leading-none">🇪🇨</span>
-              <span>La comunidad de movilidad de <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Ecuador</span></span>
+              {/* El isotipo, no una bandera: en Windows los emoji de bandera
+                  no tienen glifo y se ven como "EC". */}
+              <LogoMark className="w-7 md:w-8 shrink-0 text-[#00b1ff]" animated />
+              <span>La comunidad de movilidad de <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{pais.name}</span></span>
             </span>
           </div>
 

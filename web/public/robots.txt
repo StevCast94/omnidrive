@@ -1,0 +1,17 @@
+# Un robots.txt de verdad.
+#
+# En un SPA con ruta comodin, /robots.txt devuelve el index.html con un 200 y
+# tipo text/html. Los rastreadores de vista previa de enlaces —WhatsApp,
+# facebookexternalhit, Telegram— lo consultan ANTES de leer la pagina; al
+# recibir HTML en vez de reglas desisten, y la tarjeta sale con el dominio
+# como titulo porque nunca llegaron a descargar la pagina.
+
+User-agent: *
+Allow: /
+
+# Zonas que no aportan nada en un buscador.
+Disallow: /admin
+Disallow: /billetera
+Disallow: /dashboard
+
+Sitemap: https://omnidrive.lat/sitemap.xml

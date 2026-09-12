@@ -1,96 +1,80 @@
-﻿// src/components/ui/Logo.tsx
+// src/components/ui/Logo.tsx
 import React from 'react';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'icon' | 'full' | 'horizontal';
-  /** Si true, el isotipo gira sutilmente en hover (orbital) */
+  /** La rueda entra rodando al montar. */
   animated?: boolean;
 }
 
 /**
- * Isotipo OmniDrive
- * Concepto: orbital (Omni = todas las direcciones) formado por dos arcos en
- * gradiente cyan→indigo. Los dos nodos en los extremos representan la comunidad
- * (dueño + arrendatario que se conectan). El chevron central comunica avance/Drive.
- * Funciona solo (favicon/app icon) y acompañado del wordmark.
+ * Isotipo OmniDrive — el de la marca, no una reinterpretación.
+ *
+ * Son dos formas: la "O", que es una rueda, y la "D" abierta que la abraza.
+ * De ahí sale la animación: al entrar, la rueda RUEDA — se desplaza girando,
+ * como rueda una rueda de verdad, y la "D" aparece detrás. Es un movimiento
+ * que sólo tiene sentido en esta marca; un fundido o un giro suelto valdrían
+ * para cualquier logo.
+ *
+ * Trazado original del archivo de marca (viewBox 210.17 × 129.55).
  */
 export const LogoMark: React.FC<{ className?: string; animated?: boolean }> = ({
   className = '',
   animated = false,
 }) => (
   <svg
-    viewBox="0 0 100 100"
-    fill="none"
+    viewBox="0 0 210.17 129.55"
     xmlns="http://www.w3.org/2000/svg"
-    className={`w-full h-full ${animated ? 'transition-transform duration-700 ease-out group-hover:rotate-[18deg]' : ''} ${className}`}
+    role="img"
+    aria-label="OmniDrive"
+    className={`w-full h-full ${className}`}
   >
-    <defs>
-      <linearGradient id="omni-grad" x1="10%" y1="0%" x2="90%" y2="100%">
-        <stop offset="0%" stopColor="#22d3ee" />
-        <stop offset="55%" stopColor="#06b6d4" />
-        <stop offset="100%" stopColor="#6366f1" />
-      </linearGradient>
-    </defs>
-
-    {/* Orbital — dos arcos opuestos (movilidad en todas las direcciones) */}
+    {/* La "D": aparece un instante después de que la rueda llega a su sitio. */}
     <path
-      d="M63 14 A 38 38 0 0 1 86 63"
-      stroke="url(#omni-grad)"
-      strokeWidth="9"
-      strokeLinecap="round"
-    />
-    <path
-      d="M37 86 A 38 38 0 0 1 14 37"
-      stroke="url(#omni-grad)"
-      strokeWidth="9"
-      strokeLinecap="round"
+      className={animated ? 'omni-d' : ''}
+      fill="currentColor"
+      d="M132.57,47.83l-1.48-.28c-3.27-13.51-11.06-25.53-21.33-34.74l-13.18-9.13,53.54-.02c56.68,4.92,76.86,78.1,29.65,111.29-16.98,11.94-29.73,10.72-49.33,10.63-11.44-.06-22.9.09-34.34.01l11.27-7.2c11.57-9.36,20.63-22.23,23.77-36.95h1.44v24h18c18.96,0,35.28-22.77,35.28-40.56,0-18.34-16.2-41.04-35.76-41.04h-17.52v24Z"
     />
 
-    {/* Nodos de comunidad — dueño y arrendatario que se conectan */}
-    <circle cx="23" cy="23" r="6.5" fill="url(#omni-grad)" />
-    <circle cx="77" cy="77" r="6.5" fill="url(#omni-grad)" />
-
-    {/* Chevron de avance — Drive / movimiento hacia adelante */}
+    {/* La rueda. El origen de la rotación es su centro, para que gire sobre sí
+        misma y no orbite alrededor de la esquina del lienzo. */}
     <path
-      d="M41 35 L59 50 L41 65"
-      stroke="url(#omni-grad)"
-      strokeWidth="9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      className={animated ? 'omni-rueda' : ''}
+      style={{ transformOrigin: '65.65px 64.65px' }}
+      fill="currentColor"
+      d="M65.65,3.65C31.97,3.65,4.66,30.96,4.66,64.65s27.31,61,61,61,61-27.31,61-61S99.34,3.65,65.65,3.65ZM65.65,105.29c-22.44,0-40.64-18.2-40.64-40.64s18.2-40.64,40.64-40.64,40.64,18.2,40.64,40.64-18.2,40.64-40.64,40.64Z"
     />
   </svg>
 );
 
 export const Logo: React.FC<LogoProps> = ({ variant = 'full', animated = false, className = '', ...props }) => {
+  const marca = <LogoMark animated={animated} className="text-[#00b1ff]" />;
+
   if (variant === 'icon') {
     return (
-      <div className={`w-10 h-10 group ${className}`} {...props}>
-        <LogoMark animated={animated} />
+      <div className={`w-11 h-11 ${className}`} {...props}>
+        {marca}
       </div>
     );
   }
 
   if (variant === 'horizontal') {
     return (
-      <div className={`flex items-center gap-2.5 group ${className}`} {...props}>
-        <div className="w-9 h-9 shrink-0">
-          <LogoMark animated={animated} />
-        </div>
+      <div className={`flex items-center gap-2.5 ${className}`} {...props}>
+        <div className="w-10 shrink-0">{marca}</div>
         <span className="text-xl font-bold tracking-tight text-white">
-          Omni<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Drive</span>
+          Omni<span className="text-[#00b1ff]">Drive</span>
         </span>
       </div>
     );
   }
 
-  // Full (vertical)
+  // Vertical
   return (
-    <div className={`flex flex-col items-center gap-3 group ${className}`} {...props}>
-      <div className="w-16 h-16">
-        <LogoMark animated={animated} />
-      </div>
+    <div className={`flex flex-col items-center gap-3 ${className}`} {...props}>
+      <div className="w-20">{marca}</div>
       <span className="text-2xl font-bold tracking-tight text-white">
-        Omni<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Drive</span>
+        Omni<span className="text-[#00b1ff]">Drive</span>
       </span>
     </div>
   );

@@ -91,3 +91,51 @@
 .stagger-1 { animation-delay: 100ms; }
 .stagger-2 { animation-delay: 200ms; }
 .stagger-3 { animation-delay: 300ms; }
+
+/* ── Isotipo: la rueda rueda ──────────────────────────────────────────
+   La "O" de OmniDrive es una rueda, así que al entrar se comporta como
+   una: avanza girando. La "D" aparece detrás, un instante después, como
+   si la rueda hubiera llegado a su sitio y el resto de la marca la
+   alcanzara. Una sola vez, al montar: no es un adorno en bucle. */
+
+@keyframes omniRodar {
+  from {
+    transform: translateX(-62px) rotate(-200deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes omniAsomar {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.omni-rueda {
+  animation: omniRodar 1.1s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.omni-d {
+  animation: omniAsomar .55s ease-out .5s both;
+}
+
+/* Quien pide menos movimiento ve la marca quieta, no una versión
+   descafeinada de la animación. */
+@media (prefers-reduced-motion: reduce) {
+  .omni-rueda,
+  .omni-d {
+    animation: none;
+  }
+}

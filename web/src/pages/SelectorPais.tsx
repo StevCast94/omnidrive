@@ -58,7 +58,7 @@ export default function SelectorPais() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-10">
-          <Logo variant="icon" className="mx-auto mb-5" />
+          <Logo variant="icon" animated className="mx-auto mb-5 w-16" />
           <h1 className="text-3xl font-bold text-white">¿Desde dónde alquilas?</h1>
           <p className="text-slate-400 mt-3 text-sm max-w-md mx-auto">
             Cada país tiene su propia comunidad de anfitriones, sus precios y su moneda.

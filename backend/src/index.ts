@@ -21,7 +21,8 @@ import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { JceDoProvider } from './services/providers/jce-do';
 import { env }                 from './config/env';
-import { origenesPermitidos }  from './config/country';
+import { origenesPermitidos, getCountry } from './config/country';
+import { prepararIndex }       from './lib/og';
 import { apiLimiter }          from './middleware/rateLimit';
 
 // Sitios de todos los paises: los usan CORS y la CSP, porque el selector de
@@ -70,6 +71,23 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// WhatsApp Web y Telegram Web arman la vista previa desde el navegador de
+// quien comparte, no desde sus servidores. Sin estas dos cabeceras en el
+// contenido publico, ese navegador no puede leer la pagina ni la miniatura:
+//  - helmet pone Cross-Origin-Resource-Policy: same-origin por defecto, que
+//    impide cargar la imagen desde otro origen (sintoma: salen titulo y
+//    descripcion, pero no la imagen).
+//  - sin Access-Control-Allow-Origin no puede leer ni el HTML (sintoma: la
+//    tarjeta muestra el dominio como titulo).
+// NUNCA sobre /api, que lleva sesion.
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  next();
+});
+
 // Rate limiting general para toda la API
 app.use('/api', apiLimiter);
 
@@ -116,13 +134,18 @@ app.use(express.static(publicDir, {
   },
 }));
 
+// El index.html se prepara UNA vez al arrancar, con las etiquetas de vista
+// previa del pais ya inyectadas: los rastreadores de WhatsApp y Telegram no
+// ejecutan JavaScript, asi que lo que no venga en el HTML no existe para ellos.
+const indexConOG = prepararIndex(path.join(publicDir, 'index.html'), getCountry(env.COUNTRY_CODE));
+
 // SPA fallback: non-API GET requests -> index.html (React Router handles routing)
 app.get(/^(?!\/api\/).*/, (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.setHeader('Surrogate-Control', 'no-store');
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.type('html').send(indexConOG);
 });
 
 // 404 for unmatched API routes
