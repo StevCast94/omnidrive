@@ -7,3 +7,6 @@ web/dist/
 # Vite build output (dist/*) is copied into backend/public/ by railway.json buildCommand
 # Individual files in this dir are committed; generated files are ignored via web/dist/
 # backend/public/
+
+# Fotos temporales de la semilla (no son inventario real)
+tmp-photos/
