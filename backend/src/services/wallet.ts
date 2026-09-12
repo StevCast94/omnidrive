@@ -258,7 +258,14 @@ export async function liberarPorReserva(bookingId: string) {
  */
 export async function reembolsarPorReserva(
   bookingId: string,
-  opciones: { motivo: string; retenerDelDeposito?: number } = { motivo: 'Cancelación' }
+  opciones: {
+    motivo: string;
+    /** Parte del depósito que se queda el anfitrión por daños. */
+    retenerDelDeposito?: number;
+    /** Parte del ALQUILER que se queda el anfitrión como penalización por
+     *  cancelación tardía. Sale del alquiler, nunca del depósito. */
+    penalizacionAlAnfitrion?: number;
+  } = { motivo: 'Cancelación' }
 ) {
   return prisma.$transaction(async tx => {
     const booking = await tx.booking.findUnique({
@@ -275,7 +282,13 @@ export async function reembolsarPorReserva(
     }
 
     const retenido = booking.totalAmount + booking.deposit;
-    const paraElDueno = Math.min(Math.max(opciones.retenerDelDeposito ?? 0, 0), booking.deposit);
+
+    // Del depósito, sólo por daños. Del alquiler, sólo por penalización de
+    // cancelación. Cada uno tiene su tope: nunca se puede cobrar de más.
+    const porDanos = Math.min(Math.max(opciones.retenerDelDeposito ?? 0, 0), booking.deposit);
+    const porCancelacion = Math.min(Math.max(opciones.penalizacionAlAnfitrion ?? 0, 0), booking.totalAmount);
+
+    const paraElDueno = porDanos + porCancelacion;
     const paraElInquilino = retenido - paraElDueno;
 
     await tx.user.update({

@@ -326,6 +326,7 @@ authRouter.post(
     { name: 'selfie', maxCount: 1 },
     { name: 'documentFront', maxCount: 1 },
     { name: 'documentBack', maxCount: 1 },
+    { name: 'licencia', maxCount: 1 },
   ]),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const files = req.files as Record<string, Express.Multer.File[]>;
@@ -334,22 +335,57 @@ authRouter.post(
     }
 
     const uid = req.user!.id;
-    const subidas: Promise<string>[] = [
+    const tipoDoc = req.body.documentType ?? 'cedula';
+
+    // Quien se identifica con pasaporte es, casi siempre, un turista que va a
+    // conducir con la licencia de su país. Sin esa licencia no hay nada que
+    // revisar: no se le puede entregar un vehículo.
+    if (tipoDoc === 'passport' && !files.licencia) {
+      return res.status(400).json({
+        data: null,
+        error: 'Con pasaporte necesitamos también tu licencia de conducir.',
+        code: 'LICENCIA_REQUERIDA',
+      });
+    }
+
+    const [selfieUrl, documentFrontUrl, documentBackUrl, licenciaUrl] = await Promise.all([
       uploadToStorage(`identity/${uid}/selfie`, files.selfie[0]),
       uploadToStorage(`identity/${uid}/doc-front`, files.documentFront[0]),
-    ];
-    // Un pasaporte no tiene reverso: en RD el turista sube solo la hoja de datos.
-    if (files.documentBack) subidas.push(uploadToStorage(`identity/${uid}/doc-back`, files.documentBack[0]));
-
-    const [selfieUrl, documentFrontUrl, documentBackUrl] = await Promise.all(subidas);
+      // Un pasaporte no tiene reverso: se sube sólo la hoja de datos.
+      files.documentBack ? uploadToStorage(`identity/${uid}/doc-back`, files.documentBack[0]) : Promise.resolve(null),
+      files.licencia ? uploadToStorage(`identity/${uid}/licencia`, files.licencia[0]) : Promise.resolve(null),
+    ]);
 
     const user = await prisma.user.update({
       where: { id: uid },
-      data: { selfieUrl, documentFrontUrl, documentBackUrl: documentBackUrl ?? null, verificationNotes: null },
+      data: {
+        selfieUrl,
+        documentFrontUrl,
+        documentBackUrl,
+        documentType: tipoDoc,
+        documentCountry: req.body.documentCountry || pais.code,
+        verificationNotes: null,
+      },
       select: { id: true, selfieUrl: true, documentFrontUrl: true, documentBackUrl: true, identityVerified: true, verificationNotes: true },
     });
 
-    return res.json({ data: { user, message: 'Documentos recibidos. Pendiente de revisión manual.' }, error: null });
+    if (licenciaUrl) {
+      // La licencia vive en UserDocument con su caducidad: una licencia vencida
+      // no sirve aunque la persona esté verificada.
+      await prisma.userDocument.create({
+        data: {
+          userId: uid,
+          type: 'license',
+          url: licenciaUrl,
+          expiresAt: req.body.licenciaVence ? new Date(req.body.licenciaVence) : null,
+        },
+      });
+    }
+
+    return res.json({
+      data: { user, message: 'Documentos recibidos. Pendiente de revisión manual.' },
+      error: null,
+    });
   })
 );
 

@@ -16,8 +16,10 @@ import { notificationsRouter } from './routes/notifications';
 import { uploadRouter }        from './routes/upload';
 import { metricsRouter }       from './routes/metrics';
 import { paymentsRouter }      from './routes/payments';
+import { legalRouter }         from './routes/legal';
 import { setProvider }         from './services/verification';
 import { WebServicesEcProvider } from './services/providers/webservices-ec';
+import { JceDoProvider } from './services/providers/jce-do';
 import { env }                 from './config/env';
 import { origenesPermitidos }  from './config/country';
 import { apiLimiter }          from './middleware/rateLimit';
@@ -84,6 +86,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/upload',        uploadRouter);
 app.use('/api/metrics',      metricsRouter);
 app.use('/api/payments',     paymentsRouter);
+app.use('/api/legal',        legalRouter);
 
 
 // Serve frontend static files
@@ -143,13 +146,24 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   res.status(500).json({ data: null, error: err?.message ?? 'Error interno del servidor' });
 });
 
-// Init verification provider
-const wsProvider = new WebServicesEcProvider();
-if (wsProvider.isConfigured) {
-  setProvider(wsProvider);
-  console.log('[Init] Verification provider: webservices.ec (API key configured)');
+// Proveedor de verificacion del pais que sirve esta instancia.
+// Si no hay ninguno configurado, las verificaciones quedan pendientes de
+// revision manual: NUNCA se autoaprueban. El digito verificador de una cedula
+// es un algoritmo publico y no verifica a nadie.
+const proveedores: Record<string, () => { isConfigured: boolean } & any> = {
+  EC: () => new WebServicesEcProvider(),
+  DO: () => new JceDoProvider(),
+};
+
+const proveedor = proveedores[env.COUNTRY_CODE]?.();
+if (proveedor?.isConfigured) {
+  setProvider(proveedor);
+  console.log(`[Init] Verificacion de identidad: ${proveedor.name}`);
 } else {
-  console.log('[Init] Verification provider: NONE (set WEBSERVICES_EC_API_KEY env var)');
+  console.warn(
+    `[Init] SIN proveedor de verificacion para ${env.COUNTRY_CODE}. ` +
+    'Las identidades quedaran PENDIENTES de revision manual (nunca se autoaprueban).'
+  );
 }
 
 // Start

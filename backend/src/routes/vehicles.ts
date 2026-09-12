@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
+import { requireLegalAlDia } from '../middleware/legal';
 import { uploadToStorage } from '../lib/storage';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { aCentavos } from '../services/pricing';
@@ -157,7 +158,7 @@ vehiclesRouter.get('/:id', asyncHandler(async (req, res: Response) => {
 }));
 
 // POST /api/vehicles
-vehiclesRouter.post('/', authenticate, requireVerified, asyncHandler(async (req: AuthRequest, res: Response) => {
+vehiclesRouter.post('/', authenticate, requireVerified, requireLegalAlDia, asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     brand, model, year, plate, color, vin, category, seats, doors,
     transmission, fuelType, pricePerHour, pricePerDay, pricePerKm,

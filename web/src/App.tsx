@@ -19,6 +19,7 @@ import Admin from '@/pages/Admin';
 import ResetPassword from '@/pages/ResetPassword';
 import SelectorPais from '@/pages/SelectorPais';
 import Billetera from '@/pages/Billetera';
+import Legal from '@/pages/Legal';
 import ForgotPassword from '@/pages/ForgotPassword';
 
 // ===== Tiny HashRouter (zero dependencies) =====
@@ -171,6 +172,8 @@ const routes: Route[] = [
   { path: '/reset-password', element: <ResetPassword /> },
   { path: '/paises', element: <SelectorPais /> },
   { path: '/billetera', element: <Layout><Billetera /></Layout> },
+  { path: '/legal', element: <Layout><Legal /></Layout> },
+  { path: '/legal/:tipo', element: <Layout><Legal /></Layout> },
   { path: '/', element: <Layout><Home /></Layout> },
   { path: '/vehicles', element: <Layout><VehicleList /></Layout> },
   { path: '/vehicles/:id', element: <Layout><VehicleDetail /></Layout> },

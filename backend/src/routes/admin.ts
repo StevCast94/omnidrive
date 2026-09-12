@@ -387,3 +387,137 @@ adminRouter.post('/pagos/:id/rechazar', adminAuth, asyncHandler(async (req: Auth
     return res.status(409).json({ data: null, error: e.message });
   }
 }));
+
+// ── Cola de verificacion de identidad ─────────────────────────────────
+// Quien sube pasaporte llega siempre aqui: no hay registro civil extranjero
+// que consultar, y el digito verificador de un pasaporte no existe. Lo unico
+// que verifica de verdad es una persona mirando el documento, la selfie y —si
+// va a conducir— la licencia.
+
+adminRouter.get('/verificaciones', adminAuth, asyncHandler(async (_req: AuthRequest, res: Response) => {
+  const pendientes = await prisma.user.findMany({
+    where: {
+      identityVerified: false,
+      // Solo quienes ya subieron algo que revisar.
+      selfieUrl: { not: null },
+      documentFrontUrl: { not: null },
+    },
+    orderBy: { updatedAt: 'asc' },
+    select: {
+      id: true, name: true, lastName: true, email: true, phone: true,
+      documentType: true, documentCountry: true, documentId: true, birthDate: true,
+      selfieUrl: true, documentFrontUrl: true, documentBackUrl: true,
+      verificationNotes: true, countryCode: true, createdAt: true, updatedAt: true,
+      documents: {
+        where: { type: 'license' },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, url: true, expiresAt: true, verified: true },
+      },
+    },
+  });
+
+  return res.json({
+    data: pendientes.map(u => ({
+      ...u,
+      licencia: u.documents[0] ?? null,
+      // El turista con pasaporte necesita licencia extranjera; sin ella no se
+      // le puede aprobar para conducir.
+      requiereLicencia: u.documentType === 'passport',
+      licenciaVencida: u.documents[0]?.expiresAt ? u.documents[0].expiresAt < new Date() : false,
+      documents: undefined,
+    })),
+    error: null,
+  });
+}));
+
+adminRouter.post('/verificaciones/:id/aprobar', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = req.params.id as string;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: { documents: { where: { type: 'license' }, orderBy: { createdAt: 'desc' }, take: 1 } },
+  });
+  if (!user) return res.status(404).json({ data: null, error: 'Usuario no encontrado' });
+
+  const licencia = user.documents[0];
+  if (user.documentType === 'passport' && !licencia) {
+    return res.status(400).json({
+      data: null,
+      error: 'No se puede aprobar un pasaporte sin licencia de conducir.',
+      code: 'LICENCIA_REQUERIDA',
+    });
+  }
+  if (licencia?.expiresAt && licencia.expiresAt < new Date()) {
+    return res.status(400).json({
+      data: null,
+      error: 'La licencia de conducir está vencida.',
+      code: 'LICENCIA_VENCIDA',
+    });
+  }
+
+  const actualizado = await prisma.$transaction(async tx => {
+    if (licencia) {
+      await tx.userDocument.update({ where: { id: licencia.id }, data: { verified: true } });
+    }
+    return tx.user.update({
+      where: { id },
+      data: {
+        identityVerified: true,
+        verifiedAt: new Date(),
+        verifiedBy: req.user!.id,
+        verificationNotes: req.body.notas || 'Verificado manualmente',
+      },
+      select: { id: true, name: true, lastName: true, identityVerified: true, verifiedAt: true },
+    });
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: id,
+      type: 'identity_verified',
+      title: '¡Identidad verificada!',
+      body: 'Tu documento fue aprobado. Ya puedes publicar vehículos y reservar.',
+    },
+  });
+
+  await registrarAuditoria(req, 'usuario.verificacion.aprobar', 'User', id,
+    { identityVerified: false }, { identityVerified: true, documentType: user.documentType });
+
+  return res.json({ data: actualizado, error: null });
+}));
+
+adminRouter.post('/verificaciones/:id/rechazar', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { motivo } = req.body;
+  if (!motivo) {
+    return res.status(400).json({ data: null, error: 'Indica el motivo: la persona tiene que saber qué corregir' });
+  }
+
+  const id = req.params.id as string;
+  const actualizado = await prisma.user.update({
+    where: { id },
+    data: {
+      identityVerified: false,
+      verificationNotes: motivo,
+      verifiedBy: req.user!.id,
+      // Se borran los documentos subidos: guardar la foto de una cédula
+      // rechazada no aporta nada y es un dato sensible de mas.
+      selfieUrl: null,
+      documentFrontUrl: null,
+      documentBackUrl: null,
+    },
+    select: { id: true, identityVerified: true, verificationNotes: true },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: id,
+      type: 'identity_rejected',
+      title: 'Necesitamos revisar tus documentos',
+      body: motivo,
+    },
+  });
+
+  await registrarAuditoria(req, 'usuario.verificacion.rechazar', 'User', id, null, { motivo });
+
+  return res.json({ data: actualizado, error: null });
+}));

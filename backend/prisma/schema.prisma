@@ -82,6 +82,7 @@ model User {
   updatedAt           DateTime             @updatedAt
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  legalAcceptances    LegalAcceptance[]
 }
 
 // ========== BANNED IDENTITIES ==========
@@ -438,5 +439,25 @@ model PasswordResetToken {
 
   createdAt DateTime @default(now())
 
+  @@index([userId])
+}
+
+// ========== ACEPTACION DE TEXTOS LEGALES ==========
+// Quien acepto que, en que version y desde donde. La version importa: cuando
+// cambian los terminos, la aceptacion anterior deja de valer.
+model LegalAcceptance {
+  id        String  @id @default(uuid()) @db.Uuid
+  userId    String  @db.Uuid
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo      String // terminos, privacidad, cancelacion
+  version   String
+  ip        String?
+  userAgent String?
+  // Reserva en la que se acepto, si fue durante una reserva.
+  bookingId String? @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, tipo, version])
   @@index([userId])
 }

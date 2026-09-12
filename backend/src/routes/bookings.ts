@@ -1,11 +1,13 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
+import { requireLegalAlDia } from '../middleware/legal';
 import { uploadToStorage } from '../lib/storage';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { calcularDuracion, calcularReserva } from '../services/pricing';
 import { getCountry } from '../config/country';
+import { calcularDevolucion, POLITICA_CANCELACION } from '../config/legal';
 import { retenerPorReserva, liberarPorReserva, reembolsarPorReserva, FondosInsuficientes, EstadoDePagoInvalido } from '../services/wallet';
 import { env } from '../config/env';
 
@@ -87,7 +89,7 @@ bookingsRouter.get('/:id', authenticate, asyncHandler(async (req: AuthRequest, r
 }));
 
 // POST /api/bookings — solo usuarios verificados pueden reservar
-bookingsRouter.post('/', authenticate, requireVerified, asyncHandler(async (req: AuthRequest, res: Response) => {
+bookingsRouter.post('/', authenticate, requireVerified, requireLegalAlDia, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { vehicleId, startAt, endAt, withDriver, hasInsurance, insuranceDetails, liabilityWaiver } = req.body;
 
   if (!vehicleId || !startAt || !endAt) {
@@ -236,11 +238,27 @@ bookingsRouter.put('/:id/cancel', authenticate, asyncHandler(async (req: AuthReq
     return res.status(400).json({ data: null, error: 'Cannot cancel an active or completed booking' });
   }
 
-  // Se devuelve TODO lo retenido (alquiler + depósito). Antes solo se anotaba
-  // el depósito, y el importe del alquiler se quedaba en el limbo.
+  // Política de cancelación. Antes se devolvía el 100% siempre, sin importar
+  // si faltaban dos días o dos horas: el anfitrión que reservaba su fin de
+  // semana se quedaba sin alquiler y sin compensación.
+  //
+  // El depósito se devuelve SIEMPRE entero: es una garantía, y si no hubo
+  // alquiler no hay nada que garantizar.
+  let devolucion = { porcentajeDevuelto: 100, motivo: 'Cancelación' };
+
   if (booking.paymentStatus === 'held') {
+    const horasHastaElInicio = (booking.startAt.getTime() - Date.now()) / 3_600_000;
+    devolucion = calcularDevolucion(horasHastaElInicio, isOwner);
+
+    // Lo que NO se devuelve del alquiler va al anfitrión como compensación.
+    const penalizacion = Math.round(booking.totalAmount * (100 - devolucion.porcentajeDevuelto) / 100);
+
     await reembolsarPorReserva(booking.id, {
-      motivo: `Cancelación por ${isOwner ? 'el anfitrión' : 'el inquilino'}`,
+      motivo: devolucion.motivo,
+      // reembolsarPorReserva reparte desde el total retenido: lo que se queda
+      // el anfitrión sale del alquiler, nunca del depósito.
+      retenerDelDeposito: 0,
+      penalizacionAlAnfitrion: penalizacion,
     });
   }
 
@@ -259,7 +277,43 @@ bookingsRouter.put('/:id/cancel', authenticate, asyncHandler(async (req: AuthReq
     },
   });
 
-  return res.json({ data: updated, error: null });
+  return res.json({
+    data: { ...updated, devolucion },
+    error: null,
+  });
+}));
+
+// GET /api/bookings/:id/politica-cancelacion — qué pasaría si cancelo ahora
+bookingsRouter.get('/:id/politica-cancelacion', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id as string },
+    select: {
+      startAt: true, totalAmount: true, deposit: true, currency: true,
+      tenantId: true, paymentStatus: true, vehicle: { select: { ownerId: true } },
+    },
+  });
+  if (!booking) return res.status(404).json({ data: null, error: 'Reserva no encontrada' });
+
+  const esAnfitrion = booking.vehicle.ownerId === req.user!.id;
+  if (!esAnfitrion && booking.tenantId !== req.user!.id) {
+    return res.status(403).json({ data: null, error: 'No autorizado' });
+  }
+
+  const horas = (booking.startAt.getTime() - Date.now()) / 3_600_000;
+  const d = calcularDevolucion(horas, esAnfitrion);
+
+  return res.json({
+    data: {
+      horasHastaElInicio: Math.max(0, Math.round(horas)),
+      porcentajeDevuelto: d.porcentajeDevuelto,
+      motivo: d.motivo,
+      seDevuelveDelAlquiler: Math.round(booking.totalAmount * d.porcentajeDevuelto / 100),
+      seDevuelveDelDeposito: booking.deposit,
+      currency: booking.currency,
+      politica: POLITICA_CANCELACION,
+    },
+    error: null,
+  });
 }));
 
 // PUT /api/bookings/:id/start

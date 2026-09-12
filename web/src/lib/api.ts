@@ -98,6 +98,7 @@ export const bookings = {
   uploadPhotosBefore: (id: string, fd: FormData) => api.put(`/bookings/${id}/photos-before`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
   uploadPhotosAfter: (id: string, fd: FormData) => api.put(`/bookings/${id}/photos-after`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
   dispute: (id: string, description: string) => api.post(`/bookings/${id}/dispute`, { description }),
+  politicaCancelacion: (id: string) => api.get(`/bookings/${id}/politica-cancelacion`),
 };
 
 export const tracking = {
@@ -112,6 +113,12 @@ export const reviewsApi = {
 
 // Subscriptions movido a feature/stripe-connect
 // export const subscriptions = { ... }
+
+export const legal = {
+  todos: () => api.get('/legal'),
+  estadoMio: () => api.get('/legal/estado/mio'),
+  aceptar: (tipos?: string[], bookingId?: string) => api.post('/legal/aceptar', { tipos, bookingId }),
+};
 
 export const payments = {
   saldo: () => api.get('/payments/saldo'),

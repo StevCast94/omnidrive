@@ -4,6 +4,7 @@ import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, Chevron
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi } from '@/lib/api';
 import { formatearDinero } from '@/lib/money';
+import AceptarLegales from '@/components/AceptarLegales';
 import { useAuthStore } from '@/lib/store';
 import VerificationModal from '@/components/VerificationModal';
 
@@ -22,6 +23,7 @@ export default function BookingFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [cotizacion, setCotizacion] = useState<any>(null);
   const [cotizando, setCotizando] = useState(false);
+  const [legalesAlDia, setLegalesAlDia] = useState(false);
   const [booking, setBooking] = useState<any>(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
@@ -283,14 +285,18 @@ export default function BookingFlow() {
           </div>
         </div>
       ) : (
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !disclaimerAccepted}
-          className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-        >
-          {submitting ? 'Enviando...' : 'Enviar solicitud al propietario'}
-          {!submitting && <ChevronRight size={16} />}
-        </button>
+        <div className="space-y-3">
+          <AceptarLegales onCambio={setLegalesAlDia} />
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !disclaimerAccepted || !legalesAlDia}
+            className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            {submitting ? 'Enviando...' : 'Enviar solicitud al propietario'}
+            {!submitting && <ChevronRight size={16} />}
+          </button>
+        </div>
       )}
     </div>
   );

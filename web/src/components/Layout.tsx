@@ -27,9 +27,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <span className="text-slate-500">
             <span aria-hidden="true">{pais.flag}</span> OmniDrive {pais.name}
           </span>
-          <Link to="/paises" className="text-slate-400 hover:text-white transition-colors">
-            Cambiar de país
-          </Link>
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link to="/legal/terminos" className="text-slate-400 hover:text-white transition-colors">Términos</Link>
+            <Link to="/legal/privacidad" className="text-slate-400 hover:text-white transition-colors">Privacidad</Link>
+            <Link to="/legal/cancelacion" className="text-slate-400 hover:text-white transition-colors">Cancelación</Link>
+            <Link to="/paises" className="text-slate-400 hover:text-white transition-colors">Cambiar de país</Link>
+          </nav>
         </div>
       </footer>
 
