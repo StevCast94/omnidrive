@@ -41,6 +41,22 @@ export interface DesgloseReserva {
 }
 
 /**
+ * Margen de cortesía antes de cobrar la siguiente hora o el siguiente día.
+ *
+ * Sin él, un alquiler de 48 horas y un MILISEGUNDO se cobraba como tres días
+ * completos: 120 dólares más por un milisegundo. Cualquier alquiler de
+ * vehículos da una tolerancia de este orden, y aquí además protege de que dos
+ * relojes que no coinciden exactamente cambien el precio.
+ */
+export const CORTESIA_MINUTOS = 30;
+
+/** Redondea hacia arriba, pero perdonando el margen de cortesía. */
+function haciaArribaConCortesia(cantidad: number, minutosPorUnidad: number): number {
+  const tolerancia = CORTESIA_MINUTOS / minutosPorUnidad;
+  return Math.ceil(cantidad - tolerancia);
+}
+
+/**
  * Importe base del alquiler, en centavos.
  *
  * Regla: se cobra **la más barata** de las dos tarifas del propio dueño —
@@ -53,8 +69,8 @@ export function calcularBase(
   duracion: Duracion
 ): { centavos: number; tarifa: 'horas' | 'dias'; horas: number; dias: number } {
   // Nadie alquila "cero horas": el mínimo facturable es una hora.
-  const horas = Math.max(1, Math.ceil(duracion.horas));
-  const dias = Math.max(1, Math.ceil(duracion.dias));
+  const horas = Math.max(1, haciaArribaConCortesia(duracion.horas, 60));
+  const dias = Math.max(1, haciaArribaConCortesia(duracion.dias, 60 * 24));
 
   const porHoras = horas * pricePerHour;
   const porDias = dias * pricePerDay;

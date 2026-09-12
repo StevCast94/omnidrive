@@ -47,7 +47,23 @@ describe('calcularBase', () => {
   });
 
   it('cobra horas empezadas, no fracciones', () => {
-    expect(calcularBase(HORA, DIA, horas(2.1)).centavos).toBe(3 * HORA);
+    expect(calcularBase(HORA, DIA, horas(2.6)).centavos).toBe(3 * HORA);
+  });
+
+  it('REGRESIÓN: 48 horas y un milisegundo no son tres días', () => {
+    // Cobraba 3 días —120 dólares más— por un milisegundo. Las dos fechas de
+    // una reserva rara vez caen en el milisegundo exacto.
+    const unMs = calcularDuracion(new Date(0), new Date(48 * 3600_000 + 1));
+    expect(calcularBase(HORA, DIA, unMs).centavos).toBe(2 * DIA);
+  });
+
+  it('perdona hasta media hora de retraso, y cobra a partir de ahí', () => {
+    const conRetraso = (minutos: number) =>
+      calcularBase(HORA, DIA, calcularDuracion(new Date(0), new Date(48 * 3600_000 + minutos * 60_000))).centavos;
+
+    expect(conRetraso(5)).toBe(2 * DIA);   // llegó tarde, no pasa nada
+    expect(conRetraso(29)).toBe(2 * DIA);  // justo dentro
+    expect(conRetraso(31)).toBe(3 * DIA);  // ya es otro día
   });
 
   it('con tarifa diaria muy barata, un alquiler de horas ya usa el día', () => {
