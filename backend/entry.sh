@@ -1,13 +1,16 @@
 #!/bin/sh
-# ===== entry.sh — Para Railway =====
+# ===== entry.sh — Railway =====
+set -e
 
-echo "[Entry] Running prisma generate..."
-npx prisma generate 2>&1
+echo "[Entry] prisma generate..."
+npx prisma generate
 
-echo "[Entry] Syncing database schema..."
-npx prisma db push --skip-generate 2>&1
-echo "[Entry] Applying performance indexes..."
-npx prisma db execute --file prisma/migrations/add_indexes.sql 2>&1 || echo "[Entry] Indexes already exist (non-fatal)"
+# Migraciones versionadas. Antes esto era `prisma db push --accept-data-loss`,
+# que sincroniza el esquema sin historial y puede borrar columnas sin avisar.
+# El 12-sep-2026 convirtio el dinero a integer sin el x100 que la migracion
+# escrita a mano si hacia: por eso ya no se usa.
+echo "[Entry] prisma migrate deploy..."
+npx prisma migrate deploy
 
-echo "[Entry] Starting OmniDrive API..."
+echo "[Entry] Arrancando OmniDrive API..."
 exec npx tsx src/index.ts

@@ -28,6 +28,9 @@ export const env = {
   NODE_ENV: optionalEnv('NODE_ENV', 'development'),
   FRONTEND_URL: optionalEnv('FRONTEND_URL'),
 
+  // Pais que sirve esta instancia. Hay un despliegue y una BD por pais.
+  COUNTRY_CODE: optionalEnv("COUNTRY_CODE", "EC"),
+
   // Habilita el endpoint de seed (solo dev). Por defecto deshabilitado.
   SEED_ENABLED: optionalEnv('SEED_ENABLED') === 'true',
 };

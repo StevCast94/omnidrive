@@ -7,11 +7,11 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npx prisma generate; npx prisma db push --skip-generate --accept-data-loss; exit 0",
+    "build": "npx prisma generate",
     "start": "sh entry.sh",
-    "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
-    "db:generate": "npx prisma generate"
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",

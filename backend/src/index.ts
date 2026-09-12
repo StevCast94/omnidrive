@@ -21,6 +21,11 @@ import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { env }                 from './config/env';
 import { apiLimiter }          from './middleware/rateLimit';
 
+// El proyecto Supabase cambia por pais: la CSP se deriva del entorno,
+// no del identificador de un proyecto escrito a mano.
+const SUPA = env.SUPABASE_URL.replace(/[/]+$/, '');
+const SUPA_WS = SUPA.replace(/^https:/, 'wss:');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -33,11 +38,11 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       baseUri: ["'self'"],
-      connectSrc: ["'self'", "https://rkwbixidpaqweavghfea.supabase.co", "wss://rkwbixidpaqweavghfea.supabase.co", "https://*.googleusercontent.com", "https://res.cloudinary.com"],
+      connectSrc: ["'self'", SUPA, SUPA_WS, "https://*.googleusercontent.com", "https://res.cloudinary.com"],
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", "https://rkwbixidpaqweavghfea.supabase.co", "https://images.unsplash.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", SUPA, "https://images.unsplash.com"],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],

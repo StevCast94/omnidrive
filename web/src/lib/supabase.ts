@@ -1,10 +1,16 @@
-﻿import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://rkwbixidpaqweavghfea.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrd2JpeGlkcGFxd2VhdmdoZmVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjYxOTgsImV4cCI6MjA5MzM0MjE5OH0.JnpkukDVuPIvtlBZyHrPFzBReDIVEITrD0uAqGix77U';
+// Hay un proyecto Supabase por pais (Auth va separado, igual que la BD).
+// Por eso estas claves no pueden estar escritas en el codigo: cada despliegue
+// inyecta las suyas. La anon key es publica por diseno; el aislamiento real
+// lo da que cada pais tenga su propio proyecto.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('[OmniDrive] Supabase URL and ANON KEY are required.');
+  throw new Error(
+    '[OmniDrive] Faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en el entorno de build.'
+  );
 }
 
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

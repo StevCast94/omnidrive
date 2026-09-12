@@ -11,6 +11,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "documentType" TEXT NOT NULL,
+    "documentCountry" TEXT NOT NULL DEFAULT 'EC',
     "documentId" TEXT,
     "birthDate" TIMESTAMP(3),
     "gender" TEXT,
@@ -22,12 +23,14 @@ CREATE TABLE "User" (
     "verifiedAt" TIMESTAMP(3),
     "verificationNotes" TEXT,
     "verifiedBy" UUID,
-    "walletBalance" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "walletBalance" INTEGER NOT NULL DEFAULT 0,
+    "walletCurrency" TEXT NOT NULL DEFAULT 'USD',
     "subscriptionTier" TEXT NOT NULL DEFAULT 'free',
     "subscriptionEnds" TIMESTAMP(3),
     "rating" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "totalTrips" INTEGER NOT NULL DEFAULT 0,
     "role" TEXT NOT NULL DEFAULT 'user',
+    "countryCode" TEXT NOT NULL DEFAULT 'EC',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -70,22 +73,24 @@ CREATE TABLE "Vehicle" (
     "plate" TEXT NOT NULL,
     "color" TEXT NOT NULL,
     "vin" TEXT NOT NULL,
+    "countryCode" TEXT NOT NULL DEFAULT 'EC',
     "category" TEXT NOT NULL,
     "seats" INTEGER NOT NULL,
     "doors" INTEGER,
     "transmission" TEXT NOT NULL,
     "fuelType" TEXT NOT NULL,
     "photos" TEXT[],
-    "pricePerHour" DECIMAL(10,2) NOT NULL,
-    "pricePerDay" DECIMAL(10,2) NOT NULL,
-    "pricePerKm" DECIMAL(10,2),
-    "deposit" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "pricePerHour" INTEGER NOT NULL,
+    "pricePerDay" INTEGER NOT NULL,
+    "pricePerKm" INTEGER,
+    "deposit" INTEGER NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
     "available" BOOLEAN NOT NULL DEFAULT true,
     "locationLat" DOUBLE PRECISION,
     "locationLng" DOUBLE PRECISION,
     "locationName" TEXT,
     "withDriver" BOOLEAN NOT NULL DEFAULT false,
-    "driverPrice" DECIMAL(10,2),
+    "driverPrice" INTEGER,
     "flexibleCheckin" BOOLEAN NOT NULL DEFAULT true,
     "checkInTime" TEXT,
     "checkOutTime" TEXT,
@@ -114,16 +119,18 @@ CREATE TABLE "Booking" (
     "returnedAt" TIMESTAMP(3),
     "withDriver" BOOLEAN NOT NULL DEFAULT false,
     "driverId" UUID,
-    "baseAmount" DECIMAL(10,2) NOT NULL,
-    "driverFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "insuranceFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "serviceFee" DECIMAL(10,2) NOT NULL,
-    "totalAmount" DECIMAL(10,2) NOT NULL,
-    "deposit" DECIMAL(10,2) NOT NULL,
+    "baseAmount" INTEGER NOT NULL,
+    "driverFee" INTEGER NOT NULL DEFAULT 0,
+    "insuranceFee" INTEGER NOT NULL DEFAULT 0,
+    "serviceFee" INTEGER NOT NULL,
+    "totalAmount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "deposit" INTEGER NOT NULL,
     "hasInsurance" BOOLEAN NOT NULL DEFAULT false,
     "insuranceDetails" JSONB,
     "liabilityWaiver" BOOLEAN NOT NULL DEFAULT false,
     "trackingEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "trackingConsentAt" TIMESTAMP(3),
     "trackingData" JSONB,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "photosBefore" TEXT[],
@@ -159,8 +166,9 @@ CREATE TABLE "Transaction" (
     "toUserId" UUID,
     "bookingId" UUID,
     "type" TEXT NOT NULL,
-    "amount" DECIMAL(10,2) NOT NULL,
-    "fee" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "amount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "fee" INTEGER NOT NULL DEFAULT 0,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "description" TEXT,
     "referenceId" TEXT,
@@ -176,7 +184,8 @@ CREATE TABLE "Subscription" (
     "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
     "tier" TEXT NOT NULL,
-    "price" DECIMAL(10,2) NOT NULL,
+    "price" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
     "interval" TEXT NOT NULL,
     "autoRenew" BOOLEAN NOT NULL DEFAULT true,
     "startsAt" TIMESTAMP(3) NOT NULL,
@@ -228,6 +237,38 @@ CREATE TABLE "Notification" (
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "AuditLog" (
+    "id" UUID NOT NULL,
+    "actorId" UUID,
+    "actorEmail" TEXT,
+    "action" TEXT NOT NULL,
+    "entityType" TEXT NOT NULL,
+    "entityId" UUID,
+    "before" JSONB,
+    "after" JSONB,
+    "ip" TEXT,
+    "userAgent" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TrackingPoint" (
+    "id" UUID NOT NULL,
+    "bookingId" UUID NOT NULL,
+    "lat" DOUBLE PRECISION NOT NULL,
+    "lng" DOUBLE PRECISION NOT NULL,
+    "speed" DOUBLE PRECISION,
+    "heading" DOUBLE PRECISION,
+    "accuracy" DOUBLE PRECISION,
+    "recordedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TrackingPoint_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_authId_key" ON "User"("authId");
 
@@ -253,13 +294,70 @@ CREATE UNIQUE INDEX "Vehicle_plate_key" ON "Vehicle"("plate");
 CREATE UNIQUE INDEX "Vehicle_vin_key" ON "Vehicle"("vin");
 
 -- CreateIndex
+CREATE INDEX "Vehicle_ownerId_idx" ON "Vehicle"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_category_idx" ON "Vehicle"("category");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_available_idx" ON "Vehicle"("available");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_countryCode_idx" ON "Vehicle"("countryCode");
+
+-- CreateIndex
+CREATE INDEX "Booking_vehicleId_status_idx" ON "Booking"("vehicleId", "status");
+
+-- CreateIndex
+CREATE INDEX "Booking_tenantId_idx" ON "Booking"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "Booking_renterId_idx" ON "Booking"("renterId");
+
+-- CreateIndex
+CREATE INDEX "Booking_status_startAt_idx" ON "Booking"("status", "startAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Review_bookingId_key" ON "Review"("bookingId");
+
+-- CreateIndex
+CREATE INDEX "Review_targetId_idx" ON "Review"("targetId");
+
+-- CreateIndex
+CREATE INDEX "Review_vehicleId_idx" ON "Review"("vehicleId");
+
+-- CreateIndex
+CREATE INDEX "Transaction_toUserId_idx" ON "Transaction"("toUserId");
+
+-- CreateIndex
+CREATE INDEX "Transaction_bookingId_idx" ON "Transaction"("bookingId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Subscription_userId_key" ON "Subscription"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Conversation_bookingId_key" ON "Conversation"("bookingId");
+
+-- CreateIndex
+CREATE INDEX "Message_conversationId_createdAt_idx" ON "Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_read_idx" ON "Notification"("userId", "read");
+
+-- CreateIndex
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_entityType_entityId_idx" ON "AuditLog"("entityType", "entityId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_actorId_idx" ON "AuditLog"("actorId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "TrackingPoint_bookingId_recordedAt_idx" ON "TrackingPoint"("bookingId", "recordedAt");
 
 -- AddForeignKey
 ALTER TABLE "UserDocument" ADD CONSTRAINT "UserDocument_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -305,4 +403,7 @@ ALTER TABLE "Message" ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("sende
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrackingPoint" ADD CONSTRAINT "TrackingPoint_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

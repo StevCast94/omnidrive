@@ -7,6 +7,7 @@ import { verifyIdentity } from '../services/verification';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { env } from '../config/env';
 import { authLimiter } from '../middleware/rateLimit';
+import { adminAuth, requireSuperAdmin } from '../middleware/adminAuth';
 
 const JWT_SECRET = env.JWT_SECRET;
 
@@ -34,24 +35,6 @@ adminRouter.post('/auth/login', authLimiter, asyncHandler(async (req, res: Respo
   });
 }));
 
-// ── Auth middleware for admin (JWT propio) ──
-function adminAuth(req: AuthRequest, res: Response, next: any) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token requerido' });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Token invalido o expirado' });
-  }
-}
-
-function requireSuperAdmin(req: AuthRequest, res: Response, next: any) {
-  if (req.user?.role !== 'superadmin') return res.status(403).json({ error: 'Solo superadmin' });
-  next();
-}
 
 // ── Auth verify (validar sesión) ──
 adminRouter.get('/auth/verify', adminAuth, asyncHandler(async (_req: AuthRequest, res: Response) => {
