@@ -2,7 +2,7 @@
 import React from 'react';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
-  variantú: 'icon' | 'full' | 'horizontal';
+  variant?: 'icon' | 'full' | 'horizontal';
   /** Si true, el isotipo gira sutilmente en hover (orbital) */
   animated?: boolean;
 }

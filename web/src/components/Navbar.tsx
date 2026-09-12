@@ -1,7 +1,8 @@
 ﻿// ===== web/src/components/Navbar.tsx =====
 import { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User as UserIcon } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/api';
+import { getRefreshToken, borrarSesion } from '@/lib/session';
 import { useAuthStore } from '@/lib/store';
 import NotificationBell from './NotificationBell';
 import { useNavigate, useRouter } from '@/lib/router';
@@ -23,7 +24,10 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Se revoca el refresh token en el servidor; si la red falla, la sesion
+    // local se borra igual: cerrar sesion nunca debe quedarse a medias.
+    try { await auth.logout(getRefreshToken()); } catch { /* da igual */ }
+    borrarSesion();
     clearUser();
     navigate('/login');
   };

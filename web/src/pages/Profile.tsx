@@ -88,9 +88,6 @@ export default function Profile() {
     if (tab === 'Vehículos') {
       vehiclesApi.list().then(r => setMyVehicles(r.data.data.filter((v: any) => v.ownerId === user?.id)));
     }
-    if (tab === 'Suscripción') {
-      subsApi.plans().then(r => setPlans(r.data.data));
-    }
   }, [tab]);
 
   const saveProfile = async () => {
@@ -172,7 +169,7 @@ export default function Profile() {
   const deleteVehicle = async (v: any) => {
     if (!confirm(`¿Eliminar ${v.brand} ${v.model} ${v.year}?`)) return;
     try {
-      await vehiclesApi.delete(v.id);
+      await vehiclesApi.remove(v.id);
       toast.success('Vehículo eliminado');
       const r = await vehiclesApi.list();
       setMyVehicles(r.data.data.filter((x: any) => x.ownerId === user?.id));

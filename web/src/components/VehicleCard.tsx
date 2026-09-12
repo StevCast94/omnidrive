@@ -7,7 +7,7 @@ import clsx from 'clsx';
 
 interface Props {
   vehicle: any;
-  compactú: boolean;
+  compact?: boolean;
   onClick?: () => void;
 }
 

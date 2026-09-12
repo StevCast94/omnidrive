@@ -18,12 +18,16 @@ export interface User {
   selfieUrl?: string;
   documentFrontUrl?: string;
   documentBackUrl?: string;
-  verifiedAtú: string;
+  verifiedAt?: string;
   walletBalance: number;
   subscriptionTier: 'free' | 'premium' | 'elite';
   rating: number;
   totalTrips: number;
-  role: 'user' | 'admin';
+  avatarUrl?: string;
+  countryCode?: string;
+  walletCurrency?: string;
+  emailVerifiedAt?: string;
+  role: 'user' | 'verifier' | 'admin' | 'superadmin';
 }
 
 interface AuthStore {
@@ -41,7 +45,7 @@ export const useAuthStore = create<AuthStore>()(
       updateUser: u    => set(s => ({ user: s.user ? { ...s.user, ...u } : null })),
       clearUser:  ()   => set({ user: null }),
     }),
-    // Only persist the user profile — token lives in Supabase session (localStorage managed by SDK)
+    // Solo se persiste el perfil. Los tokens los gestiona lib/session.ts.
     { name: 'omnidrive-user', partialize: s => ({ user: s.user }) }
   )
 );

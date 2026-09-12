@@ -83,7 +83,7 @@ export default function VerificationModal({ isOpen, onClose, onVerified }: Props
     } catch {
       // Fallback: usar input file
       setCameraMode(null);
-      fileInputRef.currentú.click();
+      fileInputRef.current?.click();
     }
   };
 

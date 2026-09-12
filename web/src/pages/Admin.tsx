@@ -459,7 +459,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-white">{b.vehicle?.brand} {b.vehicle?.model}</p>
-                      <p className="text-xs text-slate-500">{b.renter?.name} → {b.tenantú.name}</p>
+                      <p className="text-xs text-slate-500">{b.renter?.name} → {b.tenant?.name}</p>
                       <p className="text-xs text-slate-500">{new Date(b.startAt).toLocaleDateString()} - {new Date(b.endAt).toLocaleDateString()}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-lg ${STATUS_COLORS[b.status] || 'text-slate-400 bg-slate-800'}`}>

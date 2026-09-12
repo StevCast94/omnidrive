@@ -98,7 +98,7 @@ export default function ContactModal({ open, onClose, bookingId, vehicle, target
           <div className="p-8 text-center">
             <p className="text-slate-400 text-sm">Eres tú — no puedes contactarte a ti mismo</p>
           </div>
-        ) : tab === 'perfil' || (!bookingId && tab === 'perfil') ? (
+        ) : tab === 'perfil' ? (
           /* Perfil del usuario */
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="flex items-center gap-4">

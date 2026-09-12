@@ -7,7 +7,7 @@ import { useAuthStore } from '@/lib/store';
 import VerificationModal from '@/components/VerificationModal';
 
 export default function BookingFlow() {
-  const { vehicleId } = useParams<{ vehicleId: string }>();
+  const { vehicleId } = useParams();
   const [sp] = useSearchParams();
   const navigate = useNavigate();
 

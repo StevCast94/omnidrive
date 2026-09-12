@@ -2,7 +2,7 @@
 import React from 'react';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variantú: 'cyan' | 'indigo' | 'green' | 'amber' | 'red';
+  variant?: 'cyan' | 'indigo' | 'green' | 'amber' | 'red';
 }
 
 export const Badge: React.FC<BadgeProps> = ({ variant = 'cyan', className = '', children, ...props }) => {

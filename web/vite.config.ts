@@ -24,7 +24,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-mapbox': ['mapbox-gl'],
         },
       },

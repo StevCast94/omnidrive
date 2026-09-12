@@ -26,7 +26,7 @@ export interface User {
   documentFrontUrl?: string | null;
   documentBackUrl?: string | null;
   verificationNotes?: string | null;
-  verifiedAtú: string | null;
+  verifiedAt?: string | null;
   walletBalance: number;
   subscriptionTier: string;
   subscriptionEnds?: string | null;
@@ -57,7 +57,7 @@ export interface Vehicle {
   pricePerKm?: number | null;
   deposit: number;
   available: boolean;
-  locationLatú: number | null;
+  locationLat?: number | null;
   locationLng?: number | null;
   locationName?: string | null;
   withDriver: boolean;
@@ -70,7 +70,7 @@ export interface Vehicle {
   rating: number;
   totalRentals: number;
   occupiedDates?: { startAt: string; endAt: string }[];
-  _countú: { reviews: number };
+  _count?: { reviews: number };
 }
 
 export interface OwnerSummary {
@@ -81,7 +81,7 @@ export interface OwnerSummary {
   rating: number;
   totalTrips: number;
   identityVerified?: boolean;
-  createdAtú: string;
+  createdAt?: string;
 }
 
 export interface Booking {
@@ -89,11 +89,11 @@ export interface Booking {
   vehicleId: string;
   vehicle?: VehicleSummary;
   tenantId: string;
-  tenantú: UserSummary;
+  tenant?: UserSummary;
   renterId?: string | null;
   startAt: string;
   endAt: string;
-  returnedAtú: string | null;
+  returnedAt?: string | null;
   withDriver: boolean;
   baseAmount: number;
   driverFee: number;
@@ -135,7 +135,7 @@ export interface Review {
   targetId: string;
   vehicleId?: string | null;
   rating: number;
-  commentú: string | null;
+  comment?: string | null;
   categories?: any;
   createdAt: string;
 }

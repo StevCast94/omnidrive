@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { supabase } from '@/lib/supabase';
+import { haySesion } from '@/lib/session';
 import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import Layout from '@/components/Layout';
@@ -14,11 +14,16 @@ import Dashboard from '@/pages/Dashboard';
 import BookingDetail from '@/pages/BookingDetail';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
-import AuthCallback from '@/pages/AuthCallback';
+import ResetPassword from '@/pages/ResetPassword';
 import ForgotPassword from '@/pages/ForgotPassword';
 
 // ===== Tiny HashRouter (zero dependencies) =====
 import { RouterContext, useNavigate, useRouter } from '@/lib/router';
+
+interface Route {
+  path: string;
+  element: React.ReactNode;
+}
 
 function matchPath(pattern: string, actual: string): Record<string, string> | null {
   const patternParts = pattern.split('/').filter(Boolean);
@@ -159,7 +164,7 @@ const routes: Route[] = [
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
-  { path: '/auth/callback', element: <AuthCallback /> },
+  { path: '/reset-password', element: <ResetPassword /> },
   { path: '/', element: <Layout><Home /></Layout> },
   { path: '/vehicles', element: <Layout><VehicleList /></Layout> },
   { path: '/vehicles/:id', element: <Layout><VehicleDetail /></Layout> },
@@ -183,22 +188,13 @@ export default function App() {
   const { setUser, clearUser } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        try {
-          const { data: res } = await auth.me();
-          setUser(res.data);
-        } catch { clearUser(); }
-      } else {
-        clearUser();
-      }
-    });
+    // Con sesion guardada se pide el perfil; el interceptor de api.ts renueva
+    // el access token si hace falta. Sin sesion no se llama a nada.
+    if (!haySesion()) { clearUser(); return; }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || !session) clearUser();
-    });
-
-    return () => subscription.unsubscribe();
+    auth.me()
+      .then(res => setUser(res.data.data))
+      .catch(() => clearUser());
   }, []);
 
   return (

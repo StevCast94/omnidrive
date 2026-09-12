@@ -1,6 +1,6 @@
 ﻿// ===== web/src/lib/api.ts =====
 import axios from 'axios';
-import { getAccessToken } from './supabase';
+import { getAccessToken, renovarSesion, borrarSesion } from './session';
 
 // Use same-origin /api in production (Railway), explicit URL for local dev
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -17,9 +17,9 @@ export const api = axios.create({
   }],
 });
 
-// Attach Supabase access token to every request
-api.interceptors.request.use(async cfg => {
-  const token = await getAccessToken();
+// El access token propio viaja en cada peticion.
+api.interceptors.request.use(cfg => {
+  const token = getAccessToken();
   if (token) {
     cfg.headers.Authorization = `Bearer ${token}`;
   }
@@ -33,16 +33,24 @@ api.interceptors.request.use(async cfg => {
 api.interceptors.response.use(
   r => r,
   async err => {
-    // Token expired — Supabase auto-refreshes; retry once
-    if (err.response?.status === 401) {
-      const { supabase } = await import('./supabase');
-      const { data: { session } } = await supabase.auth.refreshSession();
-      if (session?.access_token) {
-        err.config.headers.Authorization = `Bearer ${session.access_token}`;
-        return axios(err.config);
+    const original = err.config;
+
+    // 401: el access token dura 15 minutos. Se renueva una vez y se reintenta.
+    // La marca _reintentado evita el bucle si la renovacion tambien da 401.
+    if (err.response?.status === 401 && original && !original._reintentado) {
+      original._reintentado = true;
+
+      const nuevo = await renovarSesion(API_BASE);
+      if (nuevo) {
+        original.headers.Authorization = `Bearer ${nuevo}`;
+        return api(original);
       }
-      // Refresh failed — redirect to login
-      window.location.href = '/login';
+
+      borrarSesion();
+      // Router por hash: sin el #, el SPA no llega a la pantalla de login.
+      if (!window.location.hash.startsWith('#/login')) {
+        window.location.hash = '#/login';
+      }
     }
     return Promise.reject(err);
   }
@@ -52,10 +60,16 @@ api.interceptors.response.use(
 export const auth = {
   register: (d: any) => api.post('/auth/register', d),
   login: (d: any) => api.post('/auth/login', d),
+  google: (idToken: string) => api.post('/auth/google', { idToken }),
+  logout: (refreshToken: string | null, todas = false) => api.post('/auth/logout', { refreshToken, todas }),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) => api.post('/auth/reset-password', { token, password }),
+  changePassword: (actual: string, nueva: string) => api.post('/auth/change-password', { actual, nueva }),
   me: () => api.get('/auth/me'),
   updateMe: (d: any) => api.put('/auth/me', d),
   verifyIdentity: (fd: FormData) => api.post('/auth/verify-identity', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  verificarCedula: (documentId: string) => api.post('/auth/verificar-cedula', { documentId }),
+  verificarCedula: (documentId: string, documentType?: string) =>
+    api.post('/auth/verificar-cedula', { documentId, documentType }),
   verificarWhatsApp: (phone: string) => api.post('/auth/verificar-whatsapp', { phone }),
 };
 
@@ -97,6 +111,11 @@ export const reviewsApi = {
 
 // Subscriptions movido a feature/stripe-connect
 // export const subscriptions = { ... }
+
+export const metrics = {
+  // Cifras reales para la portada. Antes estaban escritas a mano en Home.tsx.
+  publicas: () => api.get('/metrics/public'),
+};
 
 export const users = {
   getPublic: (id: string) => api.get(`/users/${id}`),

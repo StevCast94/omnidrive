@@ -2,7 +2,7 @@
 import React from 'react';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variantú: 'raised' | 'glass';
+  variant?: 'raised' | 'glass';
 }
 
 export const Card: React.FC<CardProps> = ({ variant = 'raised', className = '', children, ...props }) => {

@@ -10,7 +10,6 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^2.7.1",
     "@stripe/stripe-js": "^3.4.1",
-    "@supabase/supabase-js": "^2.45.0",
     "@tailwindcss/vite": "^4.3.0",
     "@vitejs/plugin-react": "^4.3.0",
     "axios": "^1.7.2",

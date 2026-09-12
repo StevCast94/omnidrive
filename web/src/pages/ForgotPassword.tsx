@@ -2,7 +2,7 @@
 import { useNavigate, Link } from '@/lib/router-exports';
 import { Car, ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 
 type Step = 'email' | 'sent' | 'reset' | 'done';
@@ -49,41 +49,19 @@ export default function ForgotPassword() {
     setError('');
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/#/forgot-password?type=recovery',
-      });
-      if (err) throw err;
+      await auth.forgotPassword(email);
+      // El servidor responde igual exista o no la cuenta, para no delatar
+      // quien esta registrado. La pantalla dice lo mismo.
       setStep('sent');
-      toast.success('Revisa tu correo');
     } catch (e: any) {
-      setError(e.message || 'Error al enviar el correo');
+      setError(e.response?.data?.error || 'Error al enviar el correo');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetPassword = async () => {
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    try {
-      const { error: err } = await supabase.auth.updateUser({ password });
-      if (err) throw err;
-      setStep('done');
-      toast.success('Contraseña actualizada correctamente');
-    } catch (e: any) {
-      setError(e.message || 'Error al actualizar contraseña');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // El cambio de contraseña con token ocurre en /reset-password, que es donde
+  // aterriza el enlace del correo.
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
@@ -233,7 +211,7 @@ export default function ForgotPassword() {
 
             {error && <p className="text-xs text-red-400">{error}</p>}
 
-            <button onClick={resetPassword} disabled={loading || !password || !confirmPassword}
+            <button onClick={() => navigate('/reset-password')} disabled={loading || !password || !confirmPassword}
               className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
