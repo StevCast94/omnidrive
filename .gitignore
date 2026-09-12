@@ -10,3 +10,8 @@ web/dist/
 
 # Fotos temporales de la semilla (no son inventario real)
 tmp-photos/
+
+# backend/public es SALIDA DE BUILD: lo genera vite y lo copia railway.json.
+# Tenerlo en git hacia que el index.html commiteado (apuntando a un bundle
+# viejo) pisara al recien construido, y el sitio servia codigo antiguo.
+backend/public/

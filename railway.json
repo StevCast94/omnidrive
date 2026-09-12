@@ -2,7 +2,7 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd web && npm install && npm run build && cp -r dist/* ../backend/public/ && cd ../backend && npm install && npx prisma generate"
+    "buildCommand": "cd web && npm install && npm run build && rm -rf ../backend/public && mkdir -p ../backend/public && cp -r dist/. ../backend/public/ && cd ../backend && npm install && npx prisma generate"
   },
   "deploy": {
     "startCommand": "cd backend && sh entry.sh",
