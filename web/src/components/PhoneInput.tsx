@@ -1,4 +1,5 @@
 ﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { usePais } from '@/lib/money';
 
 interface CountryCode {
   code: string;
@@ -9,12 +10,13 @@ interface CountryCode {
 
 const countryCodes: CountryCode[] = [
   { code: 'EC', prefix: '+593', name: 'Ecuador', flag: '🇪🇨' },
+  { code: 'DO', prefix: '+1',   name: 'República Dominicana', flag: '🇩🇴' },
   { code: 'CO', prefix: '+57',  name: 'Colombia', flag: '🇨🇴' },
   { code: 'PE', prefix: '+51',  name: 'Perú', flag: '🇵🇪' },
   { code: 'MX', prefix: '+52',  name: 'México', flag: '🇲🇽' },
   { code: 'AR', prefix: '+54',  name: 'Argentina', flag: '🇦🇷' },
   { code: 'CL', prefix: '+56',  name: 'Chile', flag: '🇨🇱' },
-  { code: 'US', prefix: '+1',   name: 'Estados Unidos (+1)', flag: '🇺🇸' }, // +1 tambien cubre Republica Dominicana (809, 829, 849)
+  { code: 'US', prefix: '+1',   name: 'Estados Unidos', flag: '🇺🇸' },
   { code: 'ES', prefix: '+34',  name: 'España', flag: '🇪🇸' },
 ];
 
@@ -27,7 +29,16 @@ interface PhoneInputProps {
   disabled?: boolean;
 }
 
-export function PhoneInput({ value, onChange, placeholder = '99 000 0000', required, className, disabled }: PhoneInputProps) {
+// El prefijo por defecto es el del pais del sitio. RD y EE. UU. comparten +1:
+// el pais del sitio va primero en la lista para que gane la deteccion.
+function ordenados(codigoSitio: string): CountryCode[] {
+  const propio = countryCodes.find(c => c.code === codigoSitio);
+  return propio ? [propio, ...countryCodes.filter(c => c !== propio)] : countryCodes;
+}
+
+export function PhoneInput({ value, onChange, placeholder, required, className, disabled }: PhoneInputProps) {
+  const codigoSitio = usePais(s => s.pais.code);
+  const lista = ordenados(codigoSitio);
   const [open, setOpen] = useState(false);
   const [displayText, setDisplayText] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -35,8 +46,8 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
   const cursorRef = useRef<number | null>(null);
 
   // Extract prefix and local number
-  const detected = countryCodes.find(c => value.startsWith(c.prefix));
-  const current = detected ?? countryCodes[0];
+  const detected = lista.find(c => value.startsWith(c.prefix));
+  const current = detected ?? lista[0];
   const local = detected ? value.slice(detected.prefix.length) : value;
 
   // Sincronizar displayText cuando cambia value externamente
@@ -62,6 +73,12 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
   }, []);
 
   function formatLocal(raw: string): string {
+    // Plan de numeracion +1 (RD, EE. UU.): 3-3-4, como 809 555 1234.
+    if (current.prefix === '+1' && raw.length > 3) {
+      let f = raw.slice(0, 3) + ' ' + raw.slice(3, 6);
+      if (raw.length > 6) f += ' ' + raw.slice(6, 10);
+      return f;
+    }
     if (raw.length > 3) {
       let f = raw.slice(0, 3) + ' ' + raw.slice(3, 7);
       if (raw.length > 7) f += ' ' + raw.slice(7, 10);
@@ -133,7 +150,7 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
           type="tel"
           value={displayText}
           onChange={handleChange}
-          placeholder={placeholder}
+          placeholder={placeholder ?? (current.prefix === '+1' ? '809 000 0000' : '99 000 0000')}
           disabled={disabled}
           required={required}
           autoComplete="tel-national"
@@ -144,7 +161,7 @@ export function PhoneInput({ value, onChange, placeholder = '99 000 0000', requi
       {/* Dropdown */}
       {open && (
         <div className="absolute z-50 mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-          {countryCodes.map(cc => (
+          {lista.map(cc => (
             <button
               key={cc.code}
               type="button"

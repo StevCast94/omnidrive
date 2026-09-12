@@ -137,7 +137,6 @@ export default function Register() {
           <PhoneInput
             value={form.phone}
             onChange={v => set('phone', v)}
-            placeholder="99 000 0000"
             required
           />
 

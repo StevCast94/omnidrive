@@ -287,7 +287,6 @@ export default function Profile() {
             <PhoneInput
               value={form.phone}
               onChange={v => setForm(f => ({ ...f, phone: v }))}
-              placeholder="99 000 0000"
             />
           </div>
           <div>
