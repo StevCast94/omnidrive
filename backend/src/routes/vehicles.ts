@@ -180,15 +180,17 @@ vehiclesRouter.post('/', authenticate, requireVerified, asyncHandler(async (req:
   return res.status(201).json({ data: vehicle, error: null });
 }));
 
-// Middleware: check vehicle ownership
-const requireVehicleOwner = asyncHandler(async (req: AuthRequest, res: Response) => {
+// No es un middleware de Express: se llama en linea y el que llama comprueba
+// res.headersSent. Estaba envuelto en asyncHandler, que espera (req, res, next),
+// y se invocaba con dos argumentos.
+const requireVehicleOwner = async (req: AuthRequest, res: Response) => {
   const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.id as string } });
   if (!vehicle) return res.status(404).json({ data: null, error: 'Vehicle not found' });
   if (vehicle.ownerId !== req.user!.id && req.user!.role !== 'admin') {
     return res.status(403).json({ data: null, error: 'Not authorized' });
   }
   return vehicle;
-});
+};
 
 // PUT /api/vehicles/:id
 vehiclesRouter.put('/:id', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {

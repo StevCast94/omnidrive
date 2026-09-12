@@ -45,7 +45,7 @@ trackingRouter.post('/:bookingId', authenticate, asyncHandler(async (req: AuthRe
 trackingRouter.get('/:bookingId', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
   const booking = await prisma.booking.findUnique({
     where: { id: req.params.bookingId as string },
-    select: { id: true, status: true, trackingData: true, vehicle: { select: { ownerId: true } } },
+    select: { id: true, status: true, tenantId: true, trackingData: true, vehicle: { select: { ownerId: true } } },
   });
   if (!booking) return res.status(404).json({ data: null, error: 'Booking not found' });
 

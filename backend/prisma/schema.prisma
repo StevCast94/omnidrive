@@ -12,7 +12,16 @@ datasource db {
 
 model User {
   id              String    @id @default(uuid()) @db.Uuid
-  authId          String    @unique @db.Uuid // Supabase Auth UID
+  // Auth propio: las identidades viven en esta misma base. Cuando vivian en
+  // Supabase, el proyecto desaparecio y se las llevo — ningun backup del
+  // Postgres podia recuperarlas porque nunca estuvieron ahi.
+  passwordHash    String? // scrypt; null si la cuenta solo entra con Google
+  googleId        String?   @unique
+  emailVerifiedAt DateTime?
+  // Se incrementa para invalidar de golpe todas las sesiones del usuario
+  // (cambio de contrasena, baneo, sospecha de robo).
+  tokenVersion    Int       @default(0)
+
   email           String    @unique
   username        String?   @unique // Login de administrador (solo admins)
   phone           String?   @unique
@@ -66,8 +75,10 @@ model User {
   transactions  Transaction[]
   subscription  Subscription?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 // ========== BANNED IDENTITIES ==========
@@ -389,4 +400,38 @@ model TrackingPoint {
   createdAt DateTime @default(now())
 
   @@index([bookingId, recordedAt])
+}
+
+// ========== SESIONES ==========
+// Refresh token opaco y rotatorio. Se guarda solo el hash: si alguien lee la
+// base, no se lleva sesiones utilizables.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Token de un solo uso para restablecer contrasena. Igual que arriba: se
+// guarda el hash, nunca el token que viaja por correo.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

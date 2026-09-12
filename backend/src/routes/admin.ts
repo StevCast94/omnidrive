@@ -1,6 +1,5 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { supabase } from '../lib/supabase';
 import jwt from 'jsonwebtoken';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 import { verifyIdentity } from '../services/verification';
@@ -8,6 +7,8 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { env } from '../config/env';
 import { authLimiter } from '../middleware/rateLimit';
 import { adminAuth, requireSuperAdmin } from '../middleware/adminAuth';
+import { hashPassword, verifyPassword, validarPassword } from '../services/auth';
+import { getCountry } from '../config/country';
 
 const JWT_SECRET = env.JWT_SECRET;
 
@@ -19,11 +20,14 @@ adminRouter.post('/auth/login', authLimiter, asyncHandler(async (req, res: Respo
   if (!username || !password) return res.status(400).json({ error: 'Usuario y contrasena requeridos' });
 
   const admin = await prisma.user.findUnique({ where: { username } });
-  if (!admin || admin.role === 'user') return res.status(401).json({ error: 'Credenciales invalidas' });
+  if (!admin || !['admin', 'superadmin', 'verifier'].includes(admin.role)) {
+    return res.status(401).json({ error: 'Credenciales invalidas' });
+  }
 
-  // Validate password against Supabase Auth
-  const { error: signInErr } = await supabase.auth.signInWithPassword({ email: admin.email, password });
-  if (signInErr) return res.status(401).json({ error: 'Credenciales invalidas' });
+  // La contrasena se valida contra el hash de esta misma base.
+  if (!(await verifyPassword(password, admin.passwordHash))) {
+    return res.status(401).json({ error: 'Credenciales invalidas' });
+  }
 
   const token = jwt.sign({ role: admin.role, id: admin.id, email: admin.email }, JWT_SECRET, { expiresIn: '8h' });
   return res.json({
@@ -120,10 +124,13 @@ adminRouter.put('/users/:id/role', adminAuth, requireSuperAdmin, asyncHandler(as
   const updated = await prisma.user.update({ where: { id: req.params.id as string }, data, select: { id: true, email: true, name: true, lastName: true, role: true, username: true } });
 
   if (password) {
-    const user = await prisma.user.findUnique({ where: { id: req.params.id as string } });
-    if (user) {
-      await supabase.auth.admin.updateUserById(user.authId, { password }).catch(e => console.warn('[admin] Password update warning:', e.message));
-    }
+    const errorPass = validarPassword(password);
+    if (errorPass) return res.status(400).json({ data: null, error: errorPass });
+    await prisma.user.update({
+      where: { id: req.params.id as string },
+      // Cambiar la contrasena cierra las sesiones abiertas de esa cuenta.
+      data: { passwordHash: await hashPassword(password), tokenVersion: { increment: 1 } },
+    });
   }
 
   return res.json({ data: updated, error: null });
@@ -170,8 +177,8 @@ adminRouter.delete('/users/:id', adminAuth, asyncHandler(async (req: AuthRequest
     prisma.user.delete({ where: { id } }),
   ]);
 
-  // Try to delete from Supabase Auth (non-critical)
-  supabase.auth.admin.deleteUser(user.authId).catch(e => console.warn('[admin] Supabase deletion warning:', e.message));
+  // No hay nada que borrar fuera: la identidad vivia en esta misma base y se
+  // fue con el usuario (RefreshToken y PasswordResetToken caen en cascada).
 
   return res.json({ data: { deleted: true }, error: null });
 }));
@@ -272,11 +279,23 @@ adminRouter.post('/admins', adminAuth, requireSuperAdmin, asyncHandler(async (re
     return res.status(400).json({ error: 'email, password, name, lastName, username required' });
   }
 
-  const { data: authData, error: authErr } = await supabase.auth.admin.createUser({ email, password, email_confirm: true });
-  if (authErr || !authData.user) return res.status(400).json({ error: authErr?.message ?? 'Failed to create auth user' });
+  const errorPass = validarPassword(password);
+  if (errorPass) return res.status(400).json({ error: errorPass });
 
+  const pais = getCountry(env.COUNTRY_CODE);
   const admin = await prisma.user.create({
-    data: { authId: authData.user.id, email, name, lastName, role: role || 'admin', username, documentType: 'cedula' },
+    data: {
+      email: String(email).trim().toLowerCase(),
+      passwordHash: await hashPassword(password),
+      emailVerifiedAt: new Date(),
+      name, lastName,
+      role: role || 'admin',
+      username,
+      documentType: pais.documentTypes[0],
+      documentCountry: pais.code,
+      countryCode: pais.code,
+      walletCurrency: pais.currency,
+    },
     select: { id: true, email: true, name: true, lastName: true, role: true, username: true, createdAt: true },
   });
 

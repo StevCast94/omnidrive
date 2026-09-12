@@ -20,11 +20,6 @@ import { WebServicesEcProvider } from './services/providers/webservices-ec';
 import { env }                 from './config/env';
 import { apiLimiter }          from './middleware/rateLimit';
 
-// El proyecto Supabase cambia por pais: la CSP se deriva del entorno,
-// no del identificador de un proyecto escrito a mano.
-const SUPA = env.SUPABASE_URL.replace(/[/]+$/, '');
-const SUPA_WS = SUPA.replace(/^https:/, 'wss:');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -37,13 +32,14 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       baseUri: ["'self'"],
-      connectSrc: ["'self'", SUPA, SUPA_WS, "https://*.googleusercontent.com", "https://res.cloudinary.com"],
+      connectSrc: ["'self'", "https://accounts.google.com/gsi/", "https://*.googleusercontent.com", "https://res.cloudinary.com"],
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", SUPA, "https://images.unsplash.com"],
+      frameSrc: ["'self'", "https://accounts.google.com/gsi/"],
+      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://lh3.googleusercontent.com", "https://images.unsplash.com"],
       objectSrc: ["'none'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://accounts.google.com/gsi/client"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "https:", "'unsafe-inline'"],
       upgradeInsecureRequests: [],

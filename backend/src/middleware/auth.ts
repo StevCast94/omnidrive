@@ -1,28 +1,43 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { supabase } from '../lib/supabase';
+import { verificarAccessToken } from '../services/auth';
 
 export interface AuthRequest extends Request {
   user?: { id: string; role: string; email: string };
 }
 
+/**
+ * Valida el access token propio.
+ *
+ * Antes cada peticion autenticada hacia una llamada de red a Supabase para
+ * validar el token. Ademas de lento, ataba cada request a que un tercero
+ * estuviera vivo: cuando ese proyecto desaparecio, toda la app autenticada
+ * dejo de funcionar. Ahora la validacion es local.
+ */
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ data: null, error: 'No token provided' });
 
-  // Validate token with Supabase Auth
-  const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
-  if (error || !authUser)
-    return res.status(401).json({ data: null, error: 'Invalid or expired token' });
+  let payload;
+  try {
+    payload = verificarAccessToken(token);
+  } catch {
+    return res.status(401).json({ data: null, error: 'Token invalido o expirado' });
+  }
 
-  // Look up our app user by Supabase auth UUID
   const user = await prisma.user.findUnique({
-    where: { authId: authUser.id },
-    select: { id: true, role: true, email: true },
+    where: { id: payload.sub },
+    select: { id: true, role: true, email: true, tokenVersion: true },
   });
   if (!user) return res.status(401).json({ data: null, error: 'User profile not found' });
 
-  req.user = user;
+  // Un cambio de contrasena o un baneo incrementan tokenVersion: los access
+  // tokens emitidos antes dejan de valer sin esperar a que caduquen.
+  if (user.tokenVersion !== payload.tv) {
+    return res.status(401).json({ data: null, error: 'Sesion cerrada. Inicia sesion de nuevo.' });
+  }
+
+  req.user = { id: user.id, role: user.role, email: user.email };
   next();
 };
 
