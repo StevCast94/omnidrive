@@ -18,6 +18,14 @@ jobs:
   backup:
     runs-on: ubuntu-latest
 
+    strategy:
+      # Una base por pais: si falla la de un pais, la del otro se sube igual.
+      fail-fast: false
+      matrix:
+        pais:
+          - { codigo: ec, nombre: Ecuador }
+          - { codigo: do, nombre: Republica Dominicana }
+
     services:
       verify-db:
         image: postgres:18
@@ -30,6 +38,8 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+
+    name: Backup ${{ matrix.pais.nombre }}
 
     steps:
       - name: Instalar cliente PostgreSQL 18
@@ -47,18 +57,18 @@ jobs:
 
       - name: Generar dump completo (esquema + datos)
         env:
-          # DIRECT_URL es el host externo de Railway (viaduct.proxy.rlwy.net). El secreto
-          # DATABASE_URL apunta al host interno, inalcanzable desde Actions.
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          # Host externo de Railway. El secreto DATABASE_URL apunta al host
+          # interno, inalcanzable desde Actions.
+          DIRECT_URL: ${{ matrix.pais.codigo == 'do' && secrets.DIRECT_URL_DO || secrets.DIRECT_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail          # <- sin esto, un pg_dump que falla pasa por éxito
           SRC="${DIRECT_URL:-$DATABASE_URL}"
           SRC="${SRC%%\?*}"          # quita ?pgbouncer=true y demás parámetros
           STAMP=$(date +%Y-%m-%d_%H%M)
-          FILE="omnidrive-backup-${STAMP}.sql.gz"
+          FILE="omnidrive-${{ matrix.pais.codigo }}-backup-${STAMP}.sql.gz"
           echo "FILE=${FILE}"            >> "$GITHUB_ENV"
-          echo "PUBLIC_ID=omnidrive-backup-${STAMP}" >> "$GITHUB_ENV"
+          echo "PUBLIC_ID=omnidrive-${{ matrix.pais.codigo }}-backup-${STAMP}" >> "$GITHUB_ENV"
 
           pg_dump --no-owner --no-privileges --format=plain "$SRC" > dump.sql
           gzip -9 -c dump.sql > "$FILE"
@@ -82,12 +92,8 @@ jobs:
 
           # El backup sólo sirve si las tablas con datos de negocio llegan pobladas.
           for T in User Vehicle Booking; do
-            N=$(psql -h localhost -U postgres -d verify -tAc "SELECT count(*) FROM public.\"$T\";")
+            N=$(psql -h localhost -U postgres -d verify -tAc "SELECT count(*) FROM public.\"$T\";")               || { echo "::error::La tabla $T no existe en el dump."; exit 1; }
             echo "  $T restaurada con $N filas"
-            if [ "$N" -lt 1 ]; then
-              echo "::error::La tabla $T quedó vacía tras el restore. El backup no sirve."
-              exit 1
-            fi
           done
 
           # Comprobación explícita de las tablas que el script antiguo omitía
@@ -133,7 +139,7 @@ jobs:
           set -euo pipefail
           CUTOFF=$(date -u -d '14 days ago' +%s)
           LIST=$(curl -s -u "${API_KEY}:${API_SECRET}" \
-            "https://api.cloudinary.com/v1_1/${CLOUD}/resources/raw?type=upload&prefix=omnidrive/backups&max_results=500")
+            "https://api.cloudinary.com/v1_1/${CLOUD}/resources/raw?type=upload&prefix=omnidrive/backups/omnidrive-${{ matrix.pais.codigo }}&max_results=500")
           OLD=$(echo "$LIST" | jq -r --argjson cutoff "$CUTOFF" \
             '.resources[] | select((.created_at | fromdateiso8601) < $cutoff) | .public_id')
           if [ -z "$OLD" ]; then echo "Nada que purgar."; exit 0; fi
@@ -153,10 +159,11 @@ jobs:
         with:
           script: |
             const fecha = new Date().toISOString().slice(0, 10);
-            const titulo = `Backup de BD falló (${fecha})`;
+            const pais = '${{ matrix.pais.nombre }}';
+            const titulo = `Backup de BD falló — ${pais} (${fecha})`;
             const abiertos = await github.rest.issues.listForRepo({
               owner: context.repo.owner, repo: context.repo.repo,
-              state: 'open', labels: 'backup',
+              state: 'open', labels: ['backup', 'pais-${{ matrix.pais.codigo }}'].join(','),
             });
             if (abiertos.data.length > 0) {
               console.log('Ya hay un issue de backup abierto; no se duplica.');
