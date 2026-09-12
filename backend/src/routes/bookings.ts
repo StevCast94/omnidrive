@@ -330,9 +330,12 @@ bookingsRouter.put('/:id/start', authenticate, asyncHandler(async (req: AuthRequ
     return res.status(400).json({ data: null, error: 'Booking must be confirmed to start' });
   }
 
+  // El rastreo NO se activa aquí. Iniciar el alquiler es decisión del
+  // anfitrión; compartir la ubicación es decisión de quien conduce, y sólo él
+  // puede darla desde POST /api/tracking/:id/consentimiento.
   const updated = await prisma.booking.update({
     where: { id: req.params.id as string },
-    data: { status: 'active', trackingEnabled: true },
+    data: { status: 'active' },
   });
 
   await prisma.notification.create({
