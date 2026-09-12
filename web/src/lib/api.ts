@@ -47,9 +47,10 @@ api.interceptors.response.use(
       }
 
       borrarSesion();
-      // Router por hash: sin el #, el SPA no llega a la pantalla de login.
-      if (!window.location.hash.startsWith('#/login')) {
-        window.location.hash = '#/login';
+      // Recarga completa a proposito: la sesion caduco, y empezar de cero
+      // deja la aplicacion sin restos del usuario anterior.
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login');
       }
     }
     return Promise.reject(err);

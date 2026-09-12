@@ -23,7 +23,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     // El router es por hash, asi que la query viaja detras del '#'.
-    const query = window.location.hash.split('?')[1] ?? window.location.search;
+    const query = window.location.search;
     const t = new URLSearchParams(query).get('token');
     if (t) setToken(t);
     else setError('Este enlace no trae token. Pide uno nuevo desde "Olvidé mi contraseña".');

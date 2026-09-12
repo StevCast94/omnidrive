@@ -19,21 +19,11 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Si el usuario viene de un recovery link con token, mostrar reset
-  useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.split('?')[1] || window.location.search);
-    const type = params.get('type');
-    if (type === 'recovery') {
-      setStep('reset');
-    }
-  }, []);
-
   // Si ya hay sesión, redirigir
   useEffect(() => {
     if (user) {
       // Si el usuario ya está logueado y quiere cambiar contraseña
-      const hashSearch = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+      const hashSearch = new URLSearchParams(window.location.search);
       if (hashSearch.get('type') === 'recovery') {
         setStep('reset');
       } else {

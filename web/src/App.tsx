@@ -51,58 +51,51 @@ function matchPath(pattern: string, actual: string): Record<string, string> | nu
 }
 
 /**
- * Normaliza la URL: si el path actual no tiene hash router,
- * lo convierte a #/ruta?query. No toca el hash si ya existe.
- * Solo se llama en mount, no bloquea el render.
+ * La ruta actual, leida del camino de la URL.
+ *
+ * Antes esto era un router por hash (#/vehiculos). Existia por el callback de
+ * OAuth de Supabase, que devolvia el token detras del '#' y obligaba a que la
+ * app viviera ahi. Ese motivo desaparecio: Google entrega el token
+ * directamente y el servidor tiene su ruta comodin, asi que las URL pueden ser
+ * limpias — mejor para compartir, para buscadores y para leerlas en voz alta.
  */
-function normalizeUrlOnMount() {
-  const hash = window.location.hash;
-  if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
-    return; // ya está en hash router
-  }
-  // Sin hash - convertir path actual a hash
-  const path = window.location.pathname;
-  const search = window.location.search;
-  const route = path.replace(/^\//, '') || '/';
-  history.replaceState(null, '', '#' + route + search);
-}
-
-function parseHash(): string {
-  const hash = window.location.hash;
-  // Detectar OAuth callback: hash contiene access_token o code=
-  // Esto pasa cuando Google redirectea con #access_token=xxx (sin /auth/callback delante)
-  if (/access_token=|code=|error=/.test(hash)) {
-    return 'auth/callback';
-  }
-  if (hash.startsWith('#/') || hash === '#' || hash === '#/') {
-    return (hash.replace(/^#/, '') || '/').split('?')[0];
-  }
-  // Si no hay hash (primer render antes de normalizeUrlOnMount)
-  const path = window.location.pathname;
-  return path.replace(/^\//, '') || '/';
+function rutaActual(): string {
+  return window.location.pathname || '/';
 }
 
 function RouterProvider({ routes }: { routes: Route[] }) {
-  // Parsear el estado inicial SIN modificar la URL
-  const [path, setPath] = useState(() => parseHash());
+  const [path, setPath] = useState(() => rutaActual());
 
   useEffect(() => {
-    // Normalizar la URL después del primer render
-    normalizeUrlOnMount();
+    // Atras y adelante del navegador.
+    const alVolver = () => setPath(rutaActual());
+    window.addEventListener('popstate', alVolver);
 
-    const onHash = () => setPath(parseHash());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    // Enlaces con el hash viejo que alguien tenga guardados o compartidos:
+    // /#/vehiculos pasa a /vehiculos sin que se note.
+    const hash = window.location.hash;
+    if (hash.startsWith('#/')) {
+      const destino = hash.slice(1);
+      history.replaceState(null, '', destino);
+      setPath(destino.split('?')[0]);
+    }
+
+    return () => window.removeEventListener('popstate', alVolver);
   }, []);
 
   const navigate = useCallback((to: string) => {
-    window.location.hash = '#' + to;
+    if (to === window.location.pathname + window.location.search) return;
+    history.pushState(null, '', to);
+    setPath(to.split('?')[0]);
+    window.scrollTo(0, 0);
   }, []);
 
-  // Force re-render helper (para cuando mount/redirect no disparan hashchange)
+  // Cambia la ruta sin dejar entrada en el historial: para redirecciones,
+  // donde volver atras deberia llevar a la pagina anterior, no a la que
+  // acaba de redirigir.
   const navigateDirect = useCallback((to: string) => {
-    history.replaceState(null, '', '#' + to);
-    setPath(to);
+    history.replaceState(null, '', to);
+    setPath(to.split('?')[0]);
   }, []);
 
   // Find matching route

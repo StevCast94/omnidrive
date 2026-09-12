@@ -50,7 +50,10 @@ export async function enviarCorreo(correo: Correo): Promise<{ enviado: boolean; 
 
 export async function enviarResetPassword(para: string, token: string) {
   const pais = getCountry(env.COUNTRY_CODE);
-  const enlace = `${env.FRONTEND_URL || 'https://omnidrive.lat'}/#/reset-password?token=${token}`;
+  // El sitio sale de la configuracion del pais, no de FRONTEND_URL, que
+  // apuntaba a un dominio de Railway que ya nadie usa. Y sin '#': las rutas
+  // dejaron de ser por hash.
+  const enlace = `${pais.siteUrl.replace(/[/]+$/, '')}/reset-password?token=${token}`;
 
   return enviarCorreo({
     para,

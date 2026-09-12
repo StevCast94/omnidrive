@@ -14,9 +14,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">
       <Navbar />
-      <AvisoPais />
 
+      {/* El aviso va DENTRO del area desplazable, no entre la barra y el
+          contenido: Navbar es fixed, asi que un hermano suyo se dibuja debajo
+          y el aviso quedaba tapado por la barra. */}
       <main className="pt-16 flex-1">
+        <AvisoPais />
         {children}
       </main>
 

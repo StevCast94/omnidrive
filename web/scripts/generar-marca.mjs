@@ -80,9 +80,19 @@ await sharp(iconoCuadrado(180, { margen: 0.18 }))
   .toFile(join(PUBLICO, 'apple-touch-icon.png'));
 
 // ── Favicon ───────────────────────────────────────────────────────────
+// Lienzo CUADRADO. El isotipo es apaisado (1,62:1) y el hueco de una pestaña
+// es cuadrado: sin esto el navegador lo encoge para que quepa a lo ancho y
+// queda diminuto, con dos franjas vacias arriba y abajo.
+const LADO_FAV = 240;
+const escalaFav = (LADO_FAV * 0.9) / 210.17;
+const xFav = (LADO_FAV - 210.17 * escalaFav) / 2;
+const yFav = (LADO_FAV - 129.55 * escalaFav) / 2;
+
 await writeFile(
   join(PUBLICO, 'favicon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210.17 129.55">${isotipo()}</svg>\n`
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LADO_FAV} ${LADO_FAV}">` +
+    `<g transform="translate(${xFav.toFixed(2)} ${yFav.toFixed(2)}) scale(${escalaFav.toFixed(4)})">${isotipo()}</g>` +
+    `</svg>\n`
 );
 await sharp(iconoCuadrado(64, { margen: 0.1 })).png().toFile(join(PUBLICO, 'favicon-64.png'));
 

@@ -17,7 +17,7 @@ export default function Profile() {
 
   // Parse query params manually (no react-router-dom dependency)
   useEffect(() => {
-    const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const qp = new URLSearchParams(window.location.search);
     if (qp.get('tab') === 'vehicle') setTab('Vehículos');
     if (qp.get('tab') === 'verificacion') setTab('Verificación');
   }, []);
@@ -84,7 +84,7 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    const qp = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const qp = new URLSearchParams(window.location.search);
     if (qp.get('tab') === 'vehicle') setTab('Vehículos');
   }, []);
 
