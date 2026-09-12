@@ -254,7 +254,13 @@ async function main() {
   console.log('─────────────────────────────────');
 }
 
-main()
-  .catch(e => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
-
+// Solo cuando se ejecuta a proposito (npm run db:seed).
+// Antes esto corria con solo IMPORTAR el archivo, y src/routes/seed.ts lo
+// importaba desde src/index.ts sin condicion: el seed se ejecutaba entero en
+// cada arranque del contenedor, recreando admin@omnidrive.ec con una
+// contrasena publica y repoblando los datos ficticios.
+if (require.main === module) {
+  main()
+    .catch(e => { console.error(e); process.exit(1); })
+    .finally(() => prisma.$disconnect());
+}

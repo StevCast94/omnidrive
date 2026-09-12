@@ -13,7 +13,6 @@ import { reviewsRouter }       from './routes/reviews';
 import { adminRouter }         from './routes/admin';
 import { pushRouter }          from './routes/push';
 import { notificationsRouter } from './routes/notifications';
-import { seedRouter }          from './routes/seed';
 import { uploadRouter }        from './routes/upload';
 import { metricsRouter }       from './routes/metrics';
 import { setProvider }         from './services/verification';
@@ -77,11 +76,6 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/upload',        uploadRouter);
 app.use('/api/metrics',      metricsRouter);
 
-// Seed: solo disponible en dev y con SEED_ENABLED=true (nunca en producción)
-if (env.SEED_ENABLED && env.NODE_ENV !== 'production') {
-  app.use('/api/seed', seedRouter);
-  console.warn('[Init] ⚠️  Endpoint /api/seed HABILITADO (SEED_ENABLED=true). No usar en produccion.');
-}
 
 // Serve frontend static files
 const publicDir = path.join(__dirname, '..', 'public');
