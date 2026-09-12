@@ -4,10 +4,26 @@ import { prisma } from '../lib/prisma';
 import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { aCentavos } from '../services/pricing';
+import { getCountry } from '../config/country';
+import { env } from '../config/env';
+
+const pais = getCountry(env.COUNTRY_CODE);
 import { z } from 'zod';
 
 // Campos que el dueño puede editar. Lista blanca explícita:
 // NO incluye ownerId, insurance, rating, totalRentals, plate, vin (inmutables/privilegiados).
+// Un importe escrito por una persona, convertido a centavos por el propio
+// schema: asi ninguna ruta puede olvidarse de convertirlo.
+const dinero = z.union([z.string(), z.number()]).transform((v, ctx) => {
+  const c = aCentavos(v);
+  if (c === null) {
+    ctx.addIssue({ code: 'custom', message: 'Importe inválido' });
+    return z.NEVER;
+  }
+  return c;
+});
+
 const vehicleUpdateSchema = z.object({
   brand: z.string().min(1).optional(),
   model: z.string().min(1).optional(),
@@ -18,16 +34,17 @@ const vehicleUpdateSchema = z.object({
   doors: z.coerce.number().int().optional(),
   transmission: z.string().optional(),
   fuelType: z.string().optional(),
-  pricePerHour: z.coerce.number().optional(),
-  pricePerDay: z.coerce.number().optional(),
-  pricePerKm: z.coerce.number().optional(),
-  deposit: z.coerce.number().optional(),
+  // Importes: llegan como "120" o "120,50" y salen del schema en centavos.
+  pricePerHour: dinero.optional(),
+  pricePerDay: dinero.optional(),
+  pricePerKm: dinero.optional(),
+  deposit: dinero.optional(),
   available: z.boolean().optional(),
   locationLat: z.coerce.number().optional(),
   locationLng: z.coerce.number().optional(),
   locationName: z.string().optional(),
   withDriver: z.boolean().optional(),
-  driverPrice: z.coerce.number().optional(),
+  driverPrice: dinero.optional(),
   flexibleCheckin: z.boolean().optional(),
   checkInTime: z.string().nullable().optional(),
   checkOutTime: z.string().nullable().optional(),
@@ -151,7 +168,25 @@ vehiclesRouter.post('/', authenticate, requireVerified, asyncHandler(async (req:
 
   const required = [brand, model, year, plate, color, vin, category, seats, transmission, fuelType, pricePerHour, pricePerDay];
   if (required.some(v => v === undefined || v === null)) {
-    return res.status(400).json({ data: null, error: 'Missing required vehicle fields' });
+    return res.status(400).json({ data: null, error: 'Faltan campos obligatorios del vehículo' });
+  }
+
+  // Los precios llegan del formulario en la moneda del país ("120", "120,50")
+  // y se guardan en centavos enteros. parseFloat guardaba 120.5 en una columna
+  // que ahora es entera, y perdía los centavos por el camino.
+  const precioHora = aCentavos(pricePerHour);
+  const precioDia = aCentavos(pricePerDay);
+  if (precioHora === null || precioDia === null) {
+    return res.status(400).json({ data: null, error: 'Los precios por hora y por día deben ser importes válidos' });
+  }
+  if (precioHora === 0 && precioDia === 0) {
+    return res.status(400).json({ data: null, error: 'El vehículo necesita al menos una tarifa mayor que cero' });
+  }
+  const precioKm = aCentavos(pricePerKm);
+  const deposito = aCentavos(deposit) ?? 0;
+  const precioChofer = aCentavos(driverPrice);
+  if (Boolean(withDriver) && !precioChofer) {
+    return res.status(400).json({ data: null, error: 'Si ofreces chofer, indica su precio por día' });
   }
 
   const vehicle = await prisma.vehicle.create({
@@ -160,15 +195,17 @@ vehiclesRouter.post('/', authenticate, requireVerified, asyncHandler(async (req:
       brand, model, year: parseInt(year), plate, color, vin,
       category, seats: parseInt(seats), doors: doors ? parseInt(doors) : undefined,
       transmission, fuelType,
-      pricePerHour: parseFloat(pricePerHour),
-      pricePerDay: parseFloat(pricePerDay),
-      pricePerKm: pricePerKm ? parseFloat(pricePerKm) : undefined,
-      deposit: deposit ? parseFloat(deposit) : 0,
+      pricePerHour: precioHora,
+      pricePerDay: precioDia,
+      pricePerKm: precioKm ?? undefined,
+      deposit: deposito,
+      currency: pais.currency,
+      countryCode: pais.code,
       locationLat: locationLat ? parseFloat(locationLat) : undefined,
       locationLng: locationLng ? parseFloat(locationLng) : undefined,
       locationName,
       withDriver: Boolean(withDriver),
-      driverPrice: driverPrice ? parseFloat(driverPrice) : undefined,
+      driverPrice: precioChofer ?? undefined,
       insurance: Boolean(insurance),
       features: features || [],
       restrictions: restrictions || undefined,

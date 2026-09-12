@@ -11,6 +11,7 @@ import {
   Eye, XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatearDinero } from '@/lib/money';
 
 // ── Auth helpers (JWT propio, localStorage) ──
 const ADMIN_TOKEN_KEY = 'omnidrive_admin_token';
@@ -439,7 +440,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
                     <span className={`text-xs px-2 py-0.5 rounded-lg ${v.available ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>{v.available ? 'Disponible' : 'Rentado'}</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-white">${Number(v.pricePerDay).toFixed(0)}/día</p>
+                    <p className="text-sm font-bold text-white">{formatearDinero(v.pricePerDay, { decimales: false })}/día</p>
                     <p className="text-xs text-slate-500">{v.rating > 0 ? '★ ' + v.rating.toFixed(1) : 'Nuevo'}</p>
                   </div>
                 </div>

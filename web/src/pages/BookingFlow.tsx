@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from '@/lib/router-exports';
 import { Car, ChevronRight, Check, FileText, MessageCircle, ChevronDown, ChevronUp, User, Shield, AlertTriangle, Clock, ScanFace } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vehicles as vehiclesApi, bookings as bookingsApi } from '@/lib/api';
+import { formatearDinero } from '@/lib/money';
 import { useAuthStore } from '@/lib/store';
 import VerificationModal from '@/components/VerificationModal';
 
@@ -19,11 +20,13 @@ export default function BookingFlow() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [cotizacion, setCotizacion] = useState<any>(null);
+  const [cotizando, setCotizando] = useState(false);
   const [booking, setBooking] = useState<any>(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
-  const fmt = (n: number) => `$${n.toFixed(2)}`;
+
 
   // ── Verification gate ──
   const isVerified = user?.identityVerified === true;
@@ -45,15 +48,22 @@ export default function BookingFlow() {
   );
   if (!vehicle) return null;
 
-  // ── Price calc ──
-  const ms = new Date(endAt).getTime() - new Date(startAt).getTime();
-  const hours = ms / 3600000;
-  const days = Math.ceil(hours / 24) || 1;
-  const base = days >= 1
-    ? days * Number(vehicle.pricePerDay)
-    : Math.ceil(hours) * Number(vehicle.pricePerHour);
-  const total = base;
-  const deposit = Number(vehicle.deposit);
+
+  useEffect(() => {
+    if (!vehicleId || !startAt || !endAt || new Date(endAt) <= new Date(startAt)) {
+      setCotizacion(null);
+      return;
+    }
+    setCotizando(true);
+    const t = setTimeout(() => {
+      bookingsApi
+        .cotizar({ vehicleId, startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString() })
+        .then(r => setCotizacion(r.data.data))
+        .catch(() => setCotizacion(null))
+        .finally(() => setCotizando(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [vehicleId, startAt, endAt]);
 
   // ── Submit booking ──
   const handleSubmit = async () => {
@@ -113,7 +123,11 @@ export default function BookingFlow() {
 
       <div className="bg-slate-800 rounded-xl p-4">
         <p className="text-xs text-slate-500 mb-1">Duración</p>
-        <p className="text-sm font-medium text-white">{days} día{days !== 1 ? 's' : ''} ({Math.round(hours)} horas)</p>
+        <p className="text-sm font-medium text-white">
+          {cotizacion
+            ? `${cotizacion.diasCobrados} día${cotizacion.diasCobrados !== 1 ? 's' : ''} (${cotizacion.horasCobradas} horas)`
+            : '—'}
+        </p>
       </div>
 
       {/* Disclaimer — colapsable */}
@@ -186,19 +200,47 @@ export default function BookingFlow() {
         </label>
       </div>
 
-      {/* Price */}
+      {/* Precio: lo cotiza el servidor, que es quien cobra */}
       <div className="bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
-        <div className="flex justify-between text-slate-300">
-          <span>{fmt(Number(vehicle.pricePerDay))}/día × {days} día{days !== 1 ? 's' : ''}</span>
-          <span>{fmt(base)}</span>
-        </div>
-        <div className="flex justify-between font-bold text-white border-t border-slate-700 pt-2">
-          <span>Total (pagas al dueño)</span><span>{fmt(total)}</span>
-        </div>
-        {deposit > 0 && (
-          <div className="flex justify-between text-slate-500 text-xs border-t border-slate-700/50 pt-2">
-            <span>Depósito reembolsable (acordar con el dueño)</span><span>{fmt(deposit)}</span>
-          </div>
+        {cotizando && <p className="text-slate-400">Calculando el precio…</p>}
+
+        {!cotizando && cotizacion && (
+          <>
+            <div className="flex justify-between text-slate-300">
+              <span>
+                {cotizacion.tarifaAplicada === 'dias'
+                  ? `${cotizacion.diasCobrados} día${cotizacion.diasCobrados !== 1 ? 's' : ''}`
+                  : `${cotizacion.horasCobradas} hora${cotizacion.horasCobradas !== 1 ? 's' : ''}`}
+              </span>
+              <span>{formatearDinero(cotizacion.baseAmount)}</span>
+            </div>
+
+            {cotizacion.driverFee > 0 && (
+              <div className="flex justify-between text-slate-300">
+                <span>Chofer</span><span>{formatearDinero(cotizacion.driverFee)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between font-bold text-white border-t border-slate-700 pt-2">
+              <span>Total (pagas al dueño)</span>
+              <span>{formatearDinero(cotizacion.totalAmount)}</span>
+            </div>
+
+            {cotizacion.deposit > 0 && (
+              <div className="flex justify-between text-slate-500 text-xs border-t border-slate-700/50 pt-2">
+                <span>Depósito reembolsable (acordar con el dueño)</span>
+                <span>{formatearDinero(cotizacion.deposit)}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 pt-1">
+              Se aplica la tarifa que te sale más barata entre horas y días.
+            </p>
+          </>
+        )}
+
+        {!cotizando && !cotizacion && (
+          <p className="text-slate-400">Elige las fechas para ver el precio.</p>
         )}
       </div>
 
@@ -302,7 +344,7 @@ export default function BookingFlow() {
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-2.5">
                   <p className="text-slate-500">Duración</p>
-                  <p className="text-white font-medium">{days} día{days !== 1 ? 's' : ''}</p>
+                  <p className="text-white font-medium">{cotizacion ? `${cotizacion.diasCobrados} día${cotizacion.diasCobrados !== 1 ? 's' : ''}` : '—'}</p>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-2.5">
                   <p className="text-slate-500">Inicio</p>

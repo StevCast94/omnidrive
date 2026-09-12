@@ -87,6 +87,10 @@ export const bookings = {
   list: (params?: any) => api.get('/bookings', { params }),
   get: (id: string) => api.get(`/bookings/${id}`),
   create: (d: any) => api.post('/bookings', d),
+  // El desglose lo calcula el servidor: el front no vuelve a tener su propia
+  // formula de precios.
+  cotizar: (d: { vehicleId: string; startAt: string; endAt: string; withDriver?: boolean }) =>
+    api.post('/bookings/cotizar', d),
   confirm: (id: string, d?: any) => api.put(`/bookings/${id}/confirm`, d),
   cancel: (id: string) => api.put(`/bookings/${id}/cancel`),
   start: (id: string) => api.put(`/bookings/${id}/start`),
@@ -113,6 +117,7 @@ export const reviewsApi = {
 // export const subscriptions = { ... }
 
 export const metrics = {
+  config: () => api.get('/metrics/config'),
   // Cifras reales para la portada. Antes estaban escritas a mano en Home.tsx.
   publicas: () => api.get('/metrics/public'),
 };

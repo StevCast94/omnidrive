@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { haySesion } from '@/lib/session';
+import { metrics } from '@/lib/api';
+import { usePais } from '@/lib/money';
 import { auth } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import Layout from '@/components/Layout';
@@ -186,6 +188,13 @@ function NavigateHome() {
 
 export default function App() {
   const { setUser, clearUser } = useAuthStore();
+  const setPais = usePais(s => s.setPais);
+
+  // Que pais sirve esta instancia decide moneda, prefijo telefonico y si aqui
+  // se acepta pasaporte. Se pregunta una vez al arrancar.
+  useEffect(() => {
+    metrics.config().then(r => setPais(r.data.data)).catch(() => { /* se queda el valor por defecto */ });
+  }, []);
 
   useEffect(() => {
     // Con sesion guardada se pide el perfil; el interceptor de api.ts renueva

@@ -11,7 +11,9 @@
     "start": "sh entry.sh",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:generate": "npx prisma generate",
-    "db:migrate": "npx prisma migrate deploy"
+    "db:migrate": "npx prisma migrate deploy",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
@@ -38,6 +40,7 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.0",
     "@types/web-push": "^3.6.4",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.0"
   }
 }

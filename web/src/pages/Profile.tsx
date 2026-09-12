@@ -2,6 +2,7 @@
 import { User, BadgeCheck, Star, Car, Shield, Upload, Plus, ChevronRight, ScanFace, CheckCircle, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth as authApi, vehicles as vehiclesApi } from '@/lib/api';
+import { formatearDinero, centavosAInput, usePais } from '@/lib/money';
 import { useAuthStore } from '@/lib/store';
 import { PhoneInput } from '@/components/PhoneInput';
 import VerificationModal from '@/components/VerificationModal';
@@ -11,6 +12,7 @@ type Tab = typeof TABS[number];
 
 export default function Profile() {
   const { user, updateUser } = useAuthStore();
+  const pais = usePais(s => s.pais);
 
   // Parse query params manually (no react-router-dom dependency)
   useEffect(() => {
@@ -379,7 +381,7 @@ export default function Profile() {
                         className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${v.available ? 'text-green-400 border-green-500/20 bg-green-500/10 hover:bg-green-500/20' : 'text-slate-400 border-slate-700 bg-slate-800 hover:bg-slate-700'}`}>
                         {v.available ? 'Disponible' : 'No disponible'}
                       </button>
-                      <span className="text-xs text-slate-400">${Number(v.pricePerDay).toFixed(0)}/día</span>
+                      <span className="text-xs text-slate-400">{formatearDinero(v.pricePerDay, { decimales: false })}/día</span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -448,7 +450,7 @@ export default function Profile() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {[['Precio/hora ($)', 'pricePerHour'], ['Precio/día ($)', 'pricePerDay'], ['Depósito ($)', 'deposit']].map(([l, k]) => (
+                {[[`Precio/hora (${pais.currencySymbol})`, 'pricePerHour'], [`Precio/día (${pais.currencySymbol})`, 'pricePerDay'], [`Depósito (${pais.currencySymbol})`, 'deposit']].map(([l, k]) => (
                   <div key={k}>
                     <label className="block text-xs text-slate-400 mb-1">{l}</label>
                     <input type="number" step="0.01" value={(vehicleForm as any)[k]} onChange={e => vSet(k, e.target.value)}

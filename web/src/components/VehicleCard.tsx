@@ -4,6 +4,7 @@ import { Star, MapPin, Users, Car } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import clsx from 'clsx';
+import { formatearDinero } from '@/lib/money';
 
 interface Props {
   vehicle: any;
@@ -164,7 +165,7 @@ function CardContent({ v, compact }: { v: any; compact: boolean }) {
           </div>
           <div className="text-right">
             <span className="text-sm font-bold text-white">
-              ${Number(v.pricePerDay).toFixed(0)}
+              {formatearDinero(v.pricePerDay, { decimales: false })}
             </span>
             <span className="text-xs text-slate-500">/día</span>
           </div>

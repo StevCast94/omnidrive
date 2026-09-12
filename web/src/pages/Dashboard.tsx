@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from '@/lib/router-exports';
 import { Plus, Car, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, Star } from 'lucide-react';
 import { bookings as bookingsApi, vehicles as vehiclesApi } from '@/lib/api';
+import { formatearDinero } from '@/lib/money';
 import { useAuthStore } from '@/lib/store';
 import VehicleCard from '@/components/VehicleCard';
 import toast from 'react-hot-toast';
@@ -32,7 +33,7 @@ function BookingRow({ b, onClick }: { b: any; onClick: () => void }) {
           {new Date(b.startAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} -{' '}
           {new Date(b.endAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
-        <p className="text-xs text-slate-400 mt-0.5 font-medium">${Number(b.totalAmount).toFixed(2)}</p>
+        <p className="text-xs text-slate-400 mt-0.5 font-medium">{formatearDinero(b.totalAmount)}</p>
       </div>
       <div className="flex flex-col items-end gap-2">
         <span className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${cfg.color}`}>

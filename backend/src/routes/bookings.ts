@@ -4,27 +4,46 @@ import { authenticate, requireVerified, AuthRequest } from '../middleware/auth';
 import { uploadToStorage } from '../lib/storage';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { calcularDuracion, calcularReserva } from '../services/pricing';
+import { getCountry } from '../config/country';
+import { env } from '../config/env';
 
 export const bookingsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-function calcDuration(startAt: Date, endAt: Date): { hours: number; days: number } {
-  const ms = endAt.getTime() - startAt.getTime();
-  const hours = ms / (1000 * 60 * 60);
-  const days = hours / 24;
-  return { hours, days };
-}
+const pais = getCountry(env.COUNTRY_CODE);
 
-function calcBase(pricePerHour: number, pricePerDay: number, hours: number, days: number): number {
-  const effectiveDays = days >= 0.84 ? Math.ceil(days || 1) : Math.ceil(hours) / 24;
-  if (effectiveDays >= 1) {
-    const flooredDays = Math.floor(effectiveDays);
-    return flooredDays * pricePerHour * 24 <= flooredDays * pricePerDay
-      ? Math.ceil(effectiveDays) * pricePerDay
-      : Math.ceil(hours) * pricePerHour;
+// POST /api/bookings/cotizar — el desglose SIN crear la reserva.
+// Existe para que el frontend no recalcule el precio por su cuenta: cuando hay
+// dos formulas, tarde o temprano discrepan y el usuario ve un total y le
+// cobran otro.
+bookingsRouter.post('/cotizar', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { vehicleId, startAt, endAt, withDriver } = req.body;
+  if (!vehicleId || !startAt || !endAt) {
+    return res.status(400).json({ data: null, error: 'vehicleId, startAt y endAt son obligatorios' });
   }
-  return Math.ceil(hours) * pricePerHour;
-}
+
+  const inicio = new Date(startAt);
+  const fin = new Date(endAt);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+    return res.status(400).json({ data: null, error: 'Fechas inválidas' });
+  }
+  if (fin <= inicio) return res.status(400).json({ data: null, error: 'La devolución debe ser posterior a la entrega' });
+
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { pricePerHour: true, pricePerDay: true, driverPrice: true, deposit: true, currency: true, withDriver: true },
+  });
+  if (!vehicle) return res.status(404).json({ data: null, error: 'Vehículo no encontrado' });
+
+  const desglose = calcularReserva(
+    vehicle,
+    calcularDuracion(inicio, fin),
+    { conChofer: Boolean(withDriver) && vehicle.withDriver }
+  );
+
+  return res.json({ data: { ...desglose, currency: vehicle.currency }, error: null });
+}));
 
 // GET /api/bookings
 bookingsRouter.get('/', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -93,11 +112,18 @@ bookingsRouter.post('/', authenticate, requireVerified, asyncHandler(async (req:
   });
   if (conflict) return res.status(409).json({ data: null, error: 'Vehicle not available for those dates' });
 
-  const { hours, days } = calcDuration(start, end);
-  const baseAmount = calcBase(Number(vehicle.pricePerHour), Number(vehicle.pricePerDay), hours, days);
-  const driverFee = withDriver && vehicle.withDriver ? Number(vehicle.driverPrice ?? 0) * Math.ceil(days || 1) : 0;
-  const totalAmount = baseAmount + driverFee;
-  const deposit = Number(vehicle.deposit);
+  // Todo en centavos enteros. El desglose sale de services/pricing.ts, que
+  // cobra la mas barata de las dos tarifas del dueno.
+  const desglose = calcularReserva(
+    {
+      pricePerHour: vehicle.pricePerHour,
+      pricePerDay: vehicle.pricePerDay,
+      driverPrice: vehicle.driverPrice,
+      deposit: vehicle.deposit,
+    },
+    calcularDuracion(start, end),
+    { conChofer: Boolean(withDriver) && vehicle.withDriver }
+  );
 
   const booking = await prisma.booking.create({
     data: {
@@ -105,13 +131,14 @@ bookingsRouter.post('/', authenticate, requireVerified, asyncHandler(async (req:
       tenantId: req.user!.id,
       startAt: start,
       endAt: end,
-      withDriver: Boolean(withDriver),
-      baseAmount,
-      driverFee,
-      insuranceFee: 0,
-      serviceFee: 0,
-      totalAmount,
-      deposit,
+      withDriver: Boolean(withDriver) && vehicle.withDriver,
+      baseAmount: desglose.baseAmount,
+      driverFee: desglose.driverFee,
+      insuranceFee: desglose.insuranceFee,
+      serviceFee: desglose.serviceFee,
+      totalAmount: desglose.totalAmount,
+      deposit: desglose.deposit,
+      currency: vehicle.currency,
       hasInsurance: false,
       insuranceDetails: {
         type: 'disclaimer_p2p',

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { bookings as bookingsApi, reviewsApi, tracking } from '@/lib/api';
+import { formatearDinero } from '@/lib/money';
 import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 
@@ -124,7 +125,7 @@ export default function BookingDetail() {
         </div>
         <div className="ml-auto text-right">
           <p className="text-xs text-slate-500">Total</p>
-          <p className="font-bold text-white">${Number(booking.totalAmount).toFixed(2)}</p>
+          <p className="font-bold text-white">{formatearDinero(booking.totalAmount)}</p>
         </div>
       </div>
 
@@ -180,7 +181,7 @@ export default function BookingDetail() {
             ? '✅ Incluye seguro (SOAT/privado)'
             : '⚠️ Sin seguro verificado'],
           ['Chofer', booking.withDriver ? 'Sí' : 'No'],
-          ['Depósito', `$${Number(booking.deposit).toFixed(2)}`],
+          ['Depósito', formatearDinero(booking.deposit)],
           ['Estado pago', booking.paymentStatus],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between text-sm">

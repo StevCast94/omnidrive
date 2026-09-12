@@ -3,8 +3,39 @@ import { prisma } from '../lib/prisma';
 import { adminAuth } from '../middleware/adminAuth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { env } from '../config/env';
+import { getCountry } from '../config/country';
+
+const pais = getCountry(env.COUNTRY_CODE);
 
 export const metricsRouter = Router();
+
+// GET /api/metrics/config — lo que el frontend necesita saber del pais que
+// sirve esta instancia. Sin esto, el front tendria que adivinar la moneda, el
+// prefijo telefonico o si aqui se acepta pasaporte.
+metricsRouter.get('/config', (_req: Request, res: Response) => {
+  res.json({
+    data: {
+      code: pais.code,
+      name: pais.name,
+      flag: pais.flag,
+      locale: pais.locale,
+      currency: pais.currency,
+      currencySymbol: pais.currencySymbol,
+      acceptedCurrencies: pais.acceptedCurrencies,
+      taxName: pais.taxName,
+      taxRate: pais.taxRate,
+      phonePrefix: pais.phonePrefix,
+      mobilePrefixes: pais.mobilePrefixes,
+      documentTypes: pais.documentTypes,
+      cities: pais.cities,
+      pilotArea: pais.pilotArea,
+      dataProtectionLaw: pais.dataProtectionLaw,
+      // Para que el front sepa si pintar el boton de Google.
+      googleEnabled: Boolean(env.GOOGLE_CLIENT_ID),
+    },
+    error: null,
+  });
+});
 
 // GET /api/metrics/public — lo unico que puede ver cualquiera.
 // Alimenta el selector de pais y las cifras de la portada, que hoy estan
@@ -19,7 +50,7 @@ metricsRouter.get('/public', asyncHandler(async (_req: Request, res: Response) =
 
   res.json({
     data: {
-      country: env.COUNTRY_CODE,
+      country: pais.code,
       vehicles_active: vehiclesActive,
       // Porcentaje real, no el 100% fijo de la portada.
       verified_pct: usersTotal > 0 ? Math.round((usersVerified / usersTotal) * 100) : 0,

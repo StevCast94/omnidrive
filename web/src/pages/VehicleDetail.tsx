@@ -5,6 +5,7 @@ import {
   Car, ChevronLeft, ChevronRight, Calendar, UserCheck, BadgeCheck, MessageCircle, User
 } from 'lucide-react';
 import { vehicles as vehiclesApi } from '@/lib/api';
+import { formatearDinero } from '@/lib/money';
 import ContactModal from '@/components/ContactModal';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
@@ -26,7 +27,7 @@ export default function VehicleDetail() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
 
-  // Check-in / Check-out � desde el vehículo
+  // Check-in / Check-out — desde el vehículo
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const checkInHour = vehicle?.checkInTime || '14:00';
@@ -150,7 +151,7 @@ export default function VehicleDetail() {
                   <Star size={16} className="text-yellow-400 fill-yellow-400" />
                   <span className="font-semibold text-white">{vehicle.rating > 0 ? vehicle.rating.toFixed(1) : 'Nuevo'}</span>
                 </div>
-                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} rese�as</p>
+                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} rese—as</p>
               </div>
             </div>
 
@@ -191,13 +192,13 @@ export default function VehicleDetail() {
             </div>
           )}
 
-          {/* Insurance � obligatorio en todos los vehículos */}
+          {/* Insurance — obligatorio en todos los vehículos */}
           <div className="rounded-xl p-4 border flex items-start gap-3 bg-green-500/5 border-green-500/20">
             <Shield size={18} className="text-green-400 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-white">Seguro obligatorio incluido</p>
               <p className="text-xs text-slate-400 mt-0.5">
-                Este vehículo cuenta con seguro contratado por el propietario. En caso de cualquier inconveniente, la cobertura es responsabilidad del propietario y su aseguradora. OmniDrive act�a únicamente como plataforma de conexión entre arrendatario y propietario.
+                Este vehículo cuenta con seguro contratado por el propietario. En caso de cualquier inconveniente, la cobertura es responsabilidad del propietario y su aseguradora. OmniDrive actúa únicamente como plataforma de conexión entre arrendatario y propietario.
               </p>
             </div>
           </div>
@@ -230,7 +231,7 @@ export default function VehicleDetail() {
               <div className="ml-auto text-right">
                 <p className="text-xs text-slate-500">Miembro desde</p>
                 <p className="text-xs text-slate-400">
-                  {vehicle.owner?.createdAt ? new Date(vehicle.owner.createdAt).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }) : '�'}
+                  {vehicle.owner?.createdAt ? new Date(vehicle.owner.createdAt).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }) : '—'}
                 </p>
               </div>
             </div>
@@ -239,7 +240,7 @@ export default function VehicleDetail() {
           {/* Reviews */}
           {vehicle.reviews?.length > 0 && (
             <div>
-              <h3 className="font-semibold text-white mb-4">Rese�as recientes</h3>
+              <h3 className="font-semibold text-white mb-4">Reseñas recientes</h3>
               <div className="space-y-4">
                 {vehicle.reviews.map((r: any) => (
                   <div key={r.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -265,21 +266,21 @@ export default function VehicleDetail() {
           )}
         </div>
 
-        {/* Right column � Booking widget */}
+        {/* Right column — Booking widget */}
         <div className="lg:col-span-1">
           <div className="sticky top-20 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
             {/* Price */}
             <div>
-              <span className="text-3xl font-bold text-white">${Number(vehicle.pricePerDay).toFixed(0)}</span>
+              <span className="text-3xl font-bold text-white">{formatearDinero(vehicle.pricePerDay, { decimales: false })}</span>
               <span className="text-slate-400 text-sm">/día</span>
               {vehicle.pricePerHour && (
-                <p className="text-xs text-slate-500 mt-0.5">${Number(vehicle.pricePerHour).toFixed(0)}/hora</p>
+                <p className="text-xs text-slate-500 mt-0.5">{formatearDinero(vehicle.pricePerHour, { decimales: false })}/hora</p>
               )}
             </div>
 
             {!isOwner && (
               <>
-                {/* Date pickers � Check-in / Check-out como hoteles */}
+                {/* Date pickers — Check-in / Check-out como hoteles */}
                 <div className="space-y-3">
                   {/* Check-in */}
                   <div>
@@ -294,7 +295,7 @@ export default function VehicleDetail() {
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
                       {isFlexible ? (
-                        <span className="text-green-400">Horario flexible � acuerdas con el dueño</span>
+                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
                       ) : (
                         <>Disponible desde las <span className="text-indigo-400 font-medium">{checkInHour}</span></>
                       )}
@@ -314,7 +315,7 @@ export default function VehicleDetail() {
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <p className="text-xs text-slate-500 mt-1 ml-1">
                       {isFlexible ? (
-                        <span className="text-green-400">Horario flexible � acuerdas con el dueño</span>
+                        <span className="text-green-400">Horario flexible — acuerdas con el dueño</span>
                       ) : (
                         <>Debes devolverlo antes de las <span className="text-indigo-400 font-medium">{checkOutHour}</span></>
                       )}
@@ -326,11 +327,11 @@ export default function VehicleDetail() {
                     <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-700/50">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>Inicio</span>
-                        <span className="text-white font-medium">{formatDateLong(startDate)}{!isFlexible ? ` � ${checkInHour}` : ''}</span>
+                        <span className="text-white font-medium">{formatDateLong(startDate)}{!isFlexible ? ` — ${checkInHour}` : ''}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-slate-400 mt-1.5">
                         <span>Fin</span>
-                        <span className="text-white font-medium">{formatDateLong(endDate)}{!isFlexible ? ` � ${checkOutHour}` : ''}</span>
+                        <span className="text-white font-medium">{formatDateLong(endDate)}{!isFlexible ? ` — ${checkOutHour}` : ''}</span>
                       </div>
                       <div className="border-t border-slate-700/50 mt-2 pt-2 flex items-center justify-between text-xs">
                         <span className="text-slate-500">Duración</span>
@@ -346,18 +347,21 @@ export default function VehicleDetail() {
                 {startDate && endDate && nights > 0 && (
                   <div className="bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
                     <div className="flex justify-between text-slate-300">
-                      <span>${Number(vehicle.pricePerDay).toFixed(0)} � {nights} día{nights !== 1 ? 's' : ''}</span>
-                      <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
+                      <span>{formatearDinero(vehicle.pricePerDay, { decimales: false })} × {nights} día{nights !== 1 ? 's' : ''}</span>
+                      <span>{formatearDinero(nights * Number(vehicle.pricePerDay))}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-white border-t border-slate-700 pt-2">
-                      <span>Total (pagas al dueño)</span>
-                      <span>${(nights * Number(vehicle.pricePerDay)).toFixed(2)}</span>
+                      <span>Estimado</span>
+                      <span>{formatearDinero(nights * Number(vehicle.pricePerDay))}</span>
                     </div>
                     {Number(vehicle.deposit) > 0 && (
                       <p className="text-xs text-slate-500">
-                        + ${Number(vehicle.deposit).toFixed(2)} dep�sito (reembolsable)
+                        + {formatearDinero(vehicle.deposit)} de depósito (reembolsable)
                       </p>
                     )}
+                    <p className="text-xs text-slate-500">
+                      El total exacto se calcula al reservar: se aplica la tarifa que salga más barata.
+                    </p>
                   </div>
                 )}
 
