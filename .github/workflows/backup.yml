@@ -39,6 +39,11 @@ jobs:
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18 jq
+          # El runner ya trae pg_dump 16 en /usr/bin y gana en el PATH: lo adelantamos.
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+
+      - name: Confirmar version del cliente
+        run: pg_dump --version
 
       - name: Generar dump completo (esquema + datos)
         env:
