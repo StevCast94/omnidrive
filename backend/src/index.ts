@@ -124,14 +124,11 @@ app.use('/assets', express.static(path.join(publicDir, 'assets'), {
 // Other static files (favicon, manifest, etc.)
 app.use(express.static(publicDir, {
   maxAge: '1h',
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('index.html')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-    }
-  },
+  // index: false es lo que hace que "/" NO se sirva directamente desde disco.
+  // Si se sirve, se entrega el index.html compilado tal cual y las etiquetas
+  // de vista previa del pais —que inyecta la ruta comodin de mas abajo— nunca
+  // llegan a aplicarse.
+  index: false,
 }));
 
 // El index.html se prepara UNA vez al arrancar, con las etiquetas de vista
