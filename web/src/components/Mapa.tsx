@@ -196,7 +196,14 @@ export default function Mapa({
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-slate-800 ${className}`} style={{ height: alto }}>
-      <div ref={contenedor} className="absolute inset-0" />
+      {/* Estilo en linea, no solo la clase 'absolute' de Tailwind: el propio
+          CSS de MapLibre trae '.maplibregl-map { position: relative }', y como
+          su hoja de estilos se inyecta mas tarde (Mapa.tsx se carga con
+          React.lazy), gana el empate de especificidad y pisa la utilidad de
+          Tailwind. El contenedor queda con posicion 'relative' y sin nada que
+          le de altura, se colapsa a 0px y el mapa desaparece sin ningun error:
+          el canvas se sigue creando, solo que en un lienzo de alto cero. */}
+      <div ref={contenedor} className="absolute inset-0" style={{ position: 'absolute', inset: 0 }} />
       {onElegirPunto && (
         <p className="absolute top-3 left-3 z-10 rounded-lg bg-slate-900/90 px-3 py-1.5 text-xs text-slate-300 pointer-events-none">
           Toca el mapa para marcar dónde está el vehículo
