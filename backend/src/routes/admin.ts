@@ -140,6 +140,15 @@ adminRouter.put('/users/:id/role', adminAuth, requireSuperAdmin, asyncHandler(as
 
 adminRouter.put('/users/:id/verify', adminAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { verified, notes } = req.body;
+  // Exigir un booleano explicito. Antes, un PUT sin cuerpo dejaba verified en
+  // undefined, se trataba como rechazo y borraba selfie y documentos: el boton
+  // "Aprobar" del detalle hacia exactamente eso.
+  if (typeof verified !== 'boolean') {
+    return res.status(400).json({ data: null, error: 'Falta "verified" (true o false)' });
+  }
+  if (!verified && !String(notes ?? '').trim()) {
+    return res.status(400).json({ data: null, error: 'Para rechazar hay que indicar el motivo' });
+  }
   const updated = await prisma.user.update({
     where: { id: req.params.id as string },
     data: { identityVerified: verified, selfieUrl: verified ? undefined : null, documentFrontUrl: verified ? undefined : null, documentBackUrl: verified ? undefined : null, verificationNotes: notes || null, verifiedBy: req.user!.id, verifiedAt: verified ? new Date() : undefined },

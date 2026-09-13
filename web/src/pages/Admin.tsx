@@ -269,7 +269,7 @@ function AdminDashboard({ admin, onLogout }: { admin: any; onLogout: () => void 
   const verifyUserDetail = async (id: string) => {
     setVerifyLoading(true);
     try {
-      const res = await adminFetch('/users/' + id + '/verify', { method: 'PUT' });
+      const res = await adminFetch('/users/' + id + '/verify', { method: 'PUT', body: JSON.stringify({ verified: true }) });
       if (res.data?.autoValidation) {
         const auto = res.data.autoValidation;
         if (auto.valid) toast.success('Verificado. Cedula validada con Registro Civil ✅');
