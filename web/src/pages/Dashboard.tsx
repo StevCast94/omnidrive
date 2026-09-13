@@ -80,7 +80,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Hola, {user?.name} ??</p>
+          <p className="text-slate-400 text-sm mt-0.5">Hola, {user?.name} 👋</p>
         </div>
         <button onClick={() => navigate('/profile?tab=vehicle')}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition-colors">
@@ -137,7 +137,7 @@ export default function Dashboard() {
           {tab === 'tenant' && (
             <div className="space-y-3">
               {tenantBookings.length === 0 ? (
-                <Empty text="A-n no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar vehículos" />
+                <Empty text="Aún no has realizado ninguna reserva" action={() => navigate('/vehicles')} actionLabel="Explorar vehículos" />
               ) : tenantBookings.map(b => (
                 <BookingRow key={b.id} b={b} onClick={() => navigate(`/bookings/${b.id}`)} />
               ))}
@@ -159,7 +159,7 @@ export default function Dashboard() {
           {tab === 'vehicles' && (
             <div>
               {myVehicles.length === 0 ? (
-                <Empty text="A-n no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
+                <Empty text="Aún no tienes vehículos publicados" action={() => navigate('/profile?tab=vehicle')} actionLabel="Publicar vehículo" />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {myVehicles.map(v => <VehicleCard key={v.id} vehicle={v} onClick={() => navigate('/profile?tab=vehicle')} />)}

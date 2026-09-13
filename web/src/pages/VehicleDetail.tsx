@@ -151,7 +151,7 @@ export default function VehicleDetail() {
                   <Star size={16} className="text-yellow-400 fill-yellow-400" />
                   <span className="font-semibold text-white">{vehicle.rating > 0 ? vehicle.rating.toFixed(1) : 'Nuevo'}</span>
                 </div>
-                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} rese—as</p>
+                <p className="text-xs text-slate-500">{vehicle.reviews?.length ?? 0} reseñas</p>
               </div>
             </div>
 
@@ -285,7 +285,7 @@ export default function VehicleDetail() {
                   {/* Check-in */}
                   <div>
                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                      ?? Check-in
+                      📅 Check-in
                       <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
                     </label>
                     <input type="date"
@@ -305,7 +305,7 @@ export default function VehicleDetail() {
                   {/* Check-out */}
                   <div>
                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                      ?? Check-out
+                      📅 Check-out
                       <span className="text-indigo-400 font-normal normal-case">selecciona fecha</span>
                     </label>
                     <input type="date"
