@@ -192,7 +192,7 @@ const routes: Route[] = [
 function PantallaCargando() {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <LogoMark className="w-16 text-[#00b1ff]" animated />
+      <div className="w-16"><LogoMark className="text-[#00b1ff]" animated /></div>
     </div>
   );
 }

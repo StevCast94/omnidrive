@@ -15,7 +15,7 @@ export default function NoEncontrada() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
       <div className="text-center max-w-md">
-        <LogoMark className="w-16 mx-auto mb-6 text-[#00b1ff] opacity-40" />
+        <div className="w-16 mx-auto mb-6"><LogoMark className="text-[#00b1ff] opacity-40" /></div>
 
         <h1 className="text-2xl font-bold text-white">Esta página no existe</h1>
 

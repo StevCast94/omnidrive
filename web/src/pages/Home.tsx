@@ -80,7 +80,7 @@ export default function Home() {
             <span className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 text-base md:text-lg font-semibold text-white shadow-[0_0_30px_rgba(6,182,212,0.12)]">
               {/* El isotipo, no una bandera: en Windows los emoji de bandera
                   no tienen glifo y se ven como "EC". */}
-              <LogoMark className="w-7 md:w-8 shrink-0 text-[#00b1ff]" animated />
+              <div className="w-7 md:w-8 shrink-0"><LogoMark className="text-[#00b1ff]" animated /></div>
               <span>La comunidad de movilidad de <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{pais.name}</span></span>
             </span>
           </div>
