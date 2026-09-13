@@ -60,7 +60,15 @@ export function validarPassword(password: string): string | null {
  * usuario sin esperar a que caduque.
  */
 const ACCESS_TTL = '15m';
-const REFRESH_DIAS = 30;
+// La sesion es "permanente" en el dispositivo: el plazo se renueva con cada
+// uso, asi que solo caduca tras un año entero sin abrir la app. Se cierra
+// antes solo si la persona sale, cambia la contraseña o se revocan todas.
+const REFRESH_DIAS = 365;
+
+// Margen para un token recien rotado. Dos pestañas que renuevan a la vez, o
+// una respuesta que se pierde en el movil, dejan al cliente con el token
+// anterior; sin este margen eso cerraba la sesion sin que nadie saliera.
+const GRACIA_ROTACION_MS = 2 * 60 * 1000;
 
 export interface AccessPayload {
   sub: string;   // User.id
@@ -118,12 +126,33 @@ export async function rotarRefreshToken(
     },
   });
 
-  if (!registro || registro.revokedAt || registro.expiresAt < new Date()) return null;
+  if (!registro || registro.expiresAt < new Date()) return null;
+
+  if (registro.revokedAt) {
+    const hace = Date.now() - registro.revokedAt.getTime();
+    if (hace > GRACIA_ROTACION_MS) return null;
+    // Solo cuenta como rotacion si se emitio un sucesor en ese mismo instante.
+    // Un cierre de sesion o "cerrar todas" revoca sin sucesor: ahi no hay margen.
+    const sucesor = await prisma.refreshToken.findFirst({
+      where: {
+        userId: registro.userId,
+        id: { not: registro.id },
+        createdAt: {
+          gte: new Date(registro.revokedAt.getTime() - 5000),
+          lte: new Date(registro.revokedAt.getTime() + 5000),
+        },
+      },
+      select: { id: true },
+    });
+    if (!sucesor) return null;
+  }
 
   const nuevo = crypto.randomBytes(48).toString('base64url');
   await prisma.$transaction([
-    prisma.refreshToken.update({
-      where: { id: registro.id },
+    // Dentro del margen de gracia el token ya estaba revocado: no se toca,
+    // para no mover la marca de tiempo y alargar el margen indefinidamente.
+    prisma.refreshToken.updateMany({
+      where: { id: registro.id, revokedAt: null },
       data: { revokedAt: new Date() },
     }),
     prisma.refreshToken.create({

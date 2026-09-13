@@ -1,6 +1,6 @@
 ﻿// ===== web/src/lib/api.ts =====
 import axios from 'axios';
-import { getAccessToken, renovarSesion, borrarSesion } from './session';
+import { getAccessToken, getRefreshToken, renovarSesion } from './session';
 
 // Use same-origin /api in production (Railway), explicit URL for local dev
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -46,10 +46,12 @@ api.interceptors.response.use(
         return api(original);
       }
 
-      borrarSesion();
-      // Recarga completa a proposito: la sesion caduco, y empezar de cero
-      // deja la aplicacion sin restos del usuario anterior.
-      if (window.location.pathname !== '/login') {
+      // Solo se manda a /login si la sesion se rechazo de verdad: renovarSesion
+      // borra el refresh token en ese caso. Sin red o con el servidor
+      // reiniciando, el token sigue ahi y la peticion falla sin echar a nadie.
+      if (!getRefreshToken() && window.location.pathname !== '/login') {
+        // Recarga completa a proposito: empezar de cero deja la aplicacion
+        // sin restos del usuario anterior.
         window.location.assign('/login');
       }
     }

@@ -1,7 +1,8 @@
 // ===== web/src/lib/session.ts =====
 // Sesion contra el auth propio de OmniDrive.
 //
-// El access token dura 15 minutos y el refresh 30 dias y rota en cada uso.
+// El access token dura 15 minutos y el refresh un año, renovable con cada uso
+// y rotado cada vez: en la practica la sesion no se cierra sola.
 // Aqui vive toda la logica de guardarlos y renovarlos, para que el resto de
 // la app no sepa nada de tokens.
 
@@ -39,10 +40,22 @@ export function haySesion(): boolean {
 // ellas, que las invalidaria unas a otras.
 let renovacionEnCurso: Promise<string | null> | null = null;
 
+// Entre pestañas: el candado del navegador pone en fila las renovaciones, y
+// quien entra despues comprueba si otra pestaña ya dejo un token nuevo.
+async function conCandado<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = (navigator as any).locks;
+  return locks?.request ? locks.request('omnidrive-renovar-sesion', fn) : fn();
+}
+
 export function renovarSesion(baseUrl: string): Promise<string | null> {
   if (renovacionEnCurso) return renovacionEnCurso;
+  const accessQueFallo = getAccessToken();
 
-  renovacionEnCurso = (async () => {
+  renovacionEnCurso = conCandado(async () => {
+    // Otra pestaña renovo mientras esperabamos el candado: usar lo suyo.
+    const actual = getAccessToken();
+    if (actual && actual !== accessQueFallo) return actual;
+
     const refreshToken = getRefreshToken();
     if (!refreshToken) return null;
 
@@ -54,7 +67,15 @@ export function renovarSesion(baseUrl: string): Promise<string | null> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
       });
-      if (!res.ok) { borrarSesion(); return null; }
+      if (!res.ok) {
+        // Solo un rechazo real cierra la sesion. Un 502 durante un despliegue
+        // o un 429 no dicen nada del token: se conserva y se reintenta luego.
+        if (res.status !== 401 && res.status !== 400) return null;
+        // Si otra pestaña roto el token entretanto, no borrar lo que dejo.
+        if (getRefreshToken() !== refreshToken) return getAccessToken();
+        borrarSesion();
+        return null;
+      }
 
       const { data } = await res.json();
       if (!data?.accessToken) { borrarSesion(); return null; }
@@ -65,10 +86,8 @@ export function renovarSesion(baseUrl: string): Promise<string | null> {
       // Fallo de red: NO se borra la sesion. Quedarse sin internet un momento
       // no deberia echar al usuario de su cuenta.
       return null;
-    } finally {
-      renovacionEnCurso = null;
     }
-  })();
+  }).finally(() => { renovacionEnCurso = null; });
 
   return renovacionEnCurso;
 }
