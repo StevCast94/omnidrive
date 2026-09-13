@@ -15,3 +15,7 @@ tmp-photos/
 # Tenerlo en git hacia que el index.html commiteado (apuntando a un bundle
 # viejo) pisara al recien construido, y el sitio servia codigo antiguo.
 backend/public/
+
+# El worker de MapLibre se copia a public/assets en cada build/install
+# (web/scripts/copiar-worker-mapa.mjs); no se commitea una copia de node_modules.
+web/public/assets/

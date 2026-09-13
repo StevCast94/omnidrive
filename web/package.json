@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/copiar-worker-mapa.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "prebuild": "node scripts/copiar-worker-mapa.mjs",
+    "preview": "vite preview",
+    "postinstall": "node scripts/copiar-worker-mapa.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^2.7.1",
