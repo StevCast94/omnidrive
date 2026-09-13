@@ -7,6 +7,7 @@ import Mapa from '@/components/Mapa';
 import { useAuthStore } from '@/lib/store';
 import { PhoneInput } from '@/components/PhoneInput';
 import VerificationModal from '@/components/VerificationModal';
+import AceptarLegales from '@/components/AceptarLegales';
 
 const TABS = ['Perfil', 'Vehículos', 'Verificación'] as const;
 type Tab = typeof TABS[number];
@@ -45,6 +46,9 @@ export default function Profile() {
   const [customFeature, setCustomFeature] = useState('');
   const [saving, setSaving] = useState(false);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+  // Publicar un vehiculo exige tener los legales al dia (el servidor tambien
+  // lo comprueba); editar uno ya publicado no genera una obligacion nueva.
+  const [legalAlDia, setLegalAlDia] = useState(true);
   const [vehicleFormPhotos, setVehicleFormPhotos] = useState<File[]>([]);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
   const [showVerification, setShowVerification] = useState(false);
@@ -642,11 +646,13 @@ export default function Profile() {
                 </label>
               </div>
 
+              {!editingVehicle && <AceptarLegales onCambio={setLegalAlDia} />}
+
               <div className="flex gap-2">
                 <button onClick={() => { setShowVehicleForm(false); setEditingVehicle(null); setVehicleFormPhotos([]); }} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm text-slate-300 transition-colors">
                   Cancelar
                 </button>
-                <button onClick={createVehicle} disabled={saving || !vehicleForm.brand || !vehicleForm.plate || !vehicleForm.pricePerDay}
+                <button onClick={createVehicle} disabled={saving || !vehicleForm.brand || !vehicleForm.plate || !vehicleForm.pricePerDay || (!editingVehicle && !legalAlDia)}
                   className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors">
                   {saving ? 'Guardando...' : editingVehicle ? 'Guardar cambios' : 'Publicar vehículo'}
                 </button>

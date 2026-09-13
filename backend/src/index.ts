@@ -45,7 +45,11 @@ app.use(helmet({
       // ...ORIGENES: el selector de pais lee las metricas publicas del otro
       // pais. Permitirlo en CORS no basta; el navegador tambien lo bloquea
       // por CSP si no esta aqui.
-      connectSrc: ["'self'", ...ORIGENES, "https://accounts.google.com/gsi/", "https://*.googleusercontent.com", "https://res.cloudinary.com"],
+      // Las teselas del mapa tambien van aqui, no solo en imgSrc: MapLibre las
+      // pide con fetch() para poder decodificarlas, y eso lo controla
+      // connect-src. Sin esto el mapa se queda en un recuadro vacio y sin
+      // ningun error visible en la consola.
+      connectSrc: ["'self'", ...ORIGENES, "https://accounts.google.com/gsi/", "https://*.googleusercontent.com", "https://res.cloudinary.com", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org"],
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
