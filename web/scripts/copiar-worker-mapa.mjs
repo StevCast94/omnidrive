@@ -19,10 +19,16 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const origen = join(aqui, '..', 'node_modules', 'maplibre-gl', 'dist', 'maplibre-gl-worker.mjs');
-const destino = join(aqui, '..', 'public', 'assets', 'maplibre-gl-worker.mjs');
+const dist = join(aqui, '..', 'node_modules', 'maplibre-gl', 'dist');
+const destino = join(aqui, '..', 'public', 'assets');
+await mkdir(destino, { recursive: true });
 
-await mkdir(dirname(destino), { recursive: true });
-await copyFile(origen, destino);
+// El worker importa maplibre-gl-shared.mjs con su propio nombre literal: si
+// falta cualquiera de los dos, el navegador intenta cargar un modulo que no
+// existe, la ruta comodin lo resuelve con el index.html (200, pero HTML) y
+// falla con un error de MIME type que no menciona el mapa para nada.
+for (const archivo of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) {
+  await copyFile(join(dist, archivo), join(destino, archivo));
+}
 
 console.log('Worker de MapLibre copiado a public/assets/');
