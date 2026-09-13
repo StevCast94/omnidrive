@@ -8,6 +8,7 @@ import {
 import { vehicles as vehiclesApi, metrics } from '@/lib/api';
 import { usePais } from '@/lib/money';
 import { LogoMark } from '@/components/ui/Logo';
+import FondoHero from '@/components/FondoHero';
 import VehicleCard from '@/components/VehicleCard';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { Button } from '@/components/ui/Button';
@@ -54,13 +55,10 @@ export default function Home() {
       <section className="relative overflow-hidden pt-32 pb-20 md:pb-28 lg:pt-44 lg:pb-32 min-h-[88vh] flex items-center">
         {/* Fondo */}
         <div className="absolute inset-0 z-0">
-          {/* Foto: movilidad + libertad + ruta abierta */}
-          <img
-            src="/hero-photo.jpg"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover object-center scale-105 animate-[float_18s_ease-in-out_infinite]"
-          />
+          {/* Fotos del país activo, rotando: movilidad + libertad + ruta
+              abierta, pero del país que se está mirando, no una foto
+              genérica igual para los dos pilotos. */}
+          <FondoHero paisCode={pais.code} />
           {/* Capas para integrar la foto al tema slate y dar legibilidad */}
           <div className="absolute inset-0 bg-slate-950/40" />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-950/30 to-slate-950" />
