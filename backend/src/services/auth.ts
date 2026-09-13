@@ -131,20 +131,9 @@ export async function rotarRefreshToken(
   if (registro.revokedAt) {
     const hace = Date.now() - registro.revokedAt.getTime();
     if (hace > GRACIA_ROTACION_MS) return null;
-    // Solo cuenta como rotacion si se emitio un sucesor en ese mismo instante.
-    // Un cierre de sesion o "cerrar todas" revoca sin sucesor: ahi no hay margen.
-    const sucesor = await prisma.refreshToken.findFirst({
-      where: {
-        userId: registro.userId,
-        id: { not: registro.id },
-        createdAt: {
-          gte: new Date(registro.revokedAt.getTime() - 5000),
-          lte: new Date(registro.revokedAt.getTime() + 5000),
-        },
-      },
-      select: { id: true },
-    });
-    if (!sucesor) return null;
+    // Un cierre de sesion no llega hasta aqui: ademas de revocar, vence el
+    // token (expiresAt = ahora) y lo rechaza la comprobacion de arriba. Lo
+    // unico revocado y aun vigente es un token rotado.
   }
 
   const nuevo = crypto.randomBytes(48).toString('base64url');
@@ -171,8 +160,9 @@ export async function rotarRefreshToken(
 
 export async function revocarRefreshToken(token: string): Promise<void> {
   await prisma.refreshToken.updateMany({
-    where: { tokenHash: hashToken(token), revokedAt: null },
-    data: { revokedAt: new Date() },
+    where: { tokenHash: hashToken(token), expiresAt: { gt: new Date() } },
+    // Vencerlo tambien lo deja fuera del margen de gracia de la rotacion.
+    data: { revokedAt: new Date(), expiresAt: new Date() },
   });
 }
 
@@ -180,8 +170,9 @@ export async function revocarRefreshToken(token: string): Promise<void> {
 export async function revocarTodasLasSesiones(userId: string): Promise<void> {
   await prisma.$transaction([
     prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
+      // Todos, tambien los rotados hace segundos: si no, seguirian en gracia.
+      where: { userId, expiresAt: { gt: new Date() } },
+      data: { revokedAt: new Date(), expiresAt: new Date() },
     }),
     prisma.user.update({
       where: { id: userId },
