@@ -6,6 +6,7 @@ import AvisoPais from './AvisoPais';
 import { useAuthStore } from '@/lib/store';
 import { usePais } from '@/lib/money';
 import { Link } from '@/lib/router-exports';
+import SincronoBadge from './SincronoBadge';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
@@ -36,6 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/legal/cancelacion" className="text-slate-400 hover:text-white transition-colors">Cancelación</Link>
             <Link to="/paises" className="text-slate-400 hover:text-white transition-colors">Cambiar de país</Link>
           </nav>
+          <SincronoBadge className="text-slate-400 w-full justify-center sm:w-auto" />
         </div>
       </footer>
 
